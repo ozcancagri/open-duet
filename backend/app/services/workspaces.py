@@ -19,5 +19,5 @@ def canonical_workspace(root: str = "") -> Path:
 def require_workspace(path: Path) -> Path:
     # Existing conversations must never silently recreate or switch folders.
     if not path.is_dir() or not os.access(path, os.R_OK | os.W_OK | os.X_OK):
-        raise OSError("The conversation's workspace is missing or inaccessible. Restore access to its original folder to continue.")
+        raise OSError("Sohbetin çalışma klasörü bulunamıyor ya da erişilemiyor. Devam etmek için özgün klasörüne erişimi geri getirin.")
     return path

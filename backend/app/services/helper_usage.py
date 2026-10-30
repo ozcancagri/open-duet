@@ -17,7 +17,7 @@ from app.services import memory_journal
 logger = get_logger(__name__)
 
 MAX_ROWS = 4_000
-JOBS = {"compaction": "summary of a long conversation", "memory": "memory upkeep"}
+JOBS = {"compaction": "uzun bir sohbetin özeti", "memory": "bellek bakımı"}
 
 
 def _path():

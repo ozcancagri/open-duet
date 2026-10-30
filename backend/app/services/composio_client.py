@@ -123,11 +123,11 @@ class ComposioClient:
             ) as client:
                 response = await client.request(method, self._base + path, json=body, params=params)
         except httpx.HTTPError:
-            raise ComposioError("unavailable", "Could not reach Composio. Check your connection and try again.") from None
+            raise ComposioError("unavailable", "Composio'ya ulaşılamadı. Bağlantınızı kontrol edip yeniden deneyin.") from None
         if len(response.content) > MAX_RESPONSE_BYTES:
-            raise ComposioError("bad_response", "Composio sent an unexpectedly large response.")
+            raise ComposioError("bad_response", "Composio beklenmedik derecede büyük bir yanıt gönderdi.")
         if 300 <= response.status_code < 400:
-            raise ComposioError("bad_response", "Composio answered with a redirect, which this app does not follow.")
+            raise ComposioError("bad_response", "Composio bir yönlendirmeyle yanıt verdi; bu uygulama yönlendirmeleri izlemez.")
         if response.status_code >= 400:
             raise self._failure(response)
         if response.status_code == 204 or not response.content:
@@ -135,7 +135,7 @@ class ComposioClient:
         try:
             return response.json()
         except ValueError:
-            raise ComposioError("bad_response", "Composio sent a response this app cannot read.") from None
+            raise ComposioError("bad_response", "Composio bu uygulamanın okuyamadığı bir yanıt gönderdi.") from None
 
     def _failure(self, response: httpx.Response) -> ComposioError:
         try:
@@ -149,16 +149,16 @@ class ComposioClient:
         if status == 401:
             # Composio can report a scoped permission denial as a generic 401,
             # so the settings layer must not imply that the key itself is bad.
-            return ComposioError("key_rejected", detail or "Composio did not accept this key.")
+            return ComposioError("key_rejected", detail or "Composio bu anahtarı kabul etmedi.")
         if status == 403:
-            return ComposioError("permission_denied", detail or "Composio denied this key's permissions.")
+            return ComposioError("permission_denied", detail or "Composio bu anahtarın izinlerini reddetti.")
         if status == 404:
-            return ComposioError("not_found", detail or "Composio could not find that.")
+            return ComposioError("not_found", detail or "Composio bunu bulamadı.")
         if status == 429:
-            return ComposioError("rate_limited", "Composio is rate limiting requests. Try again in a minute.")
+            return ComposioError("rate_limited", "Composio istekleri sınırlıyor. Bir dakika sonra yeniden deneyin.")
         if status >= 500:
-            return ComposioError("unavailable", "Composio had a problem. Try again shortly.")
-        return ComposioError("rejected", detail or "Composio refused the request.")
+            return ComposioError("unavailable", "Composio'da bir sorun oluştu. Birazdan yeniden deneyin.")
+        return ComposioError("rejected", detail or "Composio isteği reddetti.")
 
     async def create_session(self, user_id: str) -> str:
         body = {
@@ -169,7 +169,7 @@ class ComposioClient:
         result = await self._request("POST", "/tool_router/session", body=body)
         session_id = result.get("session_id") if isinstance(result, dict) else None
         if not isinstance(session_id, str) or not _ID.match(session_id):
-            raise ComposioError("bad_response", "Composio did not return a session.")
+            raise ComposioError("bad_response", "Composio bir oturum döndürmedi.")
         return session_id
 
     async def link(self, session_id: str, toolkit: str, alias: str) -> Link:
@@ -180,7 +180,7 @@ class ComposioClient:
         url = trusted_link(result.get("redirect_url"))
         account_id = result.get("connected_account_id")
         if url is None or not isinstance(account_id, str) or not _ID.match(account_id):
-            raise ComposioError("bad_response", "Composio returned a connect link this app will not open.")
+            raise ComposioError("bad_response", "Composio bu uygulamanın açmayacağı bir bağlantı adresi döndürdü.")
         return Link(redirect_url=url, account_id=account_id)
 
     async def accounts(self, user_id: str, toolkit: str | None = None) -> list[Account]:
@@ -210,7 +210,7 @@ class ComposioClient:
         """Run one Composio tool as the account. `data` is Composio's raw answer: the
         caller trims it before anything is shown, and it is never logged."""
         if not _ID.match(session_id) or not _SLUG.match(tool_slug) or not _ID.match(account_id):
-            raise ComposioError("rejected", "This call was not sent.")
+            raise ComposioError("rejected", "Bu çağrı gönderilmedi.")
         result = await self._request(
             "POST", f"/tool_router/session/{session_id}/execute", timeout=EXECUTE_TIMEOUT_SECONDS,
             body={"tool_slug": tool_slug, "arguments": arguments, "account": account_id},
@@ -227,5 +227,5 @@ class ComposioClient:
 
     async def delete_account(self, account_id: str) -> None:
         if not _ID.match(account_id):
-            raise ComposioError("not_found", "Composio could not find that account.")
+            raise ComposioError("not_found", "Composio bu hesabı bulamadı.")
         await self._request("DELETE", f"/connected_accounts/{account_id}", params={"revoke_on_delete": "true"})

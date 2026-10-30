@@ -107,7 +107,7 @@ async def test_routes_need_local_access(scheduler):
 
 async def test_create_list_edit_pause_resume_delete(api, agent):
     created = await make(api, agent)
-    assert created["summary"] == "Mon–Fri at 09:00 (Europe/Berlin)"
+    assert created["summary"] == "Pzt–Cum, saat 09:00 (Europe/Berlin)"
     assert len(created["next_dates"]) == 3 and created["next_run_at"] is not None
     assert created["webhook_enabled"] is False and created["latest_run"] is None
 
@@ -116,7 +116,7 @@ async def test_create_list_edit_pause_resume_delete(api, agent):
 
     edited = await api.patch(f"/api/v1/routines/{created['id']}", json={"name": "Evening check",
                              "schedule_spec": {"days": [0], "time": "18:30"}})
-    assert edited.status_code == 200 and edited.json()["summary"] == "Sun at 18:30 (Europe/Berlin)"
+    assert edited.status_code == 200 and edited.json()["summary"] == "Paz, saat 18:30 (Europe/Berlin)"
 
     paused = (await api.post(f"/api/v1/routines/{created['id']}/pause")).json()
     assert paused["paused"] is True and paused["next_run_at"] is None
@@ -142,10 +142,10 @@ async def test_preview_gives_a_summary_and_three_dates(api):
         "schedule_kind": "cron", "schedule_spec": {"expression": "*/15 * * * *"}, "timezone": "UTC",
     })
     body = response.json()
-    assert response.status_code == 200 and body["summary"] == "Every 15 minutes (UTC)"
+    assert response.status_code == 200 and body["summary"] == "Her 15 dakikada bir (UTC)"
     assert len(body["next_dates"]) == 3
     bad = await api.post("/api/v1/routines/preview", json={"schedule_kind": "interval", "schedule_spec": {"every_minutes": 2}})
-    assert bad.status_code == 422 and "from 5" in bad.json()["detail"]["message"]
+    assert bad.status_code == 422 and "5 ile" in bad.json()["detail"]["message"]
 
 
 async def test_run_now_runs_and_shows_in_history_with_its_conversation(api, agent, scheduler, sessions):

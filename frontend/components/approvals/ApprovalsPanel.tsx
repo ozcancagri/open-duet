@@ -7,9 +7,9 @@ import { DecisionLog } from "./DecisionLog";
 import { HealthScan } from "./HealthScan";
 
 const TABS = [
-  { id: "rules", label: "Always allowed" },
-  { id: "decisions", label: "Decisions" },
-  { id: "health", label: "Health" },
+  { id: "rules", label: "Her zaman izinli" },
+  { id: "decisions", label: "Kararlar" },
+  { id: "health", label: "Sağlık" },
 ] as const;
 
 type Tab = (typeof TABS)[number]["id"];
@@ -61,7 +61,7 @@ export function ApprovalsPanel({
   onClose: () => void;
 }) {
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }} title="Approvals" size="wide">
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }} title="Onaylar" size="wide">
       <ApprovalsTabs threadId={threadId} workspace={workspace} />
     </Dialog>
   );

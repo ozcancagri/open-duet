@@ -72,13 +72,13 @@ _NPM_REAL_BINARY = Path("node_modules") / "@anthropic-ai" / "claude-code" / "bin
 _STATUS_TIMEOUT_SECONDS = 20
 
 _NOT_FOUND = (
-    "Claude CLI not found. Install Claude Code, or set LOCAL_CLAUDE_CLI_PATH "
-    "to the full path of the real claude executable."
+    "Claude CLI bulunamadı. Claude Code'u kurun ya da LOCAL_CLAUDE_CLI_PATH değerini "
+    "gerçek claude çalıştırılabilir dosyasının tam yolu yapın."
 )
 # The desktop app has no .env to point at (D-012): it names what it does read.
 _NOT_FOUND_DESKTOP = (
-    "Claude CLI not found. Install Claude Code, or choose its executable in Settings, "
-    "then choose Check again."
+    "Claude CLI bulunamadı. Claude Code'u kurun ya da Ayarlar'da çalıştırılabilir dosyasını seçin, "
+    "sonra Yeniden kontrol et'i seçin."
 )
 
 # stream-json repeats the answer (deltas, snapshots, final result) and adds
@@ -393,7 +393,7 @@ def run_blocking(
     else:
         popen_kwargs["start_new_session"] = True
 
-    host_exec.ensure_allowed("an engine process")
+    host_exec.ensure_allowed("motor süreci")
     env = _child_env()
     if sandbox:
         from app.core import turn_sandbox
@@ -632,7 +632,7 @@ def _status_blocking() -> CliStatus:
 
     version = call("--version")
     if version.exit_code != 0:
-        return CliStatus(installed=False, error="The Claude CLI did not start.")
+        return CliStatus(installed=False, error="Claude CLI başlamadı.")
 
     status = CliStatus(installed=True, version=version.stdout.strip() or None)
     auth = call("auth", "status", "--json")
@@ -644,15 +644,15 @@ def _status_blocking() -> CliStatus:
         method = said.get("authMethod")
     except (json.JSONDecodeError, AttributeError):
         status.signed_in = None
-        status.error = "Could not determine whether Claude is signed in."
+        status.error = "Claude'da giriş yapılıp yapılmadığı anlaşılamadı."
         return status
     if "ANTHROPIC_API_KEY" in _engine_env.get() and method != "api_key":
         # API mode: a turn must be billed to the key, never to a sign-in.
         status.signed_in = False
-        status.error = "Claude is not using the saved API key. Check the key in engine settings."
+        status.error = "Claude kayıtlı API anahtarını kullanmıyor. Anahtarı motor ayarlarında kontrol edin."
         return status
     if not status.signed_in:
-        status.error = "Claude is not signed in. Open engine settings to sign in."
+        status.error = "Claude'da giriş yapılmamış. Giriş yapmak için motor ayarlarını açın."
     return status
 
 
@@ -681,7 +681,7 @@ def _run_blocking(
         require_workspace(workspace)
     executable = resolve_claude_executable()
     if executable is None:
-        raise ClaudeCliUnavailable("Claude CLI not found.")
+        raise ClaudeCliUnavailable("Claude CLI bulunamadı.")
     if tools is None:
         tools = control is not None
     extra = {"resume": True} if resume else {}

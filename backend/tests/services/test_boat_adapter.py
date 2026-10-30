@@ -136,7 +136,7 @@ async def test_a_missing_sign_in_is_a_clear_error_and_starts_nothing():
     boxes = FakeBoxes(signed_in=())
     outcome = await adapter(boxes).run_turn(context(), Sink(), None)
     assert outcome.status == "failed" and outcome.error_code == "engine_signed_out"
-    assert "Connect your Claude account" in outcome.error
+    assert "Claude hesabınızı" in outcome.error
     assert boxes.ensure_calls == [] and boxes.commands == []
     probe = await adapter(boxes).probe()
     assert not probe.ready and probe.signed_in is False and probe.reason == outcome.error

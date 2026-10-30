@@ -7,6 +7,12 @@ import { BUTTON, FIELD_BOX } from "./styles";
 
 const PAGE = 50;
 
+const MODE_LABELS: Record<string, string> = {
+  ask: "önce sor",
+  accept_edits: "düzenlemeleri kabul et",
+  plan: "yalnız plan",
+};
+
 // The decision log, newest first: what Claude asked to do and how each request
 // was settled. Read-only; filter by event and conversation, page back, export.
 export function DecisionLog({ threadId = null }: { threadId?: number | null }) {
@@ -32,7 +38,7 @@ export function DecisionLog({ threadId = null }: { threadId?: number | null }) {
         setError(null);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not load the decision log.");
+        if (!cancelled) setError(err instanceof ApiError ? err.message : "Karar kaydı yüklenemedi.");
       });
     return () => {
       cancelled = true;
@@ -47,7 +53,7 @@ export function DecisionLog({ threadId = null }: { threadId?: number | null }) {
       setItems((prev) => [...(prev ?? []), ...page.items]);
       setNext(page.next_before);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load older entries.");
+      setError(err instanceof ApiError ? err.message : "Daha eski kayıtlar yüklenemedi.");
     } finally {
       setBusy(false);
     }
@@ -65,7 +71,7 @@ export function DecisionLog({ threadId = null }: { threadId?: number | null }) {
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not export the log.");
+      setError(err instanceof ApiError ? err.message : "Kayıt dışa aktarılamadı.");
     } finally {
       setBusy(false);
     }
@@ -75,12 +81,12 @@ export function DecisionLog({ threadId = null }: { threadId?: number | null }) {
     <div className="space-y-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
         <select
-          aria-label="Event"
+          aria-label="Olay"
           value={event}
           onChange={(e) => setEvent(e.target.value as DecisionEvent | "")}
           className={`${FIELD_BOX} w-auto`}
         >
-          <option value="">Every event</option>
+          <option value="">Tüm olaylar</option>
           {DECISION_EVENTS.map((e) => (
             <option key={e.value} value={e.value}>
               {e.label}
@@ -88,28 +94,28 @@ export function DecisionLog({ threadId = null }: { threadId?: number | null }) {
           ))}
         </select>
         <input
-          aria-label="Conversation number"
+          aria-label="Sohbet numarası"
           inputMode="numeric"
-          placeholder="Conversation #"
+          placeholder="Sohbet no"
           value={thread}
           onChange={(e) => setThread(e.target.value)}
           className={`${FIELD_BOX} w-36`}
         />
         <button className={BUTTON} onClick={() => setTick((n) => n + 1)} disabled={busy}>
-          Refresh
+          Yenile
         </button>
         <button className={BUTTON} onClick={exportCsv} disabled={busy}>
-          Export CSV
+          CSV olarak dışa aktar
         </button>
       </div>
       <p className="text-xs text-muted">
-        Summaries are one line with anything that looks like a secret removed; a call&apos;s full input is never
-        logged. The export is redacted again and safe to open in a spreadsheet.
+        Özetler tek satırdır ve gizli bilgiye benzeyen her şey çıkarılır; bir çağrının tam girdisi asla kaydedilmez.
+        Dışa aktarılan dosya yeniden temizlenir ve bir hesap tablosunda güvenle açılabilir.
       </p>
       {error && <p role="alert" className="text-xs text-danger">{error}</p>}
-      {items === null && !error && <p className="text-xs text-muted">Loading…</p>}
+      {items === null && !error && <p className="text-xs text-muted">Yükleniyor…</p>}
       {items !== null && items.length === 0 && (
-        <p className="rounded-md bg-inset px-3 py-3 text-xs text-muted">Nothing logged yet.</p>
+        <p className="rounded-md bg-inset px-3 py-3 text-xs text-muted">Henüz kayıt yok.</p>
       )}
       {items !== null && items.length > 0 && (
         <ul className="divide-y divide-line rounded-md border border-line">
@@ -118,9 +124,9 @@ export function DecisionLog({ threadId = null }: { threadId?: number | null }) {
               <p className="break-words text-xs">{decisionText(entry)}</p>
               <p className="mt-0.5 text-xs text-muted">
                 <span className="rounded bg-inset px-1.5 py-0.5">{decisionEventLabel(entry.event)}</span>{" "}
-                {new Date(entry.at).toLocaleString()}
-                {entry.thread_id != null && <> · conversation {entry.thread_id}</>}
-                {entry.mode && <> · {entry.mode.replace("_", " ")}</>}
+                {new Date(entry.at).toLocaleString("tr-TR")}
+                {entry.thread_id != null && <> · sohbet {entry.thread_id}</>}
+                {entry.mode && <> · {MODE_LABELS[entry.mode] ?? entry.mode.replace("_", " ")}</>}
               </p>
             </li>
           ))}
@@ -128,7 +134,7 @@ export function DecisionLog({ threadId = null }: { threadId?: number | null }) {
       )}
       {next && (
         <button className={BUTTON} onClick={older} disabled={busy}>
-          {busy ? "Loading…" : "Load older"}
+          {busy ? "Yükleniyor…" : "Daha eskileri yükle"}
         </button>
       )}
     </div>

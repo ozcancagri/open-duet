@@ -150,4 +150,4 @@ async def test_the_mcp_tool_end_to_end_and_disclosure_in_a_room(harness, session
     assert "renews on 3 March" in seen["read"]["content"][0]["text"]
     assert seen["bad"]["isError"] is True
     notices = [m["text"] for m in await rt.rooms.messages(room["id"]) if m.get("kind") == "recall"]
-    assert "Lead recalled 1 message from its private chat with you" in notices
+    assert "Lead, sizinle özel sohbetinden 1 mesajı hatırladı" in notices

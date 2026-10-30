@@ -18,20 +18,20 @@ const FREQUENCIES = ["hourly", "daily", "weekdays", "weekly"] as const;
 type Frequency = (typeof FREQUENCIES)[number];
 
 const FREQUENCY_LABELS: Record<Frequency, string> = {
-  hourly: "Hourly",
-  daily: "Daily",
-  weekdays: "Weekdays (Mon–Fri)",
-  weekly: "Weekly",
+  hourly: "Saatlik",
+  daily: "Günlük",
+  weekdays: "Hafta içi (Pzt–Cum)",
+  weekly: "Haftalık",
 };
 
 const WEEKDAYS = [
-  { value: 0, label: "Sunday" },
-  { value: 1, label: "Monday" },
-  { value: 2, label: "Tuesday" },
-  { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday" },
-  { value: 5, label: "Friday" },
-  { value: 6, label: "Saturday" },
+  { value: 0, label: "Pazar" },
+  { value: 1, label: "Pazartesi" },
+  { value: 2, label: "Salı" },
+  { value: 3, label: "Çarşamba" },
+  { value: 4, label: "Perşembe" },
+  { value: 5, label: "Cuma" },
+  { value: 6, label: "Cumartesi" },
 ];
 
 // Builds a standard 5-field crontab from the simplified UI inputs above.
@@ -53,10 +53,20 @@ function buildCronExpression(frequency: Frequency, time: string, weekday: number
 }
 
 function describeSchedule(schedule: Schedule): string {
-  const next = new Date(schedule.next_run_at).toLocaleString();
-  if (!schedule.is_active) return `Paused · next would be ${next}`;
-  return `Next run ${next}`;
+  const next = new Date(schedule.next_run_at).toLocaleString("tr-TR");
+  if (!schedule.is_active) return `Duraklatıldı · sonraki çalışma ${next} olacaktı`;
+  return `Sonraki çalışma ${next}`;
 }
+
+const STATUS_LABELS: Record<Task["status"], string> = {
+  queued: "sırada",
+  starting: "başlıyor",
+  pending: "bekliyor",
+  running: "çalışıyor",
+  waiting_approval: "onay bekliyor",
+  succeeded: "başarılı",
+  failed: "başarısız",
+};
 
 function statusColor(status: Task["status"]) {
   switch (status) {
@@ -268,7 +278,7 @@ export function SubmitTask({
       setComposerError(
         err instanceof ApiError
           ? err.message
-          : `Could not ${scheduleEnabled ? "create schedule" : "submit task"}.`
+          : scheduleEnabled ? "Zamanlama oluşturulamadı." : "Görev gönderilemedi."
       );
     } finally {
       listVersion.current += 1;
@@ -320,7 +330,7 @@ export function SubmitTask({
     } catch (err) {
       setReplyErrors((prev) => ({
         ...prev,
-        [parent.id]: err instanceof ApiError ? err.message : "Could not send reply.",
+        [parent.id]: err instanceof ApiError ? err.message : "Yanıt gönderilemedi.",
       }));
     } finally {
       listVersion.current += 1;
@@ -346,12 +356,12 @@ export function SubmitTask({
   };
 
   return (
-    <Card step={step} title={canSubmit ? "Submit a task" : "Task history"}>
+    <Card step={step} title={canSubmit ? "Görev gönder" : "Görev geçmişi"}>
       <div className="space-y-3">
         {!canSubmit && (
           <p className="text-sm text-muted">
-            {blockedReason ?? "Connect Claude above to submit new tasks."} Your earlier tasks
-            stay readable below.
+            {blockedReason ?? "Yeni görev göndermek için yukarıdan Claude'u bağlayın."} Önceki görevleriniz
+            aşağıda okunabilir kalır.
           </p>
         )}
         {showComposer && (
@@ -359,8 +369,8 @@ export function SubmitTask({
         <textarea
           value={composer}
           onChange={(e) => setComposer(e.target.value)}
-          placeholder='e.g. "create a webpage that says hello"'
-          aria-label="New task"
+          placeholder='ör. "merhaba yazan bir web sayfası oluştur"'
+          aria-label="Yeni görev"
           rows={3}
           disabled={!canSubmit}
           className="w-full rounded-md border border-line px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
@@ -372,13 +382,13 @@ export function SubmitTask({
             disabled={!canSubmit}
             onChange={(e) => setScheduleEnabled(e.target.checked)}
           />
-          Repeat this on a schedule
+          Bunu bir zamanlamayla tekrarla
         </label>
 
         {scheduleEnabled && (
           <div className="flex flex-wrap items-center gap-2 rounded-md border border-line p-3">
             <select
-              aria-label="How often"
+              aria-label="Ne sıklıkla"
               value={frequency}
               onChange={(e) => setFrequency(e.target.value as Frequency)}
               className="rounded-md border border-line px-2 py-1.5 text-sm"
@@ -392,7 +402,7 @@ export function SubmitTask({
 
             {frequency === "weekly" && (
               <select
-                aria-label="Day of the week"
+                aria-label="Haftanın günü"
                 value={scheduleWeekday}
                 onChange={(e) => setScheduleWeekday(Number(e.target.value))}
                 className="rounded-md border border-line px-2 py-1.5 text-sm"
@@ -408,7 +418,7 @@ export function SubmitTask({
             {frequency !== "hourly" && (
               <input
                 type="time"
-                aria-label={`Time (${timezone})`}
+                aria-label={`Saat (${timezone})`}
                 value={scheduleTime}
                 onChange={(e) => setScheduleTime(e.target.value)}
                 className="rounded-md border border-line px-2 py-1.5 text-sm"
@@ -422,11 +432,11 @@ export function SubmitTask({
         <Button onClick={submitNew} disabled={!canSubmit || composerBusy || !composer.trim()}>
           {composerBusy
             ? scheduleEnabled
-              ? "Creating…"
-              : "Submitting…"
+              ? "Oluşturuluyor…"
+              : "Gönderiliyor…"
             : scheduleEnabled
-              ? "Create schedule"
-              : "Submit task"}
+              ? "Zamanlama oluştur"
+              : "Görevi gönder"}
         </Button>
         <ErrorText message={composerError} />
         </>
@@ -450,7 +460,7 @@ export function SubmitTask({
                     </p>
                     {schedule.paused_reason && (
                       <p className="text-xs text-danger">
-                        Paused: {schedule.paused_reason}
+                        Duraklatıldı: {schedule.paused_reason}
                       </p>
                     )}
                     {!schedule.paused_reason && schedule.last_error && (
@@ -465,14 +475,14 @@ export function SubmitTask({
                       disabled={scheduleBusy[schedule.id]}
                       className="text-xs text-muted underline disabled:opacity-50"
                     >
-                      {schedule.is_active ? "Pause" : "Resume"}
+                      {schedule.is_active ? "Duraklat" : "Sürdür"}
                     </button>
                     <button
                       onClick={() => removeSchedule(schedule)}
                       disabled={scheduleBusy[schedule.id]}
                       className="text-xs text-danger underline disabled:opacity-50"
                     >
-                      Delete
+                      Sil
                     </button>
                   </div>
                 </div>
@@ -501,7 +511,7 @@ export function SubmitTask({
                       #{task.id} {task.prompt_text}
                     </span>
                     <span className={`shrink-0 text-xs ${statusColor(task.status)}`}>
-                      {task.status}
+                      {STATUS_LABELS[task.status] ?? task.status}
                     </span>
                   </button>
 
@@ -521,8 +531,8 @@ export function SubmitTask({
                         <div className="space-y-2 rounded-md border border-warning/50 bg-warning/10 p-3">
                           <p className="text-xs text-ink">
                             {ask
-                              ? `Wants to use: ${ask.tool ?? ask.connector ?? ask.bucket} (bucket: ${ask.bucket}). Allow it?`
-                              : "Waiting on a permission decision…"}
+                              ? `Kullanmak istiyor: ${ask.tool ?? ask.connector ?? ask.bucket} (grup: ${ask.bucket}). İzin verilsin mi?`
+                              : "İzin kararı bekleniyor…"}
                           </p>
                           {ask && (
                             <div className="flex flex-wrap gap-2">
@@ -530,20 +540,20 @@ export function SubmitTask({
                                 onClick={() => answerAsk(task, "allow", false)}
                                 disabled={askBusy[ask.id]}
                               >
-                                Allow once
+                                Bir kez izin ver
                               </Button>
                               <Button
                                 onClick={() => answerAsk(task, "allow", true)}
                                 disabled={askBusy[ask.id]}
                               >
-                                Always allow
+                                Her zaman izin ver
                               </Button>
                               <button
                                 onClick={() => answerAsk(task, "deny", false)}
                                 disabled={askBusy[ask.id]}
                                 className="rounded-md border border-danger/50 px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                Deny
+                                Reddet
                               </button>
                             </div>
                           )}
@@ -551,7 +561,7 @@ export function SubmitTask({
                       )}
 
                       {active && task.status !== "waiting_approval" && (
-                        <p className="text-xs text-muted">Working…</p>
+                        <p className="text-xs text-muted">Çalışıyor…</p>
                       )}
 
                       {!active && showComposer && (
@@ -561,7 +571,7 @@ export function SubmitTask({
                             onChange={(e) =>
                               setReplyDrafts((prev) => ({ ...prev, [task.id]: e.target.value }))
                             }
-                            placeholder="Reply in this conversation…"
+                            placeholder="Bu sohbette yanıtla…"
                             rows={2}
                             disabled={!canSubmit}
                             className="w-full rounded-md border border-line px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
@@ -574,7 +584,7 @@ export function SubmitTask({
                               !(replyDrafts[task.id] ?? "").trim()
                             }
                           >
-                            {replyBusy[task.id] ? "Sending…" : "Reply"}
+                            {replyBusy[task.id] ? "Gönderiliyor…" : "Yanıtla"}
                           </Button>
                           <ErrorText message={replyErrors[task.id] ?? null} />
                         </div>

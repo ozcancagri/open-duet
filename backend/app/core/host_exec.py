@@ -28,4 +28,4 @@ def disabled() -> bool:
 
 def ensure_allowed(what: str) -> None:
     if disabled():
-        raise HostExecutionDisabled(f"This server does not run {what} on its own machine.")
+        raise HostExecutionDisabled(f"Bu sunucu kendi makinesinde şunu çalıştırmaz: {what}.")

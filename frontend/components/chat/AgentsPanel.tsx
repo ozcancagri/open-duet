@@ -196,7 +196,7 @@ export function AgentsPanel({
   }, [onClose]);
 
   const errorText = (err: unknown) =>
-    err instanceof ApiError ? err.message || "That did not work." : err instanceof Error ? err.message : "Could not reach the backend.";
+    err instanceof ApiError ? err.message || "Bu işlem yapılamadı." : err instanceof Error ? err.message : "Arka uca ulaşılamadı.";
 
   const run = async (action: () => Promise<unknown>, done?: () => void) => {
     setBusy(true);
@@ -295,7 +295,7 @@ export function AgentsPanel({
     setError(null);
     try {
       const memory = await api.saveAgentMemory(notes.agent.id, notes.text, overwrite ? null : notes.memory.hash);
-      const saved = memory.redacted > 0 ? `Saved. ${memory.redacted} thing(s) that looked like secrets were replaced.` : "Saved.";
+      const saved = memory.redacted > 0 ? `Kaydedildi. Gizli bilgiye benzeyen ${memory.redacted} öğe değiştirildi.` : "Kaydedildi.";
       setNotes({ ...notes, memory, text: memory.text, conflict: false, saved });
     } catch (err) {
       if (err instanceof ApiError && err.code === "memory_changed") setNotes({ ...notes, conflict: true, saved: null });
@@ -334,10 +334,10 @@ export function AgentsPanel({
     try {
       const result = await api.exportAgent(exporting.agent.id, exporting.includeNotes);
       saveFile(result.file_name, agentFileText(result.document));
-      const left = result.skipped?.length ? ` Left out because the file would be too large: ${result.skipped.join(", ")}.` : "";
+      const left = result.skipped?.length ? ` Dosya çok büyük olacağı için dışarıda bırakılanlar: ${result.skipped.join(", ")}.` : "";
       setExporting({
         ...exporting,
-        notice: (redactionNotice(result.redacted) ?? "Saved. The file has no model, folder, approval mode or conversations.") + left,
+        notice: (redactionNotice(result.redacted) ?? "Kaydedildi. Dosyada model, klasör, onay modu ve sohbetler yok.") + left,
       });
     } catch (err) {
       setError(errorText(err));
@@ -366,21 +366,21 @@ export function AgentsPanel({
   const modeInfo = APPROVAL_MODES.find((m) => m.value === draft?.approval_mode);
   const heading = draft
     ? draft.id === null
-      ? fromTemplate ? `New agent · ${fromTemplate.template.name}` : "New agent"
-      : "Edit agent"
+      ? fromTemplate ? `Yeni ajan · ${fromTemplate.template.name}` : "Yeni ajan"
+      : "Ajanı düzenle"
     : gallery
-      ? "Templates"
+      ? "Şablonlar"
       : notes
-      ? `Notes · ${notes.agent.name}`
+      ? `Notlar · ${notes.agent.name}`
       : exporting
-        ? `Export · ${exporting.agent.name}`
+        ? `Dışa aktar · ${exporting.agent.name}`
         : importing
-          ? "Import agent"
+          ? "Ajan içe aktar"
           : computerOf
-            ? `Computer · ${computerOf.name}`
+            ? `Bilgisayar · ${computerOf.name}`
             : skillsOf
-              ? `Skills · ${skillsOf.name}`
-              : "Agents";
+              ? `Beceriler · ${skillsOf.name}`
+              : "Ajanlar";
   const back = () => {
     setGallery(fromTemplate !== null && draft !== null);
     setFromTemplate(null);
@@ -414,58 +414,58 @@ export function AgentsPanel({
             >
               {draft.id === null && onSetupChat && admin && <AgentSetupEntry agents={agents} engines={engines} onStart={onSetupChat} onCreateLead={() => setRoleChoice({ id: null, value: true })} />}
               <label className="block text-xs text-muted">
-                Name
+                Ad
                 <input
                   autoFocus
                   value={draft.name}
                   maxLength={80}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  placeholder="Code reviewer"
+                  placeholder="Kod gözden geçirici"
                   className={`${FIELD} mt-1`}
                 />
               </label>
               <label className="block text-xs text-muted">
-                Title
+                Unvan
                 <input
                   value={draft.title}
                   maxLength={200}
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                  placeholder="Reviews pull requests before merge"
+                  placeholder="Birleştirmeden önce pull request'leri gözden geçirir"
                   className={`${FIELD} mt-1`}
                 />
               </label>
               <label className="block text-xs text-muted">
-                Description
+                Açıklama
                 <textarea
                   value={draft.description}
                   rows={2}
                   maxLength={4000}
                   onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                  placeholder="For you: what this agent is for. Not sent to Claude."
+                  placeholder="Sizin için: bu ajan ne işe yarar. Claude'a gönderilmez."
                   className={`${FIELD} mt-1 resize-y`}
                 />
               </label>
               <label className="block text-xs text-muted">
-                Instructions
+                Talimatlar
                 <textarea
                   value={draft.instructions}
                   rows={5}
                   onChange={(e) => setDraft({ ...draft, instructions: e.target.value })}
-                  placeholder="How this agent should behave. Added to every conversation it starts."
+                  placeholder="Bu ajan nasıl davranmalı. Başlattığı her sohbete eklenir."
                   className={`${FIELD} mt-1 resize-y`}
                 />
               </label>
               {draft.id === null && (
                 <label className="block text-xs text-muted">
-                  Starter notes
+                  Başlangıç notları
                   <textarea
                     value={draft.starter_notes}
                     rows={3}
                     onChange={(e) => setDraft({ ...draft, starter_notes: e.target.value })}
-                    placeholder={"- The project uses pnpm\n- Releases go out on Fridays"}
+                    placeholder={"- Proje pnpm kullanıyor\n- Sürümler cuma günleri çıkıyor"}
                     className={`${FIELD} mt-1 resize-y font-mono`}
                   />
-                  <span className="mt-1 block">The agent&apos;s first notes (MEMORY.md). It keeps them up to date itself.</span>
+                  <span className="mt-1 block">Ajanın ilk notları (MEMORY.md). Ajan bunları kendisi güncel tutar.</span>
                 </label>
               )}
               {draft.id === null && fromTemplate && fromTemplate.template.skills.length > 0 && (
@@ -477,27 +477,27 @@ export function AgentsPanel({
                 />
               )}
               <EngineModelFields engines={engines} provider={draft.provider} model={draft.model} disabled={busy} hasComputer={agents.some((agent) => agent.id === draft.id && agent.computer != null)} onChange={(provider, model) => setDraft({ ...draft, provider, model })} />
-              <p className="text-xs text-muted">Engine changes apply to new conversations. Existing conversations keep their engine.</p>
+              <p className="text-xs text-muted">Motor değişiklikleri yeni sohbetlerde geçerli olur. Mevcut sohbetler kendi motorlarını korur.</p>
               {admin && <fieldset className="space-y-2 rounded-field border border-line p-3">
-                <legend className="px-1 text-sm font-medium">Team permissions</legend>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isLead} disabled={busy || !team || (!roleSupported && !isLead)} onChange={event => setRoleChoice({ id: draft.id, value: event.target.checked })} />Team lead (Chief of Staff)</label>
-                <p className="text-xs text-muted">Can create and configure specialists, delegate work, and follow up with the agents selected below. Each agent keeps its own approvals. One lead per team; enabling this replaces the current lead.</p>
-                {!team && <p className="text-xs text-warning">Team permissions could not be loaded yet. Reopen Agents to retry.</p>}
-                {!roleSupported && <p className="text-xs text-warning">Choose Claude or Codex to use team tools.</p>}
-                {team?.enabled === false && <p className="text-xs text-warning">Teams are disabled in settings. This role takes effect when Teams are enabled.</p>}
-                {isLead && <div className="space-y-2"><p className="text-xs font-medium">Agents this lead can coordinate</p>{agents.filter(agent => !agent.archived_at && agent.id !== draft.id).map(agent => <label key={agent.id} className="flex items-center gap-2 text-xs"><input type="checkbox" disabled={busy} checked={memberChoices[agent.id] ?? team?.agents.some(member => member.id === agent.id) ?? false} onChange={event => setMemberChoices({ ...memberChoices, [agent.id]: event.target.checked })} />{agent.name}</label>)}<p className="text-xs text-muted">Selection is saved with this agent. Removing the role keeps team membership and existing work.</p></div>}
+                <legend className="px-1 text-sm font-medium">Takım izinleri</legend>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isLead} disabled={busy || !team || (!roleSupported && !isLead)} onChange={event => setRoleChoice({ id: draft.id, value: event.target.checked })} />Takım lideri (genel koordinatör)</label>
+                <p className="text-xs text-muted">Uzman oluşturup yapılandırabilir, aşağıda seçilen ajanlara görev verebilir ve işlerini takip edebilir. Her ajan kendi onaylarını korur. Her takımda bir lider olur; bunu açmak mevcut liderin yerine geçer.</p>
+                {!team && <p className="text-xs text-warning">Takım izinleri henüz yüklenemedi. Yeniden denemek için Ajanlar&apos;ı tekrar açın.</p>}
+                {!roleSupported && <p className="text-xs text-warning">Takım araçlarını kullanmak için Claude veya Codex seçin.</p>}
+                {team?.enabled === false && <p className="text-xs text-warning">Takımlar ayarlarda kapalı. Bu rol, Takımlar açıldığında geçerli olur.</p>}
+                {isLead && <div className="space-y-2"><p className="text-xs font-medium">Bu liderin koordine edebileceği ajanlar</p>{agents.filter(agent => !agent.archived_at && agent.id !== draft.id).map(agent => <label key={agent.id} className="flex items-center gap-2 text-xs"><input type="checkbox" disabled={busy} checked={memberChoices[agent.id] ?? team?.agents.some(member => member.id === agent.id) ?? false} onChange={event => setMemberChoices({ ...memberChoices, [agent.id]: event.target.checked })} />{agent.name}</label>)}<p className="text-xs text-muted">Seçim bu ajanla birlikte kaydedilir. Rolü kaldırmak takım üyeliğini ve mevcut işleri korur.</p></div>}
               </fieldset>}
 
               <label className="block text-xs text-muted">
-                Fallback engine when limited
+                Sınıra takılınca yedek motor
                 <select
-                  aria-label="Fallback engine"
+                  aria-label="Yedek motor"
                   value={draft.fallback_provider && draft.fallback_provider !== draft.provider ? draft.fallback_provider : ""}
                   disabled={busy}
                   onChange={(e) => setDraft({ ...draft, fallback_provider: e.target.value || null, fallback_model: null })}
                   className={`${FIELD} mt-1`}
                 >
-                  <option value="">None</option>
+                  <option value="">Yok</option>
                   {engines.filter((engine) => engine.id !== draft.provider).map((engine) => (
                     <option key={engine.id} value={engine.id}>{engine.label}</option>
                   ))}
@@ -505,29 +505,29 @@ export function AgentsPanel({
               </label>
               {draft.fallback_provider && draft.fallback_provider !== draft.provider && (
                 <label className="block text-xs text-muted">
-                  Fallback model
+                  Yedek model
                   <input
-                    aria-label="Fallback model"
+                    aria-label="Yedek model"
                     value={draft.fallback_model ?? ""}
                     onChange={(e) => setDraft({ ...draft, fallback_model: e.target.value || null })}
-                    placeholder="Engine default"
+                    placeholder="Motorun varsayılanı"
                     maxLength={200}
                     className={`${FIELD} mt-1`}
                   />
                 </label>
               )}
-              <p className="text-xs text-muted">When the engine refuses a message for a usage or rate limit before starting on it, the message goes to the fallback, if it can do everything the turn needs. The conversation shows the switch.</p>
+              <p className="text-xs text-muted">Motor bir mesajı başlamadan önce kullanım sınırı veya istek sınırı nedeniyle reddederse, mesaj yedek motora gider (bu turun gerektirdiği her şeyi yapabiliyorsa). Geçiş sohbette gösterilir.</p>
               <label className="block text-xs text-muted">
-                Workspace folder
+                Çalışma klasörü
                 <input
                   value={draft.workspace_path}
                   onChange={(e) => setDraft({ ...draft, workspace_path: e.target.value })}
-                  placeholder="Leave empty for the agent's own folder"
+                  placeholder="Ajanın kendi klasörü için boş bırakın"
                   className={`${FIELD} mt-1 font-mono`}
                 />
               </label>
               <fieldset className="text-xs text-muted">
-                <legend>Approvals</legend>
+                <legend>Onaylar</legend>
                 <div className="mt-1 flex flex-wrap gap-2">
                   {APPROVAL_MODES.map((mode) => (
                     <label
@@ -552,16 +552,16 @@ export function AgentsPanel({
                 {modeInfo && <p className="mt-2">{modeInfo.description}</p>}
               </fieldset>
               {draft.id !== null && supportsConnectedApps(draft.provider) && <fieldset className="space-y-3 text-xs text-muted">
-                <legend>Connected apps</legend>
+                <legend>Bağlı uygulamalar</legend>
                 {AGENT_APPS.map((app) => <div key={app.slug} className="space-y-1">
                   <p className="text-sm text-ink">{app.label}</p>
                   {((app.write ? ["off", "read", "write"] : ["off", "read"]) as Level[]).map((level) => <label key={level} className="flex cursor-pointer items-start gap-2">
                     <input type="radio" name={`app-${app.slug}`} className="mt-0.5" disabled={busy} checked={levelOf(draft.connector_scopes, app.slug) === level}
                       onChange={() => setDraft({ ...draft, connector_scopes: withApp(draft.connector_scopes, app.slug, level) })} />
-                    <span>{level === "off" ? "Off" : level === "read" ? <>Read only. {app.read}</> : <>Read and change. {app.write}</>}</span>
+                    <span>{level === "off" ? "Kapalı" : level === "read" ? <>Yalnız okuma. {app.read}</> : <>Okuma ve değiştirme. {app.write}</>}</span>
                   </label>)}
                 </div>)}
-                <p>Connect apps first under Settings → Connected apps. Allowed apps are used only in conversations you start, never in routines or from outside messages.</p>
+                <p>Uygulamaları önce Ayarlar → Bağlı uygulamalar bölümünden bağlayın. İzin verilen uygulamalar yalnız sizin başlattığınız sohbetlerde kullanılır; rutinlerde veya dışarıdan gelen mesajlarda asla kullanılmaz.</p>
               </fieldset>}
               <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
                 <input
@@ -569,14 +569,14 @@ export function AgentsPanel({
                   checked={draft.memory_enabled}
                   onChange={() => setDraft({ ...draft, memory_enabled: !draft.memory_enabled })}
                 />
-                Use notes: load this agent&apos;s MEMORY.md into each conversation
+                Notları kullan: bu ajanın MEMORY.md dosyasını her sohbete yükle
               </label>
               <div className="flex gap-2 pt-1">
                 <button type="submit" disabled={busy || draft.name.trim() === ""} className={PRIMARY}>
-                  {busy ? "Saving…" : "Save"}
+                  {busy ? "Kaydediliyor…" : "Kaydet"}
                 </button>
                 <button type="button" onClick={back} disabled={busy} className={BUTTON}>
-                  Cancel
+                  İptal
                 </button>
               </div>
             </form>
@@ -584,7 +584,7 @@ export function AgentsPanel({
             <div className="space-y-3">
               <TemplatesGallery onAdd={addTemplate} />
               <button type="button" onClick={back} className={BUTTON}>
-                Back to agents
+                Ajanlara dön
               </button>
             </div>
           ) : computerOf ? (
@@ -596,14 +596,14 @@ export function AgentsPanel({
                 engineLabel={engines.find((engine) => engine.id === computerOf.provider)?.label ?? computerOf.provider}
               />
               <button onClick={back} className={BUTTON}>
-                Back
+                Geri
               </button>
             </div>
           ) : skillsOf ? (
             <div className="space-y-3">
               <SkillsPanel key={skillsOf.id} agent={skillsOf} />
               <button onClick={back} className={BUTTON}>
-                Back
+                Geri
               </button>
             </div>
           ) : notes ? (
@@ -625,9 +625,9 @@ export function AgentsPanel({
           ) : exporting ? (
             <div className="space-y-3 text-sm">
               <p className="text-muted">
-                Saves this agent as one file you can keep or give to someone. It holds the name, title, description and
-                instructions. Never its model, folder, approval mode or conversations; an imported copy always starts on
-                &quot;Ask first&quot;.
+                Bu ajanı saklayabileceğiniz ya da başkasına verebileceğiniz tek bir dosya olarak kaydeder. Dosyada ad,
+                unvan, açıklama ve talimatlar bulunur. Model, klasör, onay modu ve sohbetler asla bulunmaz; içe aktarılan
+                kopya her zaman &quot;Önce sor&quot; ile başlar.
               </p>
               <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
                 <input
@@ -635,23 +635,23 @@ export function AgentsPanel({
                   checked={exporting.includeNotes}
                   onChange={() => setExporting({ ...exporting, includeNotes: !exporting.includeNotes, notice: null })}
                 />
-                Include its notes (MEMORY.md) as starter notes. Leave off if they hold private details.
+                Notlarını (MEMORY.md) başlangıç notu olarak ekle. Özel bilgi içeriyorsa işaretlemeyin.
               </label>
               {exporting.notice && <p className="text-xs text-muted">{exporting.notice}</p>}
               <div className="flex gap-2">
                 <button onClick={doExport} disabled={busy} className={PRIMARY}>
-                  {busy ? "Saving…" : "Save file"}
+                  {busy ? "Kaydediliyor…" : "Dosyayı kaydet"}
                 </button>
                 <button onClick={back} disabled={busy} className={BUTTON}>
-                  Done
+                  Bitti
                 </button>
               </div>
             </div>
           ) : importing ? (
             <div className="space-y-3 text-sm">
               <p>
-                Add <span className="font-medium">{importing.name}</span> as a new agent. It starts on &quot;Ask first&quot;
-                with the default model and its own folder; a name already in use gets a number.
+                <span className="font-medium">{importing.name}</span> yeni bir ajan olarak eklenecek. &quot;Önce sor&quot; modunda,
+                varsayılan modelle ve kendi klasörüyle başlar; zaten kullanılan bir ada numara eklenir.
               </p>
               {importing.hasNotes && (
                 <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
@@ -660,7 +660,7 @@ export function AgentsPanel({
                     checked={importing.includeNotes}
                     onChange={() => setImporting({ ...importing, includeNotes: !importing.includeNotes })}
                   />
-                  Keep the file&apos;s starter notes
+                  Dosyadaki başlangıç notlarını koru
                 </label>
               )}
               <div className="flex gap-2">
@@ -669,10 +669,10 @@ export function AgentsPanel({
                   disabled={busy}
                   className={PRIMARY}
                 >
-                  {busy ? "Adding…" : "Add agent"}
+                  {busy ? "Ekleniyor…" : "Ajanı ekle"}
                 </button>
                 <button onClick={back} disabled={busy} className={BUTTON}>
-                  Cancel
+                  İptal
                 </button>
               </div>
             </div>
@@ -680,7 +680,7 @@ export function AgentsPanel({
             <>
               {visible.length === 0 ? (
                 <p className="text-sm text-muted">
-                  No agents yet. An agent keeps its own instructions, model, workspace, approval mode and notes.
+                  Henüz ajan yok. Her ajanın kendi talimatları, modeli, çalışma klasörü, onay modu ve notları olur.
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -690,38 +690,38 @@ export function AgentsPanel({
                       <li key={agent.id} className="rounded-md border border-line p-3">
                         <p className="truncate text-sm font-medium">
                           {agent.name}
-                          {agent.pinned && <span className="ml-2 rounded bg-hover px-1.5 text-xs font-normal">pinned</span>}
+                          {agent.pinned && <span className="ml-2 rounded bg-hover px-1.5 text-xs font-normal">sabitlendi</span>}
                           {agent.title && <span className="ml-2 text-xs font-normal text-muted">{agent.title}</span>}
-                          {archived && <span className="ml-2 text-xs font-normal text-muted">archived</span>}
+                          {archived && <span className="ml-2 text-xs font-normal text-muted">arşivlendi</span>}
                         </p>
                         <p className="text-xs text-muted">
                           {engines.find((engine) => engine.id === agent.provider)?.label ?? agent.provider} · {modelLabel(agent.model)} · {approvalModeLabel(agent.approval_mode)}
-                          {agent.memory_enabled === false && " · notes off"}
-                          {agent.memory_enabled !== false && agent.recall_enabled === false && " · recall off"}
-                          {agent.computer && ` · computer: ${computerStateLabel(agent.computer.state).toLowerCase()}`}
+                          {agent.memory_enabled === false && " · notlar kapalı"}
+                          {agent.memory_enabled !== false && agent.recall_enabled === false && " · hatırlama kapalı"}
+                          {agent.computer && ` · bilgisayar: ${computerStateLabel(agent.computer.state).toLocaleLowerCase("tr-TR")}`}
                         </p>
                         {agent.instructions && (
                           <p className="mt-1 line-clamp-2 text-xs text-muted">{agent.instructions}</p>
                         )}
-                        {engines.find((engine) => engine.id === agent.provider)?.available === false && <p className="mt-1 text-xs text-warning">Connect an AI: {engines.find((engine) => engine.id === agent.provider)?.reason} <Link href="/settings/" className="underline">Open engine settings</Link></p>}
+                        {engines.find((engine) => engine.id === agent.provider)?.available === false && <p className="mt-1 text-xs text-warning">Bir yapay zekâ bağlayın: {engines.find((engine) => engine.id === agent.provider)?.reason} <Link href="/settings/" className="underline">Motor ayarlarını aç</Link></p>}
                         <div className="mt-2 flex flex-wrap gap-1">
                           <button onClick={() => { setDraft(toDraft(agent)); setRoleChoice(null); setMemberChoices({}); }} disabled={busy} className={SMALL}>
-                            Edit
+                            Düzenle
                           </button>
                           <button onClick={() => openNotes(agent)} disabled={busy} className={SMALL}>
-                            Notes
+                            Notlar
                           </button>
                           <button onClick={() => setSkillsOf(agent)} disabled={busy} className={SMALL}>
-                            Skills
+                            Beceriler
                           </button>
                           {!archived && (
                             <button onClick={() => setComputerOf(agent)} disabled={busy} className={SMALL}>
-                              Computer
+                              Bilgisayar
                             </button>
                           )}
                           {!archived && (
                             <button onClick={() => run(() => api.duplicateAgent(agent.id))} disabled={busy} className={SMALL}>
-                              Duplicate
+                              Çoğalt
                             </button>
                           )}
                           {!archived && (
@@ -730,7 +730,7 @@ export function AgentsPanel({
                               disabled={busy}
                               className={SMALL}
                             >
-                              {agent.pinned ? "Unpin" : "Pin"}
+                              {agent.pinned ? "Sabitlemeyi kaldır" : "Sabitle"}
                             </button>
                           )}
                           <button
@@ -738,30 +738,30 @@ export function AgentsPanel({
                             disabled={busy}
                             className={SMALL}
                           >
-                            Export
+                            Dışa aktar
                           </button>
                           <button
                             onClick={() => run(() => api.updateAgent(agent.id, { archived: !archived }))}
                             disabled={busy}
                             className={SMALL}
                           >
-                            {archived ? "Restore" : "Archive"}
+                            {archived ? "Geri yükle" : "Arşivle"}
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(agent)}
                             disabled={busy}
                             className={`${SMALL} text-danger`}
                           >
-                            Delete
+                            Sil
                           </button>
                         </div>
                         {deleteConfirm?.id === agent.id && (
                           <div role="alert" className="mt-3 rounded-md border border-danger/50 p-3 text-xs">
-                            <p className="font-medium">Delete {agent.name} permanently?</p>
+                            <p className="font-medium">{agent.name} kalıcı olarak silinsin mi?</p>
                             <p className="mt-1 text-muted">
-                              This removes the agent, its notes and skills, and its computer. Its conversations stay in history
-                              but become unlinked and continue without this agent&apos;s instructions. Its workspace folder stays;
-                              routines assigned to it will fail and pause. This cannot be undone.
+                              Bu işlem ajanı, notlarını, becerilerini ve bilgisayarını siler. Sohbetleri geçmişte kalır, ancak
+                              ajanla bağlantısı kopar ve bu ajanın talimatları olmadan devam eder. Çalışma klasörü yerinde kalır;
+                              bu ajana atanmış rutinler başarısız olur ve duraklatılır. Bu işlem geri alınamaz.
                             </p>
                             <div className="mt-2 flex flex-wrap gap-2">
                               <button
@@ -769,10 +769,10 @@ export function AgentsPanel({
                                 disabled={busy}
                                 className={`${SMALL} border-danger/50 text-danger`}
                               >
-                                {busy ? "Deleting…" : "Delete permanently"}
+                                {busy ? "Siliniyor…" : "Kalıcı olarak sil"}
                               </button>
                               <button onClick={() => setDeleteConfirm(null)} disabled={busy} className={SMALL}>
-                                Keep agent
+                                Ajanı tut
                               </button>
                             </div>
                           </div>
@@ -785,25 +785,25 @@ export function AgentsPanel({
               {onSetupChat && admin && <div className="mt-4"><AgentSetupEntry agents={agents} engines={engines} onStart={onSetupChat} onCreateLead={() => { setDraft(EMPTY); setRoleChoice({ id: null, value: true }); }} /></div>}
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button onClick={() => setDraft(EMPTY)} className={PRIMARY}>
-                  New agent
+                  Yeni ajan
                 </button>
                 <button onClick={() => setGallery(true)} className={BUTTON}>
-                  Templates…
+                  Şablonlar…
                 </button>
                 <button onClick={() => fileInput.current?.click()} className={BUTTON}>
-                  Import…
+                  İçe aktar…
                 </button>
                 <input
                   ref={fileInput}
                   type="file"
                   accept=".json,application/json"
                   className="hidden"
-                  aria-label="Agent file to import"
+                  aria-label="İçe aktarılacak ajan dosyası"
                   onChange={(e) => pickImport(e.target.files?.[0])}
                 />
                 <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
                   <input type="checkbox" checked={showArchived} onChange={() => setShowArchived((on) => !on)} />
-                  Show archived
+                  Arşivlenenleri göster
                 </label>
               </div>
             </>
@@ -838,7 +838,7 @@ function NotesEditor({
   onBack: () => void;
 }) {
   const { memory } = notes;
-  if (!memory) return <p className="text-sm text-muted">Loading notes…</p>;
+  if (!memory) return <p className="text-sm text-muted">Notlar yükleniyor…</p>;
   const gauge = memoryGauge(memory);
   const dirty = notes.text !== memory.text;
   const enabled = notes.agent.memory_enabled ?? true;
@@ -846,9 +846,9 @@ function NotesEditor({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted">
-        Notes this agent keeps between conversations, in <span className="font-mono break-all">{memory.path}</span>. Only
-        the first {memory.max_lines} lines load into each conversation. Anything that looks like a password or key is
-        replaced when saved.
+        Bu ajanın sohbetler arasında tuttuğu notlar; konumu: <span className="font-mono break-all">{memory.path}</span>.
+        Her sohbete yalnız ilk {memory.max_lines} satır yüklenir. Parola veya anahtara benzeyen her şey kaydedilirken
+        değiştirilir.
       </p>
       <div>
         <div className="h-1.5 w-full overflow-hidden rounded bg-hover" aria-hidden="true">
@@ -860,19 +860,19 @@ function NotesEditor({
         value={notes.text}
         rows={12}
         onChange={(e) => onText(e.target.value)}
-        aria-label="Notes"
-        placeholder={"- Facts this agent should remember\n- One per line"}
+        aria-label="Notlar"
+        placeholder={"- Bu ajanın hatırlaması gereken bilgiler\n- Her satıra bir tane"}
         className={`${FIELD} resize-y font-mono`}
       />
       {notes.conflict && (
         <div role="alert" className="rounded-md border border-warning/60 p-3 text-xs">
-          <p>The agent changed these notes while you were editing. Load its version, or keep yours and overwrite it.</p>
+          <p>Siz düzenlerken ajan bu notları değiştirdi. Ajanın sürümünü yükleyin ya da kendi sürümünüzü koruyup onun üzerine yazın.</p>
           <div className="mt-2 flex gap-2">
             <button onClick={onLoadTheirs} disabled={busy} className={SMALL}>
-              Load its version
+              Ajanın sürümünü yükle
             </button>
             <button onClick={onOverwrite} disabled={busy} className={SMALL}>
-              Overwrite with mine
+              Benimkiyle üzerine yaz
             </button>
           </div>
         </div>
@@ -880,19 +880,19 @@ function NotesEditor({
       {notes.saved && <p className="text-xs text-muted">{notes.saved}</p>}
       <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
         <input type="checkbox" checked={enabled} disabled={busy} onChange={() => onToggle(!enabled)} />
-        Use notes in this agent&apos;s conversations
+        Bu ajanın sohbetlerinde notları kullan
       </label>
       <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
         <input type="checkbox" checked={recall} disabled={busy || !enabled} onChange={() => onToggleRecall(!recall)} />
-        Recall before each message: add matching topic notes and passages from earlier conversations to the message
-        (shown as a &ldquo;Recalled&rdquo; chip)
+        Her mesajdan önce hatırla: eşleşen konu notlarını ve önceki sohbetlerden ilgili bölümleri mesaja ekle
+        (&ldquo;Hatırlanan&rdquo; etiketiyle gösterilir)
       </label>
       <div className="flex gap-2">
         <button onClick={onSave} disabled={busy || !dirty} className={PRIMARY}>
-          {busy ? "Saving…" : "Save notes"}
+          {busy ? "Kaydediliyor…" : "Notları kaydet"}
         </button>
         <button onClick={onBack} disabled={busy} className={BUTTON}>
-          {dirty ? "Discard" : "Done"}
+          {dirty ? "Vazgeç" : "Bitti"}
         </button>
       </div>
       <MemoryPanel agent={notes.agent} onAgentChange={onAgentChange} onNotesChanged={() => !dirty && onReload()} />

@@ -44,7 +44,7 @@ HISTORY_CHARS = 120_000
 MAX_ERROR_CHARS = 500
 MAX_MODELS = 200
 
-NOT_CONFIGURED = "Set the endpoint's address (and key, if it needs one) in Settings → Engines."
+NOT_CONFIGURED = "Uç noktanın adresini (gerekiyorsa anahtarını da) Ayarlar → Motorlar bölümünde girin."
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_HOST = "openrouter.ai"
@@ -58,15 +58,15 @@ class InvalidConfig(ValueError):
 
 def check_base_url(value) -> str:
     if not isinstance(value, str) or not value.strip():
-        raise InvalidConfig("Give the endpoint's address, for example http://127.0.0.1:11434/v1.")
+        raise InvalidConfig("Uç noktanın adresini girin, örneğin http://127.0.0.1:11434/v1.")
     url = value.strip().rstrip("/")
     if len(url) > 500 or any(ord(c) < 33 for c in url):
-        raise InvalidConfig("The address must be one URL without spaces.")
+        raise InvalidConfig("Adres boşluksuz tek bir URL olmalı.")
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.hostname:
-        raise InvalidConfig("The address must start with http:// or https://.")
+        raise InvalidConfig("Adres http:// ya da https:// ile başlamalı.")
     if parts.username or parts.password or parts.query or parts.fragment:
-        raise InvalidConfig("Put the key in the key field, not in the address; no query or fragment.")
+        raise InvalidConfig("Anahtarı adrese değil anahtar alanına yazın; adreste sorgu ya da parça (#) olmasın.")
     return url
 
 
@@ -101,18 +101,18 @@ def chat_messages(items: list[dict], instructions: str | None) -> list[dict]:
 
 class OpenAIChatAdapter:
     config_fields = [
-        {"name": "base_url", "label": "Base URL", "kind": "url", "required": True,
+        {"name": "base_url", "label": "Temel URL", "kind": "url", "required": True,
          "placeholder": "https://api.example.com/v1"},
-        {"name": "model", "label": "Default model", "placeholder": "Use endpoint default"},
-        {"name": "api_key", "label": "API key", "kind": "secret",
-         "help": "Encrypted at rest. Leave empty to keep the saved key for this address."},
+        {"name": "model", "label": "Varsayılan model", "placeholder": "Uç noktanın varsayılanını kullan"},
+        {"name": "api_key", "label": "API anahtarı", "kind": "secret",
+         "help": "Şifreli olarak saklanır. Bu adresin kayıtlı anahtarını korumak için boş bırakın."},
     ]
     setup = {
         "credential": "api_key",
-        "notes": ["Changing the address drops the saved key unless you enter it again. Chat only."],
+        "notes": ["Adresi değiştirirseniz anahtarı yeniden girmediğiniz sürece kayıtlı anahtar silinir. Yalnız sohbet."],
     }
     key = "openai_compat"
-    label = "OpenAI-compatible"
+    label = "OpenAI uyumlu"
     kind = "api"
     capabilities = Capabilities(
         tools=False, approvals=False, mcp=False, images=False, resume=True, computers=False
@@ -147,7 +147,7 @@ class OpenAIChatAdapter:
         config = {"base_url": check_base_url(payload.get("base_url"))}
         model = payload.get("model")
         if model is not None and not isinstance(model, str):
-            raise InvalidConfig("The default model must be text.")
+            raise InvalidConfig("Varsayılan model metin olmalı.")
         if model and model.strip():
             from app.services.engine_registry import InvalidModel, check_model_id
 
@@ -159,14 +159,14 @@ class OpenAIChatAdapter:
         window = payload.get("context_tokens")
         if window is not None:
             if isinstance(window, bool) or not isinstance(window, int) or not 1_024 <= window <= 10_000_000:
-                raise InvalidConfig("The context window must be a whole number of tokens from 1024 to 10000000.")
+                raise InvalidConfig("Bağlam penceresi 1024 ile 10000000 arasında tam sayı (token) olmalı.")
             config["context_tokens"] = window
         key = payload.get("api_key")
         if payload.get("clear_api_key"):
             pass
         elif isinstance(key, str) and key.strip():
             if len(key) > 4096 or any(ord(c) < 33 for c in key.strip()):
-                raise InvalidConfig("The key must be one line without spaces.")
+                raise InvalidConfig("Anahtar boşluksuz tek bir satır olmalı.")
             config["api_key"] = key.strip()
         elif current.get("api_key") and current.get("base_url") == config["base_url"]:
             # Kept only for the same address: a key is never sent somewhere new
@@ -212,11 +212,11 @@ class OpenAIChatAdapter:
         except httpx.HTTPError as exc:
             return EngineProbe(
                 installed=True, ready=False,
-                reason=f"The endpoint did not answer ({exc.__class__.__name__}).",
+                reason=f"Uç nokta yanıt vermedi ({exc.__class__.__name__}).",
                 models=[ModelOption(default, default, True)] if default else None,
             )
         if response.status_code in (401, 403):
-            return EngineProbe(installed=True, ready=False, signed_in=False, reason="The endpoint refused the key.")
+            return EngineProbe(installed=True, ready=False, signed_in=False, reason="Uç nokta anahtarı reddetti.")
         models: list[ModelOption] = []
         if response.status_code == 200:
             try:
@@ -275,12 +275,12 @@ class OpenAIChatAdapter:
             return TurnOutcome("failed", error=self.not_configured, error_code="engine_not_configured")
         if ctx.computer is not None:
             return TurnOutcome(
-                "failed", error="This engine cannot use an agent computer.", error_code="engine_without_computers"
+                "failed", error="Bu motor ajan bilgisayarı kullanamıyor.", error_code="engine_without_computers"
             )
         model = ctx.model or config.get("model")
         if not model:
             return TurnOutcome(
-                "failed", error="Choose a model for this endpoint (on the agent, the conversation, or the engine).",
+                "failed", error="Bu uç nokta için bir model seçin (ajanda, sohbette ya da motorda).",
                 error_code="no_model",
             )
         secret = config.get("api_key")
@@ -288,7 +288,7 @@ class OpenAIChatAdapter:
             messages = chat_messages(await ctx.history(), ctx.instructions)
         except ReplayAborted:
             return TurnOutcome(
-                "failed", error="The run was stopped because it no longer owns its turn.", error_code="lost", model=model
+                "failed", error="Çalışma durduruldu, çünkü bu yanıt artık ona ait değil.", error_code="lost", model=model
             )
         if not messages or messages[-1].get("role") != "user":
             messages.append({"role": "user", "content": ctx.prompt})
@@ -343,7 +343,7 @@ class OpenAIChatAdapter:
                             if isinstance(piece, str) and piece:
                                 state["text"] += piece
                                 if len(state["text"].encode("utf-8")) > max_text:
-                                    state["error"] = "The endpoint produced more output than allowed"
+                                    state["error"] = "Uç nokta izin verilenden fazla çıktı üretti"
                                     state["code"] = "output_too_large"
                                     return
                                 if not sink.lost:
@@ -360,16 +360,16 @@ class OpenAIChatAdapter:
                 raise
         except httpx.TimeoutException:
             state["error"], state["code"] = (
-                f"Timed out after {app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} seconds", "timeout"
+                f"{app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} saniye sonra zaman aşımı", "timeout"
             )
         except httpx.HTTPError as exc:
-            state["error"] = f"The endpoint could not be reached ({exc.__class__.__name__})."
+            state["error"] = f"Uç noktaya ulaşılamadı ({exc.__class__.__name__})."
             state["code"] = "endpoint_unreachable"
 
         partial = state["text"] or None
         if ctx.aborted:
             return TurnOutcome(
-                "failed", error="The run was stopped because it no longer owns its turn.", error_code="lost",
+                "failed", error="Çalışma durduruldu, çünkü bu yanıt artık ona ait değil.", error_code="lost",
                 model=model, usage=state["usage"], partial_text=partial,
             )
         if state["error"]:
@@ -382,7 +382,7 @@ class OpenAIChatAdapter:
             await sink.emit("assistant.message", {"text": text})
         if state["finish"] == "length":
             return TurnOutcome(
-                "failed", error="The answer was cut off at the model's length limit.", error_code="length",
+                "failed", error="Yanıt modelin uzunluk sınırında kesildi.", error_code="length",
                 model=model, usage=state["usage"],
             )
         return TurnOutcome("succeeded", result=text, model=model, usage=state["usage"])
@@ -400,19 +400,19 @@ def _error_text(status: int, body: str, secret: str | None) -> str:
     except ValueError:
         pass
     message = redact(" ".join(message.split()), secret)[:MAX_ERROR_CHARS]
-    return f"The endpoint answered {status}: {message}" if message else f"The endpoint answered {status}."
+    return f"Uç nokta {status} ile yanıt verdi: {message}" if message else f"Uç nokta {status} ile yanıt verdi."
 
 
 class OpenRouterAdapter(OpenAIChatAdapter):
     preset = True
     config_fields = [
-        {"name": "api_key", "label": "OpenRouter API key", "kind": "secret", "required": True},
-        {"name": "model", "label": "Default model", "placeholder": "provider/model"},
+        {"name": "api_key", "label": "OpenRouter API anahtarı", "kind": "secret", "required": True},
+        {"name": "model", "label": "Varsayılan model", "placeholder": "provider/model"},
     ]
     setup = {
         "credential": "api_key", "docs_url": "https://openrouter.ai/keys",
-        "notes": ["Create an OpenRouter key and save it here. Chat only.",
-                  "Requests go to OpenRouter and its model providers. Check their data policies before sending private content."],
+        "notes": ["Bir OpenRouter anahtarı oluşturup buraya kaydedin. Yalnız sohbet.",
+                  "İstekler OpenRouter'a ve model sağlayıcılarına gider. Özel içerik göndermeden önce veri politikalarını kontrol edin."],
     }
     """OpenRouter (https://openrouter.ai) as a preset of the OpenAI-compatible
     engine: its own saved configuration (`engine:openrouter`), so it can sit
@@ -426,16 +426,16 @@ class OpenRouterAdapter(OpenAIChatAdapter):
     key = "openrouter"
     label = "OpenRouter"
     max_models = 600
-    not_configured = "Add your OpenRouter API key in Settings → Engines."
+    not_configured = "OpenRouter API anahtarınızı Ayarlar → Motorlar bölümüne ekleyin."
 
     def validate_config(self, payload: dict, current: dict | None) -> dict:
         base = payload.get("base_url")
         if base and base.strip().rstrip("/") != OPENROUTER_BASE_URL:
-            raise InvalidConfig("OpenRouter uses its fixed address. Use the OpenAI-compatible engine for a proxy.")
+            raise InvalidConfig("OpenRouter sabit adresini kullanır. Bir vekil sunucu için OpenAI uyumlu motoru kullanın.")
         payload = {**payload, "base_url": OPENROUTER_BASE_URL}
         config = super().validate_config(payload, current)
         if not config.get("api_key"):
-            raise InvalidConfig("Give your OpenRouter API key (openrouter.ai → Keys).")
+            raise InvalidConfig("OpenRouter API anahtarınızı girin (openrouter.ai → Keys).")
         return config
 
     def _headers(self, config: dict) -> dict:
@@ -455,20 +455,20 @@ class OpenRouterAdapter(OpenAIChatAdapter):
         if not config.get("api_key"):
             return EngineProbe(installed=False, ready=False, reason=self.not_configured)
         if config.get("base_url", OPENROUTER_BASE_URL) != OPENROUTER_BASE_URL:
-            return EngineProbe(installed=True, ready=False, reason="Use the OpenAI-compatible engine for a proxy, or save your OpenRouter settings again.")
+            return EngineProbe(installed=True, ready=False, reason="Bir vekil sunucu için OpenAI uyumlu motoru kullanın ya da OpenRouter ayarlarınızı yeniden kaydedin.")
         try:
             async with self._client(httpx.Timeout(PROBE_TIMEOUT_SECONDS)) as client:
                 response = await client.get(f"{OPENROUTER_BASE_URL}/key", headers=self._headers(config))
                 if response.status_code in (401, 403):
-                    return EngineProbe(installed=True, ready=False, signed_in=False, reason="OpenRouter refused the key. Save a valid key in Settings → Engines.")
+                    return EngineProbe(installed=True, ready=False, signed_in=False, reason="OpenRouter anahtarı reddetti. Ayarlar → Motorlar bölümüne geçerli bir anahtar kaydedin.")
                 if response.status_code != 200:
-                    return EngineProbe(installed=True, ready=False, reason=f"OpenRouter key check answered {response.status_code}. Try again later.")
+                    return EngineProbe(installed=True, ready=False, reason=f"OpenRouter anahtar kontrolü {response.status_code} ile yanıt verdi. Daha sonra yeniden deneyin.")
                 try:
                     key_data = response.json().get("data")
                 except (ValueError, AttributeError):
                     key_data = None
                 if not isinstance(key_data, dict):
-                    return EngineProbe(installed=True, ready=False, reason="OpenRouter returned an unreadable key check. Try again later.")
+                    return EngineProbe(installed=True, ready=False, reason="OpenRouter okunamayan bir anahtar kontrolü yanıtı döndürdü. Daha sonra yeniden deneyin.")
                 # A failed catalog must not turn a valid key into a signed-out
                 # account. A saved or explicitly chosen model still works.
                 try:
@@ -477,7 +477,7 @@ class OpenRouterAdapter(OpenAIChatAdapter):
                 except (httpx.HTTPError, ValueError, AttributeError):
                     data = []
         except httpx.HTTPError as exc:
-            return EngineProbe(installed=True, ready=False, reason=f"OpenRouter did not answer ({exc.__class__.__name__}).")
+            return EngineProbe(installed=True, ready=False, reason=f"OpenRouter yanıt vermedi ({exc.__class__.__name__}).")
         entries = []
         for item in data if isinstance(data, list) else []:
             if not isinstance(item, dict) or not isinstance(item.get("id"), str):
@@ -493,7 +493,7 @@ class OpenRouterAdapter(OpenAIChatAdapter):
         default = config.get("model")
         if not default and key_data.get("is_free_tier") is True:
             default = next((model for model, free, _ in entries if free), None)
-        models = [ModelOption(model, model + (" (free)" if free else ""), model == default) for model, free, _ in entries]
+        models = [ModelOption(model, model + (" (ücretsiz)" if free else ""), model == default) for model, free, _ in entries]
         if default and default not in {m.id for m in models}:
             models.insert(0, ModelOption(default, default, True))
         return EngineProbe(installed=True, ready=True, signed_in=True, models=models or None)
@@ -501,7 +501,7 @@ class OpenRouterAdapter(OpenAIChatAdapter):
     async def run_turn(self, ctx: TurnContext, sink, gate) -> TurnOutcome:
         config = ctx.engine_config or self.config or {}
         if not config.get("api_key") or config.get("base_url", OPENROUTER_BASE_URL) != OPENROUTER_BASE_URL:
-            return TurnOutcome("failed", error="Save your OpenRouter key in Settings → Engines. For a proxy use the OpenAI-compatible engine.", error_code="engine_not_configured")
+            return TurnOutcome("failed", error="OpenRouter anahtarınızı Ayarlar → Motorlar bölümüne kaydedin. Vekil sunucu için OpenAI uyumlu motoru kullanın.", error_code="engine_not_configured")
         if not ctx.model and not config.get("model"):
             probe = await self._probe_config(config)
             ctx.model = next((model.id for model in probe.models or [] if model.default), None)

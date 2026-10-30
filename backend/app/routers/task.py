@@ -53,6 +53,6 @@ async def create_task(
 async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
     task = await task_execution_service.get_task(db, task_id)
     if task is None:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Görev bulunamadı")
 
     return await task_execution_service.sync_task_status(db, task)

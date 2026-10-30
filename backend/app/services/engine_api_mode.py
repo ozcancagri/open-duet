@@ -15,7 +15,7 @@ from app.desktop import profile
 
 
 def field(help_text: str) -> dict:
-    return {"name": "api_key", "label": "API key", "kind": "secret", "help": help_text}
+    return {"name": "api_key", "label": "API anahtarı", "kind": "secret", "help": help_text}
 
 
 def key_of(config: dict | None) -> str | None:
@@ -32,9 +32,9 @@ def validate(payload: dict, current: dict | None, *, prefix: str, service: str) 
     if isinstance(key, str) and key.strip():
         key = key.strip()
         if len(key) > 4096 or any(ord(c) < 33 for c in key):
-            raise ValueError("The key must be one line without spaces.")
+            raise ValueError("Anahtar boşluksuz tek bir satır olmalı.")
         if not key.startswith(prefix):
-            raise ValueError(f"This does not look like an {service} API key (it starts with {prefix}).")
+            raise ValueError(f"Bu bir {service} API anahtarına benzemiyor ({prefix} ile başlar).")
         return {"api_key": key}
     return {"api_key": current["api_key"]} if key_of(current) else {}
 

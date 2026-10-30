@@ -40,6 +40,7 @@ import { SETUP_STARTER } from "./AgentSetupEntry";
 import { TeamPanel } from "./TeamPanel";
 import { parseRoom, roomHref } from "@/lib/rooms";
 import { useThreadStream } from "./useThreadStream";
+import { TipsGuide } from "@/components/TipsGuide";
 
 const LIST_REFRESH_MS = 15_000;
 const COMPUTER_STATUS_REFRESH_MS = 15_000;
@@ -58,10 +59,10 @@ function parseThreadId(raw: string | null): number | null {
 // What went wrong with a rename, archive or delete, in words a person can act on.
 function manageErrorText(err: unknown): string {
   if (err instanceof ApiError) {
-    if (err.code === "turn_running") return "Stop the running answer first.";
-    return err.message || "That did not work.";
+    if (err.code === "turn_running") return "Önce çalışan yanıtı durdurun.";
+    return err.message || "Bu işlem yapılamadı.";
   }
-  return "Could not reach the backend.";
+  return "Arka uca ulaşılamadı.";
 }
 
 // Says what went wrong in words a person can act on.
@@ -73,12 +74,12 @@ function toggleSkillOn(chosen: string[], name: string): string[] {
 function sendErrorText(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.code === "skill_unavailable") return skillErrorText(err);
-    if (err.code === "turn_running") return "An answer to the last message is still running.";
+    if (err.code === "turn_running") return "Son mesaja verilen yanıt hâlâ çalışıyor.";
     if (err.code === "session_broken")
-      return "The engine can no longer find this conversation. Start a new session to continue.";
-    return err.message || "Could not send the message.";
+      return "Motor bu sohbeti artık bulamıyor. Devam etmek için yeni bir oturum başlatın.";
+    return err.message || "Mesaj gönderilemedi.";
   }
-  return "Could not reach the backend.";
+  return "Arka uca ulaşılamadı.";
 }
 
 function Notice({
@@ -401,28 +402,28 @@ export function ChatApp() {
   );
   const conversationTotal =
     totals.turns === 0
-      ? "Tokens and cost by month"
-      : `This conversation: ${formatTokens(totals.tokens)} tokens, ${formatCost(totals.cost)}` +
-        (totals.reported < totals.turns ? ` (${totals.turns - totals.reported} turn(s) reported nothing)` : "");
+      ? "Aylara göre token ve maliyet"
+      : `Bu sohbet: ${formatTokens(totals.tokens)} token, ${formatCost(totals.cost)}` +
+        (totals.reported < totals.turns ? ` (${totals.turns - totals.reported} tur hiçbir şey bildirmedi)` : "");
 
   let blockedReason: string | null = null;
-  if (stream.connection === "failed") blockedReason = "This conversation cannot be opened.";
-  else if (threadId !== null && thread === null) blockedReason = "Loading conversation…";
+  if (stream.connection === "failed") blockedReason = "Bu sohbet açılamıyor.";
+  else if (threadId !== null && thread === null) blockedReason = "Sohbet yükleniyor…";
   else if (thread?.session_state === "broken")
-    blockedReason = "Start a new session to continue this conversation.";
-  else if (waiting) blockedReason = "The engine is waiting for your answer above.";
-  else if (transcript.runningTurnId !== null) blockedReason = "An answer is running…";
-  else if (selectedEngine && !selectedEngine.available) blockedReason = selectedEngine.reason ?? "This engine is unavailable. Check its settings.";
+    blockedReason = "Bu sohbete devam etmek için yeni bir oturum başlatın.";
+  else if (waiting) blockedReason = "Motor yukarıdaki yanıtınızı bekliyor.";
+  else if (transcript.runningTurnId !== null) blockedReason = "Bir yanıt çalışıyor…";
+  else if (selectedEngine && !selectedEngine.available) blockedReason = selectedEngine.reason ?? "Bu motor kullanılamıyor. Ayarlarını kontrol edin.";
 
   // A signed-out engine gets a button to its sign-in; there may be no terminal to use.
   const signInAction = selectedEngine && !selectedEngine.available && selectedEngine.signed_in === false
-    ? { label: `Sign in to ${selectedEngine.label}`, onClick: () => router.push("/settings/") }
+    ? { label: `${selectedEngine.label} için giriş yap`, onClick: () => router.push("/settings/") }
     : undefined;
 
   const imagesAttached = attached.some((file) => file.type.startsWith("image/"));
   const imagesRefused = imagesAttached && selectedEngine !== undefined && !selectedEngine.capabilities.images;
   if (blockedReason === null && imagesRefused)
-    blockedReason = `${selectedEngine?.label ?? "This engine"} can't read images. Remove the image to send.`;
+    blockedReason = `${selectedEngine?.label ?? "Bu motor"} görselleri okuyamıyor. Göndermek için görseli kaldırın.`;
 
   const addFiles = (files: File[]) => {
     const problems: string[] = [];
@@ -432,7 +433,7 @@ export function ChatApp() {
       return problem === null;
     });
     const room = Math.max(0, MAX_ATTACHMENTS - attached.length);
-    if (accepted.length > room) problems.push(`Attach at most ${MAX_ATTACHMENTS} files to one message.`);
+    if (accepted.length > room) problems.push(`Bir mesaja en fazla ${MAX_ATTACHMENTS} dosya ekleyebilirsiniz.`);
     setAttached((previous) => [...previous, ...accepted.slice(0, room)]);
     setAttachNotice(problems.length ? problems.join(" ") : null);
   };
@@ -484,7 +485,7 @@ export function ChatApp() {
         setNewModel(model);
       }
       setModelDraft((previous) => previous === target ? null : previous);
-    } catch (err) { setModelError(err instanceof ApiError ? err.message : "Could not change the model."); }
+    } catch (err) { setModelError(err instanceof ApiError ? err.message : "Model değiştirilemedi."); }
     finally { setModelBusy(false); }
   };
 
@@ -497,7 +498,7 @@ export function ChatApp() {
     } catch (err) {
       // Already over: the stream says so, nothing to show.
       if (!(err instanceof ApiError && err.code === "no_running_turn")) {
-        setSendError(err instanceof ApiError ? err.message : "Could not stop the answer.");
+        setSendError(err instanceof ApiError ? err.message : "Yanıt durdurulamadı.");
       }
       setStoppingTurn(null);
     }
@@ -543,7 +544,7 @@ export function ChatApp() {
       // Not waiting any more (answered elsewhere, expired, the run ended): the
       // stream already says so, and the card updates by itself.
       if (!(err instanceof ApiError && err.code === "approval_not_waiting")) {
-        const message = err instanceof ApiError ? err.message : "Could not send your answer.";
+        const message = err instanceof ApiError ? err.message : "Yanıtınız gönderilemedi.";
         setApprovalErrors((prev) => ({ ...prev, [approvalId]: message }));
       }
     } finally {
@@ -558,7 +559,7 @@ export function ChatApp() {
     } catch (err) {
       // 404: already removed (from the rules list, say). Anything else is shown.
       if (!(err instanceof ApiError && err.status === 404)) {
-        setManageError(err instanceof ApiError ? err.message : "Could not remove the rule.");
+        setManageError(err instanceof ApiError ? err.message : "Kural kaldırılamadı.");
         return;
       }
     }
@@ -572,7 +573,7 @@ export function ChatApp() {
     try {
       await api.resetThreadSession(threadId);
     } catch (err) {
-      setResetError(err instanceof ApiError ? err.message : "Could not start a new session.");
+      setResetError(err instanceof ApiError ? err.message : "Yeni oturum başlatılamadı.");
     } finally {
       setResetting(false);
       setListTick((n) => n + 1);
@@ -587,7 +588,7 @@ export function ChatApp() {
   const computerText = threadComputer ? computerChip(threadComputer, liveComputerState) : null;
   const buildHeader = (withSidebar: boolean) => (
     <ChatHeader
-      title={thread?.title || (threadId === null ? t("shell.newChat") : "Chat")}
+      title={thread?.title || (threadId === null ? t("shell.newChat") : "Sohbet")}
       agent={threadAgent ? { id: threadAgent.id, name: threadAgent.name } : null}
       onOpenSidebar={withSidebar && !sidebarInline ? () => setDrawerOpen(true) : undefined}
       agentChoice={
@@ -608,7 +609,7 @@ export function ChatApp() {
         threadComputer && threadAgent && computerText
           ? {
               text: computerText,
-              hint: `This conversation's commands and file edits run in ${threadAgent.name}'s computer (${threadComputer.image}), not on this machine.`,
+              hint: `Bu sohbetin komutları ve dosya düzenlemeleri bu makinede değil, ${threadAgent.name} ajanının bilgisayarında (${threadComputer.image}) çalışır.`,
               onClick: () => setPanel("computer"),
             }
           : undefined
@@ -617,7 +618,7 @@ export function ChatApp() {
         ready && gate.phase === "ready" && (gate.status.tools_enabled || threadComputer) && threadId !== null
           ? {
               label: approvalModeLabel(threadAgent?.approval_mode ?? "ask"),
-              hint: "How much the engine may do before it asks. Set by the conversation's agent; a plain chat asks first.",
+              hint: "Motorun sormadan önce ne kadarını yapabileceği. Sohbetin ajanı belirler; ajansız sohbet önce sorar.",
             }
           : undefined
       }
@@ -668,7 +669,7 @@ export function ChatApp() {
       leadAgentId={teamState?.team?.lead_agent_id ?? null}
       onChangeLead={session?.scopes.includes("admin") ? async (agent, remove) => {
         try { setTeamState(await (remove ? collaboration.clearLead(agent.id) : collaboration.lead(agent.id))); setAgentTick(value => value + 1); }
-        catch (err) { setManageError(err instanceof ApiError ? err.message : "Could not change the lead."); }
+        catch (err) { setManageError(err instanceof ApiError ? err.message : "Lider değiştirilemedi."); }
       } : undefined}
       onEditAgent={session?.scopes.includes("admin") ? agent => { setEditAgent(agent); setAgentsCreate(false); setAgentsOpen(true); } : undefined}
       onDeleteAgent={agents !== null ? (agent) => { setAgentsCreate(false); setDeleteAgentTarget(agent); setAgentsOpen(true); } : undefined}
@@ -684,7 +685,7 @@ export function ChatApp() {
     return (
       <div className="flex h-dvh flex-col">
         {header}
-        <p className="p-6 text-center text-sm text-muted">Loading…</p>
+        <p className="p-6 text-center text-sm text-muted">Yükleniyor…</p>
       </div>
     );
   }
@@ -693,9 +694,9 @@ export function ChatApp() {
     return (
       <div className="flex h-dvh flex-col">
         {header}
-        <Notice title="Open this from the Open Duet app">
-          This address only works inside the Open Duet window, which keeps your conversations
-          private to it. Use that window instead of a browser tab.
+        <Notice title="Bunu Open Duet uygulamasından açın">
+          Bu adres yalnız Open Duet penceresinin içinde çalışır; sohbetleriniz yalnız o pencereye özel kalır.
+          Tarayıcı sekmesi yerine o pencereyi kullanın.
         </Notice>
       </div>
     );
@@ -705,10 +706,10 @@ export function ChatApp() {
     return (
       <div className="flex h-dvh flex-col">
         {header}
-        <Notice title="Backend not reachable">
-          Check that it is running, and that this page&apos;s address (
-          {typeof window === "undefined" ? "" : window.location.origin}) is listed in
-          FRONTEND_ORIGINS in backend/.env.
+        <Notice title="Arka uca ulaşılamıyor">
+          Arka ucun çalıştığını ve bu sayfanın adresinin (
+          {typeof window === "undefined" ? "" : window.location.origin}) backend/.env dosyasındaki
+          FRONTEND_ORIGINS içinde yer aldığını kontrol edin.
         </Notice>
       </div>
     );
@@ -719,13 +720,13 @@ export function ChatApp() {
       <div className="flex h-dvh flex-col">
         {header}
         <Notice
-          title={gate.status.enabled ? "Engines are not available" : "Local execution is turned off"}
-          action={gate.status.enabled ? { label: "Check again", onClick: checkAgain } : undefined}
+          title={gate.status.enabled ? "Motorlar kullanılamıyor" : "Yerel çalıştırma kapalı"}
+          action={gate.status.enabled ? { label: "Yeniden kontrol et", onClick: checkAgain } : undefined}
         >
           {gate.status.enabled
-            ? (gate.status.reason ?? "unknown reason")
-            : "Set LOCAL_EXECUTION_ENABLED=true in backend/.env on the machine running the backend, then restart it."}
-          <p className="mt-3"><Link href="/settings/" className="underline">Open Settings</Link> to configure an engine and check its status.</p>
+            ? (gate.status.reason ?? "bilinmeyen neden")
+            : "Arka ucun çalıştığı makinede backend/.env dosyasına LOCAL_EXECUTION_ENABLED=true yazın, sonra arka ucu yeniden başlatın."}
+          <p className="mt-3">Bir motoru yapılandırmak ve durumunu kontrol etmek için <Link href="/settings/" className="underline">Ayarlar&apos;ı açın</Link>.</p>
         </Notice>
       </div>
     );
@@ -733,6 +734,7 @@ export function ChatApp() {
 
   return (
     <div className="relative flex h-dvh">
+      <TipsGuide page="chat" />
       <a
         href="#conversation"
         className="sr-only z-50 rounded-field bg-raised px-3 py-2 text-sm font-medium text-ink shadow-lg focus:not-sr-only focus:absolute focus:left-3 focus:top-3"
@@ -747,15 +749,15 @@ export function ChatApp() {
       <div className="relative flex min-w-0 flex-1 flex-col">
       {buildHeader(true)}
       {modelDraft && modelDraft.threadId === threadId && (threadId !== null || modelDraft.agentId === startingAgentId) && engines && (
-        <Dialog open onOpenChange={(open) => { if (!open) setModelDraft(null); }} title="Engine and model" size="sm">
+        <Dialog open onOpenChange={(open) => { if (!open) setModelDraft(null); }} title="Motor ve model" size="sm">
           <form onSubmit={(event) => { event.preventDefault(); void saveModel(); }} className="space-y-4">
-            <EngineModelFields engines={engines} provider={modelDraft.provider} model={modelDraft.model} onChange={(provider, model) => setModelDraft({ ...modelDraft, provider, model })} disabled={modelBusy} lockProvider={threadId !== null || startingAgentId !== null} defaultLabel={selectedAgent ? `Agent default (${modelLabel(selectedAgent.model)})` : undefined} />
-            {threadId !== null && <p className="text-xs text-muted">The model changes on the next message. This conversation keeps its engine.</p>}
+            <EngineModelFields engines={engines} provider={modelDraft.provider} model={modelDraft.model} onChange={(provider, model) => setModelDraft({ ...modelDraft, provider, model })} disabled={modelBusy} lockProvider={threadId !== null || startingAgentId !== null} defaultLabel={selectedAgent ? `Ajan varsayılanı (${modelLabel(selectedAgent.model)})` : undefined} />
+            {threadId !== null && <p className="text-xs text-muted">Model bir sonraki mesajda değişir. Bu sohbet kendi motorunu korur.</p>}
             {modelError && <p role="alert" className="text-sm text-danger">{modelError}</p>}
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="submit" variant="primary" disabled={modelBusy}>{modelBusy ? "Saving…" : "Use model"}</Button>
-              <Button disabled={modelBusy} onClick={() => setModelDraft(null)}>Cancel</Button>
-              <Button variant="ghost" disabled={modelBusy} onClick={() => { setModelBusy(true); api.getEngines(true).then(setEngines).catch(() => setModelError("Could not refresh engines.")).finally(() => setModelBusy(false)); }}>Refresh status</Button>
+              <Button type="submit" variant="primary" disabled={modelBusy}>{modelBusy ? "Kaydediliyor…" : "Modeli kullan"}</Button>
+              <Button disabled={modelBusy} onClick={() => setModelDraft(null)}>İptal</Button>
+              <Button variant="ghost" disabled={modelBusy} onClick={() => { setModelBusy(true); api.getEngines(true).then(setEngines).catch(() => setModelError("Motorlar yenilenemedi.")).finally(() => setModelBusy(false)); }}>Durumu yenile</Button>
             </div>
           </form>
         </Dialog>
@@ -796,7 +798,7 @@ export function ChatApp() {
       )}
         <main id="conversation" tabIndex={-1} className="flex min-h-0 min-w-0 flex-1 flex-col outline-none">
           {stream.connection === "failed" ? (
-            <Notice title="Cannot open this conversation">{stream.error}</Notice>
+            <Notice title="Bu sohbet açılamıyor">{stream.error}</Notice>
           ) : (
             <Conversation
               threadId={threadId}
@@ -804,7 +806,7 @@ export function ChatApp() {
               emptyAction={signInAction}
               emptyHint={
                 selectedEngine && !selectedEngine.available
-                  ? `${selectedEngine.label} is not ready: ${(selectedEngine.reason ?? "check it in Settings").replace(/\.+$/, "")}.`
+                  ? `${selectedEngine.label} hazır değil: ${(selectedEngine.reason ?? "Ayarlar'dan kontrol edin").replace(/\.+$/, "")}.`
                   : undefined
               }
               transcript={transcript}
@@ -821,11 +823,11 @@ export function ChatApp() {
             <div className="border-t border-warning/50 bg-warning/10 px-4 py-3 text-sm">
               <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
                 <p className="min-w-0 flex-1 text-ink">
-                  The engine can no longer find this conversation&apos;s session, so it cannot continue it. A new
-                  session keeps the messages above but starts without them as context.
+                  Motor bu sohbetin oturumunu artık bulamıyor, bu yüzden sohbete devam edemiyor. Yeni bir oturum
+                  yukarıdaki mesajları korur, ancak onları bağlam olarak almadan başlar.
                 </p>
                 <Button variant="primary" onClick={resetSession} loading={resetting}>
-                  {resetting ? "Starting…" : "Start a new session"}
+                  {resetting ? "Başlatılıyor…" : "Yeni oturum başlat"}
                 </Button>
               </div>
               {resetError && <p className="mx-auto mt-2 max-w-3xl text-xs text-danger">{resetError}</p>}
@@ -860,19 +862,19 @@ export function ChatApp() {
         </main>
       </div>
       {panel === "usage" && (
-        <Inspector title="Usage" inline={inspectorInline} onClose={() => setPanel(null)}>
+        <Inspector title="Kullanım" inline={inspectorInline} onClose={() => setPanel(null)}>
           <UsageView />
         </Inspector>
       )}
       {panel === "skills" && threadAgent && (
-        <Inspector title={`Skills · ${threadAgent.name}`} inline={inspectorInline} onClose={() => { setSkillSeed(null); setPanel(null); }}>
+        <Inspector title={`Beceriler · ${threadAgent.name}`} inline={inspectorInline} onClose={() => { setSkillSeed(null); setPanel(null); }}>
           <div className="p-4">
             <SkillsPanel key={`${threadAgent.id}-${skillSeed?.nonce ?? 0}`} agent={threadAgent} learnFrom={skillSeed?.source ?? null} onChanged={() => setSkillsTick((n) => n + 1)} />
           </div>
         </Inspector>
       )}
       {panel === "computer" && threadAgent && (
-        <Inspector title={`Computer · ${threadAgent.name}`} inline={inspectorInline} onClose={() => setPanel(null)}>
+        <Inspector title={`Bilgisayar · ${threadAgent.name}`} inline={inspectorInline} onClose={() => setPanel(null)}>
           <ComputerView
             agent={threadAgent}
             onChanged={() => setAgentTick((n) => n + 1)}

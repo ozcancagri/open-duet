@@ -128,5 +128,5 @@ def prompt(brief: list[Line], now: datetime | None = None) -> tuple[str, list[Li
 
 def crossing_label(agent_name: str, count: int, *, recalled: bool = False) -> str:
     if recalled:
-        return f"{agent_name} recalled {count} message{'' if count == 1 else 's'} from its private chat with you"
-    return f"{agent_name}'s recent-work brief covers {count} private chat{'' if count == 1 else 's'} with you"
+        return f"{agent_name}, sizinle özel sohbetinden {count} mesajı hatırladı"
+    return f"{agent_name} için son çalışmalar özeti sizinle {count} özel sohbeti kapsıyor"

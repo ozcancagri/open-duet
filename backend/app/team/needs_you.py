@@ -36,7 +36,7 @@ WINDOW = timedelta(days=7)
 AWAY = timedelta(hours=3)
 NOTIFIED_KEPT = 200
 REPEATED_FAILURES_SHOWN = 3
-EMPTY_TEXT = "Nothing needs you right now."
+EMPTY_TEXT = "Şu an sizi bekleyen bir şey yok."
 
 # Most blocking first: nothing runs while an engine is signed out or out of credit.
 KIND_ORDER = {
@@ -71,8 +71,8 @@ class Item:
                 "detail": self.detail, "thread_id": self.thread_id,
                 "at": _aware(self.at).isoformat() if self.kind not in {"signed_out", "out_of_credit", "usage_limit"} or self.thread_id else None,
                 "routine_id": self.routine_id, "work_item_id": self.work_item_id,
-                "source": self.source or ("Routine runs" if self.kind.startswith("routine") else
-                    "Approvals" if self.kind == "approval" else "Health scan" if self.kind == "repeated_failure" else "Engine status")}
+                "source": self.source or ("Rutin çalışmaları" if self.kind.startswith("routine") else
+                    "Onaylar" if self.kind == "approval" else "Sağlık taraması" if self.kind == "repeated_failure" else "Motor durumu")}
 
 
 def utcnow() -> datetime:
@@ -96,11 +96,11 @@ def zone_of(name: str | None) -> ZoneInfo:
 def valid_zone(name: object) -> str:
     """An IANA zone name the host knows, or ValueError."""
     if not isinstance(name, str) or not name or len(name) > 64 or name.startswith(("/", ".")):
-        raise ValueError("Send a time zone name such as Europe/Paris.")
+        raise ValueError("Europe/Istanbul gibi bir saat dilimi adı gönderin.")
     try:
         ZoneInfo(name)
     except (ZoneInfoNotFoundError, ValueError, OSError):
-        raise ValueError("That time zone is not known on this computer.") from None
+        raise ValueError("Bu saat dilimi bu bilgisayarda bilinmiyor.") from None
     return name
 
 
@@ -127,14 +127,14 @@ async def collect(db, owner_id: str, *, now: datetime, engines: list[dict],
         label = engine.get("label") or engine["id"]
         limit = engine.get("limit")
         if engine.get("installed") and engine.get("signed_in") is False:
-            items.append(Item("signed_out", f"signed_out:{engine['id']}", f"Sign in to {label}",
-                              "Nothing can run on this engine until you do.", None, now))
+            items.append(Item("signed_out", f"signed_out:{engine['id']}", f"{label} için giriş yapın",
+                              "Giriş yapana kadar bu motorda hiçbir şey çalışamaz.", None, now))
         if limit:
             credits = limit.get("kind") == "credits"
-            when = f" Resets {limit['resets_at']}." if limit.get("resets_at") else ""
+            when = f" Sıfırlanma: {limit['resets_at']}." if limit.get("resets_at") else ""
             items.append(Item(
                 "out_of_credit" if credits else "usage_limit", f"{'credit' if credits else 'limit'}:{engine['id']}",
-                f"{label} is out of credit" if credits else f"{label} hit its limit",
+                f"{label} için kredi kalmadı" if credits else f"{label} sınırına ulaştı",
                 _clip((limit.get("message") or "") + when, 160) or None, None, now))
 
     pending = (await db.execute(
@@ -146,7 +146,7 @@ async def collect(db, owner_id: str, *, now: datetime, engines: list[dict],
     )).all()
     for approval, title in pending:
         items.append(Item("approval", f"approval:{approval.id}",
-                          _clip(approval.summary or f"Approve {approval.tool}", 120),
+                          _clip(approval.summary or f"{approval.tool} için onay", 120),
                           _clip(title, 80) or None, approval.thread_id,
                           _aware(approval.created_at)))
 
@@ -163,13 +163,13 @@ async def collect(db, owner_id: str, *, now: datetime, engines: list[dict],
             latest[run.routine_id] = run
     for routine_id, run in latest.items():
         if run.state in _BAD_RUN_STATES:
-            what = "missed its time" if run.state == "missed" else "was interrupted" if run.state == "interrupted" else "failed"
+            what = "zamanını kaçırdı" if run.state == "missed" else "yarıda kesildi" if run.state == "interrupted" else "başarısız oldu"
             items.append(Item("routine", f"routine:{routine_id}", f"{routines[routine_id].name} {what}",
                               _clip(run.error, 160) or None, run.thread_id,
                               _aware(run.finished_at or run.created_at), routine_id=routine_id))
     for routine in routines.values():
         if routine.paused and routine.paused_reason:
-            items.append(Item("routine", f"routine_paused:{routine.id}", f"{routine.name} is paused",
+            items.append(Item("routine", f"routine_paused:{routine.id}", f"{routine.name} duraklatıldı",
                               _clip(routine.paused_reason, 160), None, _aware(routine.updated_at), routine_id=routine.id))
 
     repeated = [i for i in issues if i.get("count", 0) >= sentinel.RETRY_LOOP_MIN
@@ -177,7 +177,7 @@ async def collect(db, owner_id: str, *, now: datetime, engines: list[dict],
     repeated.sort(key=lambda i: (sentinel._SEVERITY_ORDER.get(i.get("severity"), 3), -i.get("count", 0)))
     for issue in repeated[:REPEATED_FAILURES_SHOWN]:
         items.append(Item("repeated_failure", f"repeated_failure:{issue['sig']}",
-                          _clip(issue["title"], 120), f"{issue['count']} times in the last day",
+                          _clip(issue["title"], 120), f"son bir günde {issue['count']} kez",
                           issue.get("thread_id"), _aware(issue["last_at"])))
 
     items.sort(key=lambda i: (KIND_ORDER[i.kind], -i.at.timestamp()))
@@ -208,8 +208,8 @@ async def collect_local(db, owner_id: str, *, now: datetime, zone: ZoneInfo,
         if thread is None or thread.owner_id != owner_id:
             continue
         items.append(Item("question", f"question:{job.id}", _clip(job.question, 120),
-                          "A teammate is waiting for your answer.", target,
-                          _aware(job.last_activity_at or job.created_at), source="Team work"))
+                          "Bir takım arkadaşı yanıtınızı bekliyor.", target,
+                          _aware(job.last_activity_at or job.created_at), source="Takım çalışması"))
 
     due = (await db.execute(select(WorkItem).join(WorkColumn).where(
         WorkItem.owner_id == owner_id, WorkItem.archived.is_(False), WorkColumn.key != "done",
@@ -219,14 +219,14 @@ async def collect_local(db, owner_id: str, *, now: datetime, zone: ZoneInfo,
         if task.due_at:
             if _aware(task.due_at) > now:
                 continue
-            deadline = _aware(task.due_at).astimezone(zone).strftime("%d %b, %H:%M")
+            deadline = _aware(task.due_at).astimezone(zone).strftime("%d.%m, %H:%M")
         elif task.due_date and task.due_date <= _aware(now).astimezone(zone_of(task.timezone)).date():
             deadline = f"{task.due_date.isoformat()} ({task.timezone})"
         else:
             continue
-        items.append(Item("due", f"due:{task.id}", _clip(f"Task due: {task.title}", 120),
-                          f"Due {deadline}. Review the task; this reminder starts no work.",
-                          None, _aware(task.updated_at), work_item_id=task.id, source="Tasks & calendar"))
+        items.append(Item("due", f"due:{task.id}", _clip(f"Görevin son tarihi geldi: {task.title}", 120),
+                          f"Son tarih: {deadline}. Görevi gözden geçirin; bu hatırlatma çalışma başlatmaz.",
+                          None, _aware(task.updated_at), work_item_id=task.id, source="Görevler ve takvim"))
 
     # Keep the last recorded engine failure after restart. A later successful
     # turn on this provider proves it settled; do not infer success from an
@@ -243,8 +243,8 @@ async def collect_local(db, owner_id: str, *, now: datetime, zone: ZoneInfo,
             continue
         kind = "signed_out" if turn.error_code == "engine_signed_out" else "usage_limit"
         items.append(Item(kind, f"engine_failure:{provider}:{turn.id}",
-                          f"{provider}: last run needed attention", "Review the recorded engine problem and try again.",
-                          turn.thread_id, _aware(turn.finished_at), source="Recorded engine failure"))
+                          f"{provider}: son çalışma ilgi bekliyor", "Kaydedilen motor sorununu inceleyip yeniden deneyin.",
+                          turn.thread_id, _aware(turn.finished_at), source="Kaydedilen motor hatası"))
 
     blocked = {i.routine_id for i in items if i.kind == "routine"}
     results = (await db.execute(select(Routine.id, Routine.name, func.count(RoutineRun.id),
@@ -257,8 +257,8 @@ async def collect_local(db, owner_id: str, *, now: datetime, zone: ZoneInfo,
     for routine_id, name, count, finished in results:
         if routine_id not in blocked:
             items.append(Item("routine_completed", f"completed:{routine_id}:{local_day(now, zone)}",
-                _clip(f"{name}: {count} completed today", 120), "View the routine's run history.",
-                None, _aware(finished), routine_id=routine_id, source="Routine runs"))
+                _clip(f"{name}: bugün {count} kez tamamlandı", 120), "Rutinin çalışma geçmişini görüntüleyin.",
+                None, _aware(finished), routine_id=routine_id, source="Rutin çalışmaları"))
     items.sort(key=lambda i: (KIND_ORDER[i.kind], -i.at.timestamp(), i.key))
     return items
 
@@ -454,7 +454,7 @@ class NeedsYou:
                 kinds = sum(i.kind != "routine_completed" for i in items)
                 notification_feed.add(
                     db, owner_id=self.owner_id, kind="needs_you",
-                    title=f"{kinds} thing{'s' if kinds != 1 else ''} need{'' if kinds != 1 else 's'} you",
+                    title=f"Sizi bekleyen {kinds} şey var",
                     body="\n".join(i.title for i in items if i.kind != "routine_completed")[:1000], thread_id=thread_id)
             state.notified = ([*state.notified, *(i.key for i in fresh)])[-NOTIFIED_KEPT:]
             state.card_day, state.card_thread_id, state.card_hash = day, thread_id, digest

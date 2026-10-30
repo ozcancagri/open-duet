@@ -42,7 +42,7 @@ def _day(value: str | None, end: bool) -> datetime | None:
     except ValueError:
         raise HTTPException(
             status_code=422,
-            detail={"error_code": "bad_date", "message": "Dates must look like 2026-10-17."},
+            detail={"error_code": "bad_date", "message": "Tarihler 2026-10-17 biçiminde olmalı."},
         ) from None
     return datetime.combine(day, time.max if end else time.min, tzinfo=UTC)
 

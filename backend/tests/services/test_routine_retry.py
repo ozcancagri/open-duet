@@ -129,7 +129,7 @@ async def test_pausing_cancels_a_waiting_retry(scheduler, sessions, owner, agent
     async with sessions() as db:
         await service.set_paused(db, owner, routine.id, True, now=clock())
     _, retry = await runs_of(sessions, routine.id)
-    assert retry.state == "skipped" and "paused" in retry.error
+    assert retry.state == "skipped" and "duraklatıldı" in retry.error
     clock.advance(minutes=2)
     await scheduler.tick()
     assert len(cli.log("start")) == 1
@@ -166,7 +166,7 @@ async def test_a_failed_run_gets_at_most_one_retry_row(rt, sessions, owner, agen
             row = await db.get(RoutineRun, failed.id)
             texts.append(await sch._queue_retry(db, await db.get(Routine, routine.id), row, clock()))
             await db.commit()
-    assert "attempt 2 of 4" in texts[0] and texts[1] == ""
+    assert "4 denemenin 2. denemesi" in texts[0] and texts[1] == ""
     runs = await runs_of(sessions, routine.id)
     assert [(r.trigger, r.retry_of) for r in runs] == [("manual", None), ("retry", failed.id)]
 

@@ -159,7 +159,7 @@ def client_source(scope: Scope) -> str:
 def label_from_user_agent(user_agent: str | None) -> str:
     ua = user_agent or ""
     if not ua:
-        return "Unnamed device"
+        return "Adsız cihaz"
     browser = next(
         (name for marker, name in (("Edg/", "Edge"), ("OPR/", "Opera"), ("Chrome/", "Chrome"),
                                    ("Firefox/", "Firefox"), ("Safari/", "Safari"), ("curl/", "curl"),

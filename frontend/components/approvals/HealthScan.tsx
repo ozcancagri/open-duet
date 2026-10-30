@@ -26,7 +26,7 @@ export function HealthScan() {
     try {
       setReport(await api.scanHealth(hours));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not run the scan.");
+      setError(err instanceof ApiError ? err.message : "Tarama çalıştırılamadı.");
     } finally {
       setBusy(false);
     }
@@ -36,26 +36,27 @@ export function HealthScan() {
     <div className="space-y-3 text-sm">
       <div className="flex items-center gap-2">
         <select
-          aria-label="How far back"
+          aria-label="Ne kadar geriye"
           value={hours}
           onChange={(e) => setHours(Number(e.target.value))}
           className={`${FIELD_BOX} w-auto`}
         >
-          <option value={1}>Last hour</option>
-          <option value={24}>Last day</option>
-          <option value={168}>Last week</option>
+          <option value={1}>Son bir saat</option>
+          <option value={24}>Son bir gün</option>
+          <option value={168}>Son bir hafta</option>
         </select>
         <button className={BUTTON} onClick={scan} disabled={busy}>
-          {busy ? "Scanning…" : "Scan"}
+          {busy ? "Taranıyor…" : "Tara"}
         </button>
       </div>
       <p className="text-xs text-muted">
-        Issues show the error with paths, numbers and quoted text taken out, never the tool&apos;s output.
+        Sorunlarda hata; yollar, sayılar ve tırnak içindeki metin çıkarılmış olarak gösterilir, aracın çıktısı
+        asla gösterilmez.
       </p>
       {error && <p role="alert" className="text-xs text-danger">{error}</p>}
       {report && report.issues.length === 0 && (
         <p className="rounded-md bg-inset px-3 py-3 text-xs text-muted">
-          No issues. Read {report.scanned_events} events and {report.scanned_decisions} denials.
+          Sorun yok. {report.scanned_events} olay ve {report.scanned_decisions} ret okundu.
         </p>
       )}
       {report && report.issues.length > 0 && (
@@ -68,12 +69,12 @@ export function HealthScan() {
               </p>
               <p className="mt-0.5 break-words font-mono text-xs text-muted">{issue.title}</p>
               <p className="mt-0.5 text-xs text-muted">
-                Last {new Date(issue.last_at).toLocaleString()}
+                Son: {new Date(issue.last_at).toLocaleString("tr-TR")}
                 {issue.thread_id != null && (
                   <>
                     {" · "}
                     <Link href={`/chat/?thread=${issue.thread_id}`} className="underline">
-                      conversation {issue.thread_id}
+                      sohbet {issue.thread_id}
                     </Link>
                   </>
                 )}

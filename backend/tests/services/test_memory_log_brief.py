@@ -213,8 +213,8 @@ async def test_a_room_turn_gets_the_brief_and_the_private_chat_is_disclosed_once
     assert "Done: Secret plan with the person" in engine.contexts[-1].instructions
     notices = [m for m in await rt.rooms.messages(room["id"]) if m.get("kind") == "brief"]
     assert len(notices) == 1
-    assert notices[0]["text"] == "Lead's recent-work brief covers 1 private chat with you"
-    assert notices[0]["author"]["label"] == "Memory"
+    assert notices[0]["text"] == "Lead için son çalışmalar özeti sizinle 1 özel sohbeti kapsıyor"
+    assert notices[0]["author"]["label"] == "Bellek"
     await rt.rooms.post(room["id"], "And now?")
     await rt.rooms.work(room["id"])
     assert len([m for m in await rt.rooms.messages(room["id"]) if m.get("kind") == "brief"]) == 1

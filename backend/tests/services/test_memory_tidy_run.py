@@ -99,7 +99,7 @@ async def test_an_engine_without_a_quick_call_still_expires_and_dedupes(ort, ses
     monkeypatch.delattr(type(ort.adapters["openai_compat"]), "generate_text")
     report = await ort.capture.tidy(a.id)
     assert report["expired"] == 1 and report["duplicates"] == 1 and report["superseded"] == 0
-    assert "cannot make the quick call" in report["note"]
+    assert "kısa çağrıyı yapamıyor" in report["note"]
 
 
 async def test_stale_answers_are_dropped_when_the_notes_change_meanwhile(ort, sessions, owner, endpoint):
@@ -116,14 +116,14 @@ async def test_stale_answers_are_dropped_when_the_notes_change_meanwhile(ort, se
     report = await ort.capture.tidy(a.id)
     notes = agent_memory.read_memory(a.id).text
     assert "~~" not in notes and "meanwhile" in notes
-    assert report["note"] and "changed" in report["note"]
+    assert report["note"] and "değişti" in report["note"]
 
 
 async def test_switches_off_and_busy_agents_are_left_alone(ort, sessions, owner, endpoint):
     off = await agent(sessions, owner, memory_upkeep=False)
     agent_memory.write_memory(off.id, NOTES)
     script(endpoint)
-    assert "off" in (await ort.capture.tidy(off.id))["note"]
+    assert "kapalı" in (await ort.capture.tidy(off.id))["note"]
     assert agent_memory.read_memory(off.id).text == NOTES
 
 

@@ -138,6 +138,6 @@ def test_the_claude_not_found_message_names_what_each_kind_of_install_actually_r
 
     monkeypatch.setattr(profile, "_current", make_profile(tmp_path, claude_cli_path=str(tmp_path / "no-such-claude")))
     desktop = local_claude_runner._status_blocking().error
-    assert "Settings" in desktop and "LOCAL_CLAUDE_CLI_PATH" not in desktop
-    assert "Check again" in desktop
+    assert "Ayarlar" in desktop and "LOCAL_CLAUDE_CLI_PATH" not in desktop
+    assert "Yeniden kontrol et" in desktop
 

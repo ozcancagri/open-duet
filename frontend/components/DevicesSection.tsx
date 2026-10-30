@@ -12,7 +12,7 @@ const inputClass = "block w-full rounded-md border border-line bg-transparent px
 const buttonClass = "cursor-pointer rounded-md border border-line px-3 py-2 text-sm hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50";
 
 function when(iso: string): string {
-  return new Date(iso).toLocaleString();
+  return new Date(iso).toLocaleString("tr-TR");
 }
 
 function QrCode({ text }: { text: string }) {
@@ -22,7 +22,7 @@ function QrCode({ text }: { text: string }) {
   }, [text]);
   if (!qr) return null;
   return (
-    <svg role="img" aria-label="Pairing QR code" viewBox={`0 0 ${qr.size} ${qr.size}`} width={192} height={192}
+    <svg role="img" aria-label="Eşleştirme QR kodu" viewBox={`0 0 ${qr.size} ${qr.size}`} width={192} height={192}
       shapeRendering="crispEdges" className="rounded bg-white" data-testid="pairing-qr">
       <rect width={qr.size} height={qr.size} fill="#fff" />
       <path d={qr.path} fill="#000" />
@@ -42,19 +42,19 @@ function OpenCode({ code, onDone }: { code: PairingCode; onDone: () => void }) {
     <div className="space-y-3 rounded-md border border-line p-4" aria-live="polite">
       {left > 0 ? (
         <>
-          <p className="text-sm">On the other device, scan the code or open <span className="break-all font-mono text-xs">{link}</span></p>
+          <p className="text-sm">Diğer cihazda kodu taratın ya da şu adresi açın: <span className="break-all font-mono text-xs">{link}</span></p>
           <div className="flex flex-wrap items-center gap-4">
             <QrCode text={link} />
             <div>
               <p className="font-mono text-2xl font-semibold tracking-widest" data-testid="pairing-code">{code.display_code}</p>
-              <p className="text-xs text-muted">{code.scope === "admin" ? "Full access" : "Chat only"} · works once · {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")} left</p>
+              <p className="text-xs text-muted">{code.scope === "admin" ? "Tam erişim" : "Yalnız sohbet"} · tek kullanımlık · {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")} kaldı</p>
             </div>
           </div>
         </>
       ) : (
-        <p className="text-sm text-muted">That code has expired.</p>
+        <p className="text-sm text-muted">Bu kodun süresi doldu.</p>
       )}
-      <button type="button" className={buttonClass} onClick={onDone}>Done</button>
+      <button type="button" className={buttonClass} onClick={onDone}>Tamam</button>
     </div>
   );
 }
@@ -78,7 +78,7 @@ export function DevicesSection() {
       setDevices(await auth.devices());
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load devices.");
+      setError(err instanceof ApiError ? err.message : "Cihazlar yüklenemedi.");
     }
   }, []);
 
@@ -96,7 +96,7 @@ export function DevicesSection() {
       setCode(await auth.createPairingCode(scope, label));
       setLabel("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not create a pairing code.");
+      setError(err instanceof ApiError ? err.message : "Eşleştirme kodu oluşturulamadı.");
     } finally {
       setBusy(false);
     }
@@ -117,7 +117,7 @@ export function DevicesSection() {
       }
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not revoke that device.");
+      setError(err instanceof ApiError ? err.message : "Bu cihazın erişimi iptal edilemedi.");
     } finally {
       setBusy(false);
     }
@@ -130,13 +130,13 @@ export function DevicesSection() {
   return (
     <section className="space-y-4 rounded-lg border border-line p-5" aria-labelledby="devices-heading">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="devices-heading" className="font-semibold">Devices</h3>
-        {session.kind === "browser" && <button type="button" className={buttonClass} onClick={signOut}>Sign out</button>}
+        <h3 id="devices-heading" className="font-semibold">Cihazlar</h3>
+        {session.kind === "browser" && <button type="button" className={buttonClass} onClick={signOut}>Çıkış yap</button>}
       </div>
       <p className="text-xs text-muted">
         {session.kind === "loopback"
-          ? "This request is trusted because it comes from this machine (LOOPBACK_TRUST)."
-          : `Signed in as ${session.label ?? "this browser"} · ${session.scopes.includes("admin") ? "full access" : "chat only"}.`}
+          ? "Bu istek bu makineden geldiği için güvenilir sayılıyor (LOOPBACK_TRUST)."
+          : `Giriş yapıldı: ${session.label ?? "bu tarayıcı"} ·${session.scopes.includes("admin") ? "tam erişim" : "yalnız sohbet"}.`}
       </p>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       {admin && (
@@ -145,37 +145,37 @@ export function DevicesSection() {
             <OpenCode code={code} onDone={() => { setCode(null); void load(); }} />
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-muted">Pair a phone, tablet or another browser with a one-time code.</p>
+              <p className="text-sm text-muted">Telefon, tablet ya da başka bir tarayıcıyı tek kullanımlık bir kodla eşleştirin.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label htmlFor="pair-scope" className="block text-sm font-medium">Access</label>
+                  <label htmlFor="pair-scope" className="block text-sm font-medium">Erişim</label>
                   <select id="pair-scope" className={inputClass} value={scope} onChange={(e) => setScope(e.target.value as "admin" | "chat")}>
-                    <option value="chat">Chat only</option>
-                    <option value="admin">Full access (settings, devices)</option>
+                    <option value="chat">Yalnız sohbet</option>
+                    <option value="admin">Tam erişim (ayarlar, cihazlar)</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="pair-label" className="block text-sm font-medium">Name (optional)</label>
-                  <input id="pair-label" className={inputClass} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="My phone" maxLength={80} />
+                  <label htmlFor="pair-label" className="block text-sm font-medium">Ad (isteğe bağlı)</label>
+                  <input id="pair-label" className={inputClass} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Telefonum" maxLength={80} />
                 </div>
               </div>
-              <button type="button" className={buttonClass} onClick={create} disabled={busy}>Create pairing code</button>
+              <button type="button" className={buttonClass} onClick={create} disabled={busy}>Eşleştirme kodu oluştur</button>
             </div>
           )}
           <div>
-            <h4 className="mb-2 text-sm font-medium">Signed in</h4>
-            {devices === null ? <p className="text-sm text-muted">Loading…</p> : devices.length === 0 ? (
-              <p className="text-sm text-muted">No signed-in browsers or paired devices.</p>
+            <h4 className="mb-2 text-sm font-medium">Giriş yapılmış</h4>
+            {devices === null ? <p className="text-sm text-muted">Yükleniyor…</p> : devices.length === 0 ? (
+              <p className="text-sm text-muted">Giriş yapılmış tarayıcı ya da eşleştirilmiş cihaz yok.</p>
             ) : (
               <ul className="divide-y divide-line">
                 {devices.map((device) => (
                   <li key={device.id} className="flex flex-wrap items-center justify-between gap-2 py-2" data-testid="device-row">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{device.label}{device.current && <span className="ml-2 rounded bg-inset px-1.5 py-0.5 text-xs font-normal">this browser</span>}</p>
-                      <p className="text-xs text-muted">{device.kind === "browser" ? "Browser" : "Device token"} · {device.scopes.includes("admin") ? "full access" : "chat only"} · last seen {when(device.last_seen_at)} · since {when(device.created_at)}</p>
+                      <p className="truncate text-sm font-medium">{device.label}{device.current && <span className="ml-2 rounded bg-inset px-1.5 py-0.5 text-xs font-normal">bu tarayıcı</span>}</p>
+                      <p className="text-xs text-muted">{device.kind === "browser" ? "Tarayıcı" : "Cihaz token'ı"} · {device.scopes.includes("admin") ? "tam erişim" : "yalnız sohbet"} · son görülme {when(device.last_seen_at)} · eklenme {when(device.created_at)}</p>
                     </div>
-                    <button type="button" className={buttonClass} disabled={busy} onClick={() => revoke(device)} aria-label={`Revoke ${device.label}`}>
-                      {confirming === device.id ? "Confirm revoke" : "Revoke"}
+                    <button type="button" className={buttonClass} disabled={busy} onClick={() => revoke(device)} aria-label={`${device.label} erişimini iptal et`}>
+                      {confirming === device.id ? "İptali onayla" : "Erişimi iptal et"}
                     </button>
                   </li>
                 ))}

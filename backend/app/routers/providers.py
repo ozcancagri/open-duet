@@ -24,5 +24,5 @@ async def list_providers() -> ProvidersResponse:
     if settings.BOAT_ENABLED:
         return ProvidersResponse(boat=ProviderStatus(enabled=True))
     return ProvidersResponse(
-        boat=ProviderStatus(enabled=False, reason="BOAT_API_KEY is not set in backend/.env")
+        boat=ProviderStatus(enabled=False, reason="backend/.env içinde BOAT_API_KEY ayarlı değil")
     )

@@ -188,7 +188,7 @@ def test_stale_explicit_undo_preserves_newer_note_and_reverse_order_works(storag
     request('Remember that my home is Pune')
     second = memory_journal.read(1)[0]
     latest = agent_memory.read_memory(1).text
-    with pytest.raises(memory_journal.CannotUndo, match='changed after'):
+    with pytest.raises(memory_journal.CannotUndo, match='bu kayıttan sonra değişti'):
         memory_journal.undo(1, first['id'])
     assert agent_memory.read_memory(1).text == latest
     assert len(memory_journal.read(1)) == 2

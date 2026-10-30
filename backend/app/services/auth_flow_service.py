@@ -72,7 +72,7 @@ def _ensure_box_running(box_id: str) -> None:
         result = ascii_box_service.get_box(box_id)
     except ApiException as exc:
         raise BoxCommandError(
-            f"Could not reach box {box_id}: {exc.status} {exc.reason}"
+            f"{box_id} korumalı alanına ulaşılamadı: {exc.status} {exc.reason}"
         ) from exc
 
     if result.sandbox.state not in RUNNABLE_BOX_STATES:
@@ -80,7 +80,7 @@ def _ensure_box_running(box_id: str) -> None:
             ascii_box_service.resume_box(box_id)
         except ApiException as exc:
             raise BoxCommandError(
-                f"Could not resume box {box_id}: {exc.status} {exc.reason}"
+                f"{box_id} korumalı alanı sürdürülemedi: {exc.status} {exc.reason}"
             ) from exc
 
 
@@ -89,13 +89,13 @@ def _run(box_id: str, command: str) -> str:
         result = ascii_box_service.run_command(box_id, command)
     except ApiException as exc:
         raise BoxCommandError(
-            f"Command failed on box {box_id}: {exc.status} {exc.reason}"
+            f"{box_id} korumalı alanında komut başarısız oldu: {exc.status} {exc.reason}"
         ) from exc
 
     parsed = json.loads(result.to_json())
     if parsed.get("success") is False:
         raise BoxCommandError(
-            f"Command failed on box {box_id}: {parsed.get('stderr') or parsed.get('signal')}"
+            f"{box_id} korumalı alanında komut başarısız oldu: {parsed.get('stderr') or parsed.get('signal')}"
         )
     return parsed.get("stdout") or ""
 
@@ -136,7 +136,7 @@ def start_login(box_id: str, provider: str) -> str:
         if match:
             return match.group(0)
 
-    raise LoginTimeoutError("Timed out waiting for login URL")
+    raise LoginTimeoutError("Giriş adresi beklenirken zaman aşımı")
 
 
 def submit_code(box_id: str, provider: str, code: str) -> str:
@@ -156,12 +156,12 @@ def submit_code(box_id: str, provider: str, code: str) -> str:
             _run(box_id, f"tmux kill-session -t {session} 2>/dev/null; true")
 
             if exit_code != "0":
-                raise LoginFailedError(f"Login process exited with code {exit_code}")
+                raise LoginFailedError(f"Giriş süreci {exit_code} koduyla çıktı")
 
             file_response = ascii_box_service.read_file(box_id, config["credential_path"])
             return file_response.content
 
-    raise LoginTimeoutError("Timed out waiting for login to complete")
+    raise LoginTimeoutError("Girişin tamamlanması beklenirken zaman aşımı")
 
 
 def start_device_login(box_id: str, provider: str) -> DeviceLogin:
@@ -200,7 +200,7 @@ def start_device_login(box_id: str, provider: str) -> DeviceLogin:
             _run(box_id, f"tmux send-keys -t {session} Enter")
             dismissed_prompt = True
 
-    raise LoginTimeoutError("Timed out waiting for device login code")
+    raise LoginTimeoutError("Cihaz giriş kodu beklenirken zaman aşımı")
 
 
 def await_device_login(box_id: str, provider: str) -> str:
@@ -221,9 +221,9 @@ def await_device_login(box_id: str, provider: str) -> str:
             _run(box_id, f"tmux kill-session -t {session} 2>/dev/null; true")
 
             if exit_code != "0":
-                raise LoginFailedError(f"Login process exited with code {exit_code}")
+                raise LoginFailedError(f"Giriş süreci {exit_code} koduyla çıktı")
 
             file_response = ascii_box_service.read_file(box_id, config["credential_path"])
             return file_response.content
 
-    raise LoginTimeoutError("Timed out waiting for login to complete")
+    raise LoginTimeoutError("Girişin tamamlanması beklenirken zaman aşımı")

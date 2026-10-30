@@ -39,7 +39,7 @@ def _error(status_code: int, code: str, message: str) -> HTTPException:
 
 
 def _not_found() -> HTTPException:
-    return _error(404, "routine_not_found", "Routine not found")
+    return _error(404, "routine_not_found", "Rutin bulunamadı")
 
 
 def _invalid(exc: service.InvalidRoutine) -> HTTPException:
@@ -53,7 +53,7 @@ def _describe(routine, latest=None, now: datetime | None = None) -> RoutineRespo
         summary = schedules.summary(routine.schedule_kind, routine.schedule_spec, routine.timezone)
         dates = schedules.next_dates(routine.schedule_kind, routine.schedule_spec, routine.timezone, now)
     except (schedules.InvalidSchedule, KeyError, ValueError):
-        summary, dates = "Schedule cannot be read", []
+        summary, dates = "Zamanlama okunamıyor", []
     return response.model_copy(update={
         "summary": summary,
         "next_dates": dates,
@@ -189,7 +189,7 @@ async def run_routine_now(routine_id: int, sch: service.RoutineScheduler = Depen
         except service.RoutineNotFound:
             raise _not_found() from None
         except service.RoutineBusy:
-            raise _error(409, "routine_busy", "A run of this routine is still in progress.") from None
+            raise _error(409, "routine_busy", "Bu rutinin bir çalışması hâlâ sürüyor.") from None
     sch.kick()
     return run
 
@@ -267,5 +267,5 @@ async def read_all_notifications(sch: service.RoutineScheduler = Depends(service
 async def read_notification(notification_id: int, sch: service.RoutineScheduler = Depends(service.get_scheduler)):
     async with sch.session() as db:
         if not await notification_feed.mark_read(db, sch.owner_id, notification_id):
-            raise _error(404, "notification_not_found", "Notification not found")
+            raise _error(404, "notification_not_found", "Bildirim bulunamadı")
     return Response(status_code=204)

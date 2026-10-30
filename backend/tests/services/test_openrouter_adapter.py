@@ -69,8 +69,8 @@ async def test_without_a_key_it_is_not_ready_and_sends_nothing(endpoint):
     for config in (None, {"base_url": OPENROUTER_BASE_URL}):
         adapter.config = config
         status, probe = await adapter.status(), await adapter.probe()
-        assert not status.ready and "OpenRouter API key" in status.error
-        assert not probe.ready and "OpenRouter API key" in probe.reason
+        assert not status.ready and "OpenRouter API anahtarınızı" in status.error
+        assert not probe.ready and "OpenRouter API anahtarınızı" in probe.reason
     assert endpoint.requests == []
 
 
@@ -115,7 +115,7 @@ async def test_large_catalog_free_models_and_safe_default(endpoint):
     probe = await adapter.probe()
     assert len(probe.models) == 600
     assert probe.models[0].id == "z/tools:free" and probe.models[0].default
-    assert "(free)" in probe.models[0].label
+    assert "(ücretsiz)" in probe.models[0].label
     endpoint.handler = lambda r: httpx.Response(200, json={"data": {"is_free_tier": False} if r.url.path.endswith("/key") else models})
     assert not any(model.default for model in (await adapter.probe()).models)
 
@@ -154,7 +154,7 @@ async def test_a_turn_goes_to_openrouter_with_its_own_saved_config(ort, sessions
 
 async def test_a_turn_without_a_saved_key_is_refused(ort, sessions, owner, endpoint):
     thread = await ort.create_thread(provider="openrouter", model=MODEL)
-    with pytest.raises(ProviderUnavailable, match="OpenRouter API key"):
+    with pytest.raises(ProviderUnavailable, match="OpenRouter API anahtarınızı"):
         await ort.send_turn(thread.id, "hi")
     assert endpoint.requests == []
 

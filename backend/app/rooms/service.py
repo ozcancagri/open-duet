@@ -39,7 +39,7 @@ class Rooms:
         query = select(Room).where(Room.id == room_id, Room.owner_id == self.rt.owner_id)
         room = await db.scalar(query.with_for_update() if lock else query)
         if room is None or room.deleting_at is not None:
-            raise teams.TeamError('room_not_found', 'Room not found.')
+            raise teams.TeamError('room_not_found', 'Oda bulunamadı.')
         return room
 
     async def members(self, db, room_id, *, include_removed=False):
@@ -56,7 +56,7 @@ class Rooms:
             output = []
             for member in members:
                 agent = await db.get(Agent, member.agent_id)
-                output.append({'agent_id': member.agent_id, 'name': agent.name if agent else 'Deleted agent', 'held': member.held_at is not None, 'member_thread_id': member.member_thread_id})
+                output.append({'agent_id': member.agent_id, 'name': agent.name if agent else 'Silinmiş ajan', 'held': member.held_at is not None, 'member_thread_id': member.member_thread_id})
             dispatches = list((await db.execute(select(RoomDispatch).where(RoomDispatch.room_id == room.id).order_by(RoomDispatch.id.desc()).limit(100))).scalars())
             return {'id': room.id, 'name': room.name, 'bulletin': room.bulletin,
                     'default_responder_kind': room.default_responder_kind, 'default_responder_agent_id': room.default_responder_agent_id,
@@ -70,17 +70,17 @@ class Rooms:
         return [await self.detail(identifier) for identifier in ids]
 
     async def create(self, data, *, creator='person', caller_id=None, turn_id=None):
-        name = teams.clean_line(data.get('name'), 80, 'Room name')
+        name = teams.clean_line(data.get('name'), 80, 'Oda adı')
         member_ids = data.get('member_ids')
         if not isinstance(member_ids, list) or not 1 <= len(member_ids) <= 12 or any(type(i) is not int for i in member_ids) or len(set(member_ids)) != len(member_ids):
-            raise teams.TeamError('invalid_members', 'Choose between one and twelve distinct members.')
+            raise teams.TeamError('invalid_members', 'Bir ile on iki arasında farklı üye seçin.')
         bulletin = data.get('bulletin', '')
         if not isinstance(bulletin, str) or len(bulletin) > 12000:
-            raise teams.TeamError('invalid_bulletin', 'Shared instructions must be at most 12000 characters.')
+            raise teams.TeamError('invalid_bulletin', 'Ortak talimatlar en çok 12000 karakter olmalı.')
         kind = data.get('default_responder_kind', 'member')
         default = data.get('default_responder_agent_id', member_ids[0])
         if kind not in ('member', 'everyone', 'mentions') or (kind == 'member' and default not in member_ids):
-            raise teams.TeamError('invalid_responder', 'Choose a member, everyone or mentions only.')
+            raise teams.TeamError('invalid_responder', 'Bir üye, herkes ya da yalnız etiketlenenler seçeneklerinden birini seçin.')
         async with self.rt.session() as db:
             await begin_write(db)
             for identifier in member_ids:
@@ -118,10 +118,10 @@ class Rooms:
             # removal cancels queued work, or claim wins and removal is refused.
             room = await self.get(db, room_id, lock=True)
             if 'name' in data:
-                room.name = teams.clean_line(data['name'], 80, 'Room name')
+                room.name = teams.clean_line(data['name'], 80, 'Oda adı')
             if 'bulletin' in data:
                 if not isinstance(data['bulletin'], str) or len(data['bulletin']) > 12000:
-                    raise teams.TeamError('invalid_bulletin', 'Shared instructions are too long.')
+                    raise teams.TeamError('invalid_bulletin', 'Ortak talimatlar çok uzun.')
                 room.bulletin = data['bulletin']
             members = await self.members(db, room_id)
             current = {m.agent_id for m in members}
@@ -129,14 +129,14 @@ class Rooms:
             if 'member_ids' in data:
                 identifiers, expected = data['member_ids'], data.get('expected_member_ids')
                 if not isinstance(identifiers, list) or not 1 <= len(identifiers) <= 12 or any(type(i) is not int for i in identifiers) or len(set(identifiers)) != len(identifiers):
-                    raise teams.TeamError('invalid_members', 'Choose between one and twelve distinct members.')
+                    raise teams.TeamError('invalid_members', 'Bir ile on iki arasında farklı üye seçin.')
                 if not isinstance(expected, list) or any(type(i) is not int for i in expected) or len(set(expected)) != len(expected) or set(expected) != current:
-                    raise teams.TeamError('roster_conflict', 'The room roster changed. Reopen room settings before saving.')
+                    raise teams.TeamError('roster_conflict', 'Oda üye listesi değişti. Kaydetmeden önce oda ayarlarını yeniden açın.')
                 selected = set(identifiers)
             kind = data.get('default_responder_kind', room.default_responder_kind)
             default = data.get('default_responder_agent_id', room.default_responder_agent_id)
             if kind not in ('member', 'everyone', 'mentions') or (kind == 'member' and default not in selected):
-                raise teams.TeamError('invalid_responder', 'Choose a default responder from the new roster.')
+                raise teams.TeamError('invalid_responder', 'Yeni üye listesinden varsayılan bir yanıtlayıcı seçin.')
             removed, added = current - selected, selected - current
             if removed or added:
                 # A stopped provider can still be settling. Do not detach its
@@ -145,7 +145,7 @@ class Rooms:
                 busy = await db.scalar(select(RoomDispatch.id).where(RoomDispatch.room_id == room_id, RoomDispatch.agent_id.in_(removed), RoomDispatch.status == 'running').limit(1))
                 active_turn = await db.scalar(select(Turn.id).where(Turn.thread_id.in_(thread_ids), Turn.status == 'running').limit(1))
                 if busy or active_turn:
-                    raise teams.TeamError('member_busy', 'Stop the member and wait for their work to finish before removing them.')
+                    raise teams.TeamError('member_busy', 'Üyeyi çıkarmadan önce durdurun ve işinin bitmesini bekleyin.')
                 team = await teams.team_for(db, self.rt.owner_id)
                 # Match person-created rooms: standalone owner agents are valid;
                 # agents assigned to a team must belong to this owner's team.
@@ -201,7 +201,7 @@ class Rooms:
 
     async def post(self, room_id, text, *, author=None, source=None, dispatch=True, chain_depth=0, caller_id=None):
         if not isinstance(text, str) or not text.strip() or len(text) > 8000:
-            raise teams.TeamError('invalid_message', 'Write a message of at most 8000 characters.')
+            raise teams.TeamError('invalid_message', 'En çok 8000 karakterlik bir mesaj yazın.')
         author = author or {'kind': 'person', 'label': 'You'}
         async with self.rt.session() as db:
             await begin_write(db)
@@ -456,7 +456,7 @@ class Rooms:
             room = await self.get(db, room_id, lock=True)
             member = await db.scalar(select(RoomMember).where(RoomMember.room_id == room_id, RoomMember.agent_id == agent_id, RoomMember.removed_at.is_(None)))
             if member is None:
-                raise teams.TeamError('not_room_member', 'No such room member.')
+                raise teams.TeamError('not_room_member', 'Böyle bir oda üyesi yok.')
             member.held_at = teams.now() if held else None
             await thread_store._add_event(db, room.thread_id, 'room.notice', {'kind': 'held' if held else 'resumed', 'agent_id': agent_id, 'text': 'Member held.' if held else 'Member resumed.'}, None)
             await db.commit()
@@ -484,7 +484,7 @@ class Rooms:
             await begin_write(db)
             room = await db.get(Room, room_id)
             if not room or room.owner_id != self.rt.owner_id:
-                raise teams.TeamError('room_not_found', 'Room not found.')
+                raise teams.TeamError('room_not_found', 'Oda bulunamadı.')
             room.deleting_at = teams.now()
             await db.commit()
         async with self.rt.session() as db:

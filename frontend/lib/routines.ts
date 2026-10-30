@@ -2,14 +2,14 @@
 import type { Routine, RoutineRun, RoutineRunState, ScheduleKind } from "./api";
 
 export const SCHEDULE_KINDS: { value: ScheduleKind; label: string }[] = [
-  { value: "weekdays", label: "On chosen days at a time" },
-  { value: "interval", label: "Every few minutes or hours" },
-  { value: "cron", label: "Cron expression (advanced)" },
-  { value: "once", label: "Once, at a date and time" },
-  { value: "manual", label: "Only by hand or webhook" },
+  { value: "weekdays", label: "Seçilen günlerde, belirli bir saatte" },
+  { value: "interval", label: "Birkaç dakikada ya da saatte bir" },
+  { value: "cron", label: "Cron ifadesi (gelişmiş)" },
+  { value: "once", label: "Bir kez, belirli tarih ve saatte" },
+  { value: "manual", label: "Yalnız elle ya da webhook ile" },
 ];
 
-export const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+export const DAY_LABELS = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"] as const;
 
 // Every field a schedule editor shows; only the current kind's fields are sent.
 export type ScheduleDraft = {
@@ -125,14 +125,14 @@ export function canSaveSchedulePreview(draft: ScheduleDraft, validPreviewKey: st
 }
 
 const STATE_LABEL: Record<RoutineRunState, string> = {
-  queued: "Queued",
-  running: "Running",
-  needs_input: "Needs your approval",
-  completed: "Completed",
-  failed: "Failed",
-  missed: "Missed",
-  skipped: "Skipped",
-  interrupted: "Interrupted",
+  queued: "Sırada",
+  running: "Çalışıyor",
+  needs_input: "Onayınızı bekliyor",
+  completed: "Tamamlandı",
+  failed: "Başarısız",
+  missed: "Kaçırıldı",
+  skipped: "Atlandı",
+  interrupted: "Yarıda kesildi",
 };
 
 export function runStateLabel(state: string): string {
@@ -148,10 +148,10 @@ export function runStateTone(state: string): "ok" | "warn" | "bad" | "muted" | "
 }
 
 const TRIGGER_LABEL: Record<RoutineRun["trigger"], string> = {
-  schedule: "Scheduled",
-  manual: "Run now",
+  schedule: "Zamanlanmış",
+  manual: "Şimdi çalıştır",
   webhook: "Webhook",
-  retry: "Retry",
+  retry: "Yeniden deneme",
 };
 
 export function triggerLabel(trigger: string): string {
@@ -167,7 +167,7 @@ export function formatWhen(iso: string | null | undefined, timezone?: string): s
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
   try {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat("tr-TR", {
       timeZone: timezone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
     }).format(date);
   } catch {
@@ -180,7 +180,7 @@ export function formatSchedulePreviewWhen(iso: string | null | undefined, timezo
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
   try {
-    return new Intl.DateTimeFormat("en-GB", {
+    return new Intl.DateTimeFormat("tr-TR", {
       timeZone: timezone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZoneName: "shortOffset",
     }).format(date);
   } catch {
@@ -189,10 +189,10 @@ export function formatSchedulePreviewWhen(iso: string | null | undefined, timezo
 }
 
 export function nextRunText(routine: Pick<Routine, "paused" | "next_run_at" | "schedule_kind" | "timezone">): string {
-  if (routine.paused) return "Paused";
-  if (routine.schedule_kind === "manual") return "Runs only by hand or webhook";
-  if (!routine.next_run_at) return "No upcoming run";
-  return `Next: ${formatWhen(routine.next_run_at, routine.timezone)}`;
+  if (routine.paused) return "Duraklatıldı";
+  if (routine.schedule_kind === "manual") return "Yalnız elle ya da webhook ile çalışır";
+  if (!routine.next_run_at) return "Yaklaşan çalıştırma yok";
+  return `Sonraki: ${formatWhen(routine.next_run_at, routine.timezone)}`;
 }
 
 // The full address of a webhook path ("/hooks/12") on the configured backend.

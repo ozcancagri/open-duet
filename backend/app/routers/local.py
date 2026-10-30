@@ -97,14 +97,14 @@ async def get_local_task(
 ):
     task = await task_execution_service.get_task(db, task_id, access=access)
     if task is None or task.provider != task_execution_service.LOCAL_PROVIDER:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Görev bulunamadı")
     return task
 
 
 async def _local_task_or_404(db: AsyncSession, task_id: int, access: LocalAccessGrant):
     task = await task_execution_service.get_task(db, task_id, access=access)
     if task is None or task.provider != task_execution_service.LOCAL_PROVIDER:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Görev bulunamadı")
     return task
 
 
@@ -134,7 +134,7 @@ async def answer_local_approval(
         approval_broker.answer(task_id, approval_id, payload.decision)
     except ApprovalNotFound:
         raise HTTPException(
-            status_code=404, detail="That request is no longer waiting for an answer"
+            status_code=404, detail="Bu istek artık yanıt beklemiyor"
         )
     return {"status": "recorded", "decision": payload.decision}
 
@@ -163,7 +163,7 @@ async def stream_local_task_events(
     Closing the stream never stops the run."""
     task = await task_execution_service.get_task(db, task_id, access=access)
     if task is None or task.provider != task_execution_service.LOCAL_PROVIDER:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Görev bulunamadı")
 
     subscription = run_hub.subscribe(task_id)
     frames = _frames_from_task(task) if subscription is None else stream_frames(subscription)

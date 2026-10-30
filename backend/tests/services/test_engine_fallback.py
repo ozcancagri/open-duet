@@ -184,7 +184,7 @@ async def test_a_limit_before_the_engine_started_moves_the_turn_to_the_fallback(
     assert switched["from"] == "primary" and switched["to"] == "backup" and switched["model"] == "backup-large"
     assert switched["reason"] == "usage_limit" and switched["resets_at"]
     assert switched["message"].startswith(
-        "Switched this turn to Backup because Primary refused it before starting: Primary has reached its usage limit"
+        "Bu yanıt Backup motoruna aktarıldı, çünkü Primary başlamadan reddetti: Primary kullanım sınırına ulaştı"
     )
     assert backup.calls[0].prompt == "hello" and backup.calls[0].resume is False
     # The conversation stays on its own engine and keeps none of the fallback's state.
@@ -206,7 +206,7 @@ async def test_a_limit_after_the_engine_started_is_never_moved(make_rt, sessions
 
     turn = await last_turn(sessions, thread.id)
     assert turn.status == "failed" and turn.error_code == "engine_limited"
-    assert "already started on this message" in turn.error and "may have run tools" in turn.error
+    assert "bu mesaja zaten başlamıştı" in turn.error and "araç çalıştırmış olabilir" in turn.error
     assert not backup.calls
     assert "engine.switched" not in await types_of(sessions, thread.id)
     assert rt.engine_limit("primary")["kind"] == "usage_limit"
@@ -222,8 +222,8 @@ async def test_a_fallback_without_a_capability_the_turn_needs_is_refused(make_rt
 
     turn = await last_turn(sessions, thread.id)
     assert turn.error_code == "engine_limited"
-    assert "fallback engine, Backup, cannot take this turn: it lacks approvals" in turn.error
-    assert "Wait for the limit to reset" in turn.error
+    assert "yedek motoru Backup bu yanıtı devralamıyor: şunlar eksik: onaylar" in turn.error
+    assert "Sınırın sıfırlanmasını bekleyin" in turn.error
     assert not backup.calls
 
 
@@ -244,7 +244,7 @@ async def test_a_continuing_conversation_is_not_moved_to_an_engine_that_cannot_r
     await finished(sessions, thread.id, 2)
 
     turn = await last_turn(sessions, thread.id)
-    assert turn.error_code == "engine_limited" and "earlier messages" in turn.error
+    assert turn.error_code == "engine_limited" and "önceki mesajları" in turn.error
     assert not backup.calls
 
 
@@ -275,8 +275,8 @@ async def test_no_fallback_fails_with_the_limit_and_a_next_step(make_rt, session
     await finished(sessions, thread.id)
     turn = await last_turn(sessions, thread.id)
     assert turn.error_code == "engine_limited"
-    assert turn.error.startswith("Primary has reached its usage limit")
-    assert "give it a fallback engine" in turn.error
+    assert turn.error.startswith("Primary kullanım sınırına ulaştı")
+    assert "ona bir yedek motor verin" in turn.error
 
 
 async def test_fallback_history_uses_its_own_compaction_budget(make_rt, sessions, owner, tmp_path):
@@ -360,13 +360,13 @@ async def test_a_fallback_that_is_not_ready_or_limited_too_is_refused(make_rt, s
     thread = await conversation(rt, sessions, owner, tmp_path)
     await rt.send_turn(thread.id, "hello")
     await finished(sessions, thread.id)
-    assert "it is not ready (not signed in)" in (await last_turn(sessions, thread.id)).error
+    assert "hazır değil (not signed in)" in (await last_turn(sessions, thread.id)).error
 
     backup.ready = True
     rt._note_limit("backup", engine_errors.classify(LIMIT_TEXT), "Backup has reached its usage limit.")
     await rt.send_turn(thread.id, "again")
     await finished(sessions, thread.id, 2)
-    assert "it is limited too" in (await last_turn(sessions, thread.id)).error
+    assert "o da sınıra takılmış" in (await last_turn(sessions, thread.id)).error
     assert not backup.calls
 
 

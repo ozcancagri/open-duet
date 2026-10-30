@@ -30,7 +30,7 @@ class ASCIIBoxService:
     def _configuration(self) -> Configuration:
         if not settings.BOAT_ENABLED:
             raise BoatNotConfigured(
-                "Boat sandboxes are not configured (BOAT_API_KEY is empty)."
+                "Boat korumalı alanları ayarlanmamış (BOAT_API_KEY boş)."
             )
         return Configuration(
             host=settings.BOAT_BASE_URL,

@@ -40,26 +40,26 @@ def require_json(request: Request) -> None:
     closes login CSRF on the routes that run before any session exists."""
     content_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
     if content_type != "application/json":
-        raise _error(415, "json_required", "Send this as application/json.")
+        raise _error(415, "json_required", "Bunu application/json olarak gönderin.")
 
 
 def require_rate(request: Request) -> str:
     source = request_info.client_source(request.scope)
     if not limiter.auth_requests.allow(source):
-        raise _error(429, "rate_limited", "Too many requests. Wait a minute.", {"Retry-After": "60"})
+        raise _error(429, "rate_limited", "Çok fazla istek. Bir dakika bekleyin.", {"Retry-After": "60"})
     return source
 
 
 def current_principal(request: Request) -> Principal:
     principal = principal_of(request.scope)
     if principal is None:  # only reachable if the middleware is not installed
-        raise _error(401, "auth_required", "Sign in to use this server.")
+        raise _error(401, "auth_required", "Bu sunucuyu kullanmak için giriş yapın.")
     return principal
 
 
 def require_admin(principal: Principal = Depends(current_principal)) -> Principal:
     if not principal.is_admin:
-        raise _error(403, "scope_denied", "This device needs the admin scope for that.")
+        raise _error(403, "scope_denied", "Bu cihazın bunun için admin kapsamına ihtiyacı var.")
     return principal
 
 
@@ -151,14 +151,14 @@ async def setup_owner(
     server remotely could otherwise claim it. Remote installs use the CLI."""
     if not request_info.loopback_eligible(request.scope):
         raise _error(403, "setup_local_only",
-                     "Set the owner passphrase on the server itself, or with the command "
+                     "Sahip parolasını sunucunun kendisinde ya da şu komutla belirleyin: "
                      "`python -m app.auth.cli set-passphrase`.")
     try:
         await store.set_passphrase(db, body.passphrase, first_time_only=True)
     except credentials.WeakPassphrase as exc:
         raise _error(422, "weak_passphrase", str(exc)) from exc
     except store.OwnerAlreadyConfigured as exc:
-        raise _error(409, "owner_exists", "An owner passphrase is already set. Sign in instead.") from exc
+        raise _error(409, "owner_exists", "Sahip parolası zaten belirlenmiş. Bunun yerine giriş yapın.") from exc
     label = request_info.label_from_user_agent(request.headers.get("user-agent"))
     return await _browser_session(request, response, db, label=label, scopes=store.scopes_for("admin"))
 
@@ -170,13 +170,13 @@ async def login(
 ):
     wait = limiter.login_lockout.retry_after(source)
     if wait:
-        raise _error(429, "locked_out", f"Too many wrong passphrases. Try again in {wait} seconds.",
+        raise _error(429, "locked_out", f"Çok fazla yanlış parola. {wait} saniye sonra yeniden deneyin.",
                      {"Retry-After": str(wait)})
     if not await store.owner_configured(db):
-        raise _error(409, "owner_not_configured", "No owner passphrase is set yet.")
+        raise _error(409, "owner_not_configured", "Henüz bir sahip parolası belirlenmemiş.")
     if not await store.verify_owner(db, body.passphrase):
         limiter.login_lockout.failure(source)
-        raise _error(401, "wrong_passphrase", "That passphrase is not right.")
+        raise _error(401, "wrong_passphrase", "Parola doğru değil.")
     limiter.login_lockout.success(source)
     label = request_info.label_from_user_agent(request.headers.get("user-agent"))
     return await _browser_session(request, response, db, label=label, scopes=store.scopes_for("admin"))
@@ -229,7 +229,7 @@ async def create_pairing_code(
     try:
         code, record = await store.create_pairing_code(db, label=body.label, scope=body.scope)
     except store.TooManyOpenCodes as exc:
-        raise _error(429, "too_many_codes", "Several pairing codes are already open. Use one or wait for them to expire.") from exc
+        raise _error(429, "too_many_codes", "Zaten açık birkaç eşleştirme kodu var. Birini kullanın ya da sürelerinin dolmasını bekleyin.") from exc
     return PairingCodeResponse(
         id=record.id, code=code, display_code=credentials.format_pairing_code(code),
         scope=body.scope, label=record.label, expires_at=record.expires_at,
@@ -256,14 +256,14 @@ async def pair(
 ):
     wait = limiter.pair_lockout.retry_after(source)
     if wait:
-        raise _error(429, "locked_out", f"Too many wrong codes. Try again in {wait} seconds.",
+        raise _error(429, "locked_out", f"Çok fazla yanlış kod. {wait} saniye sonra yeniden deneyin.",
                      {"Retry-After": str(wait)})
     if await store.count_active_sessions(db) >= store.MAX_ACTIVE_SESSIONS:
-        raise _error(409, "too_many_devices", "Too many devices are signed in. Revoke one first.")
+        raise _error(409, "too_many_devices", "Çok fazla cihazda giriş yapılmış. Önce birini iptal edin.")
     record = await store.redeem_pairing_code(db, body.code)
     if record is None:
         limiter.pair_lockout.failure(source)
-        raise _error(401, "pairing_code_invalid", "That code is wrong, expired or already used. Make a new one.")
+        raise _error(401, "pairing_code_invalid", "Bu kod yanlış, süresi dolmuş ya da zaten kullanılmış. Yeni bir kod oluşturun.")
     limiter.pair_lockout.success(source)
     label = store.clean_label(body.label or record.label,
                               fallback=request_info.label_from_user_agent(request.headers.get("user-agent")))
@@ -307,7 +307,7 @@ async def revoke_device(
     principal: Principal = Depends(require_admin),
 ):
     if not await store.revoke_session(db, device_id):
-        raise _error(404, "device_not_found", "No such device, or it was already revoked.")
+        raise _error(404, "device_not_found", "Böyle bir cihaz yok ya da zaten iptal edilmiş.")
     if device_id == principal.session_id and principal.kind == "browser":
         _clear_session_cookie(response)
     response.status_code = 204
@@ -336,20 +336,20 @@ async def set_identity(body: IdentityBody, db: AsyncSession = Depends(get_db), _
     the web UI kept in the browser."""
     chosen = [body.link_code is not None, body.guest, body.legacy_user_id is not None]
     if sum(chosen) != 1:
-        raise _error(422, "identity_choice", "Send exactly one of link_code, guest or legacy_user_id.")
+        raise _error(422, "identity_choice", "link_code, guest ya da legacy_user_id alanlarından yalnız birini gönderin.")
     if body.link_code is not None:
         record = await link_service.get_code(db, body.link_code.strip().upper())
         if (
             record is None or record.claimed_at is None or not record.user_id
             or store.utcnow() - record.claimed_at > LINK_CODE_CLAIM_WINDOW
         ):
-            raise _error(409, "link_code_not_claimed", "That Telegram link code has not been claimed.")
+            raise _error(409, "link_code_not_claimed", "Bu Telegram bağlantı kodu henüz kullanılmadı.")
         return IdentityResponse(user_id=await store.set_identity(db, record.user_id))
     if body.guest:
         return IdentityResponse(user_id=await store.set_identity(db, f"web_{uuid.uuid4()}"))
     legacy = (body.legacy_user_id or "").strip()
     if not _LEGACY_IDENTITY.fullmatch(legacy):
-        raise _error(422, "legacy_identity_invalid", "That is not an id the web UI made.")
+        raise _error(422, "legacy_identity_invalid", "Bu, web arayüzünün oluşturduğu bir kimlik değil.")
     return IdentityResponse(user_id=await store.set_identity(db, legacy, only_if_unset=True))
 
 

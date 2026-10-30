@@ -132,7 +132,7 @@ async def raw_image(
     except files.FileAccessError as error:
         raise _refuse(error) from None
     if opened.mime not in files.IMAGE_MIMES:
-        raise _refuse(files.FileAccessError(415, "not_an_image", "Only images are shown here; download other files."))
+        raise _refuse(files.FileAccessError(415, "not_an_image", "Burada yalnız görseller gösterilir; diğer dosyaları indirin."))
     return Response(content=opened.data, media_type=opened.mime, headers=_SAFE_HEADERS)
 
 

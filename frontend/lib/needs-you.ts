@@ -12,19 +12,19 @@ export type NeedsYouRow = {
 
 // What the one action on a row says. Every kind has exactly one next step.
 const ACTIONS: Record<NeedsYouRow["kind"], string> = {
-  signed_out: "Open settings",
-  out_of_credit: "Open settings",
-  usage_limit: "See usage",
-  approval: "Review",
-  routine: "Open the run",
-  repeated_failure: "Look into it",
-  question: "Answer",
-  due: "Review task",
-  routine_completed: "View runs",
+  signed_out: "Ayarları aç",
+  out_of_credit: "Ayarları aç",
+  usage_limit: "Kullanımı gör",
+  approval: "İncele",
+  routine: "Çalıştırmayı aç",
+  repeated_failure: "İncele",
+  question: "Yanıtla",
+  due: "Görevi incele",
+  routine_completed: "Çalıştırmaları gör",
 };
 
 export function rowAction(row: NeedsYouRow): { label: string; href: string | null } {
-  const label = ACTIONS[row.kind] ?? "Open";
+  const label = ACTIONS[row.kind] ?? "Aç";
   if (row.thread_id !== null) return { label, href: `/chat?thread=${row.thread_id}` };
   if (row.routine_id) return { label, href: `/chat?view=routines&routine=${row.routine_id}` };
   if (row.work_item_id) return { label, href: `/chat?view=planner&task=${row.work_item_id}` };
@@ -35,5 +35,5 @@ export function rowAction(row: NeedsYouRow): { label: string; href: string | nul
 
 export function summary(rows: number, more: number): string {
   const total = rows + more;
-  return total === 0 ? "Nothing needs you right now." : `${total} thing${total === 1 ? "" : "s"} need${total === 1 ? "s" : ""} you`;
+  return total === 0 ? "Şu an sizi bekleyen bir şey yok." : `Sizi bekleyen ${total} iş var`;
 }

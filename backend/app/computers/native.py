@@ -51,7 +51,7 @@ async def selected(agent_id: int | None) -> bool:
     except Exception:
         # An unavailable bridge must never silently select Docker or host tools.
         from app.computers.service import ComputerUnavailable
-        raise ComputerUnavailable("The native desktop service is disconnected. Restart the desktop app.") from None
+        raise ComputerUnavailable("Yerel masaüstü hizmetiyle bağlantı yok. Masaüstü uygulamasını yeniden başlatın.") from None
 
 
 async def attach(agent_id: int, turn_id: int, root: Path):
@@ -79,7 +79,7 @@ async def attach(agent_id: int, turn_id: int, root: Path):
         except Exception:
             pass
         shutil.rmtree(folder, ignore_errors=True)
-        raise ComputerUnavailable("Native desktop unavailable. Check owner opt-in, permissions, or another active agent in the desktop app.") from None
+        raise ComputerUnavailable("Yerel masaüstü kullanılamıyor. Masaüstü uygulamasında sahip onayını, izinleri ya da etkin başka bir ajan olup olmadığını kontrol edin.") from None
 
 
 async def release(binding, turn_id: int) -> None:

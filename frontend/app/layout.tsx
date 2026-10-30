@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Open Duet",
-  description: "A workspace of AI agents that work on your computer.",
+  description: "Bilgisayarınızda çalışan yapay zekâ ajanlarından oluşan bir çalışma alanı.",
 };
 
 // Lets pages use the full phone screen; the shell pads for the notch with safe-area insets.
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // data-theme is set by the inline script before React hydrates, hence suppressHydrationWarning.
     <html
-      lang="en"
+      lang="tr"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >

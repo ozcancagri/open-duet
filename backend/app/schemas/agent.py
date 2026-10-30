@@ -15,15 +15,15 @@ INSTRUCTIONS_MAX_BYTES = 24_000
 def _one_line(value: str, what: str) -> str:
     value = value.strip()
     if not value:
-        raise ValueError(f"{what} must not be blank")
+        raise ValueError(f"{what} boş olamaz")
     if "\n" in value or "\r" in value:
-        raise ValueError(f"{what} must fit on one line")
+        raise ValueError(f"{what} tek satıra sığmalı")
     return value
 
 
 def _instructions_fit(value: str) -> str:
     if len(value.encode("utf-8")) > INSTRUCTIONS_MAX_BYTES:
-        raise ValueError(f"instructions must be at most {INSTRUCTIONS_MAX_BYTES} bytes")
+        raise ValueError(f"talimatlar en çok {INSTRUCTIONS_MAX_BYTES} bayt olmalı")
     return value
 
 
@@ -131,10 +131,10 @@ class AgentUpdateRequest(BaseModel):
     @model_validator(mode="after")
     def _something_to_change(self):
         if not self.model_fields_set:
-            raise ValueError("send at least one field to change")
+            raise ValueError("değiştirmek için en az bir alan gönderin")
         for field in ("name", "instructions", "provider", "approval_mode", "pinned", "memory_enabled", "recall_enabled", "memory_upkeep", "compaction_summary", "use_helper", "archived"):
             if field in self.model_fields_set and getattr(self, field) is None:
-                raise ValueError(f"{field} cannot be null")
+                raise ValueError(f"{field} boş (null) olamaz")
         return self
 
 

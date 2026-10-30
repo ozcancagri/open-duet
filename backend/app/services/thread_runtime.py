@@ -101,8 +101,8 @@ RUNTIME_EVENTS = frozenset({"context.compacted", "memory.recalled", "skill.used"
 LOCAL_OWNER_ID = "local-owner"
 
 RESET_MESSAGE = (
-    "A new session was started. The provider no longer has the earlier conversation as "
-    "context; the transcript above is still stored and visible."
+    "Yeni bir oturum başlatıldı. Motor önceki konuşmayı artık bağlam olarak "
+    "tutmuyor; yukarıdaki döküm hâlâ saklanıyor ve görünüyor."
 )
 
 
@@ -317,7 +317,7 @@ class ThreadApprovalGate:
         from app.computers.native import durable_input
         stored_input = durable_input(tool, input)
         if tool.startswith("mcp__computer__native_"):
-            summary = tool.removeprefix("mcp__computer__native_").replace("_", " ") + " on this Mac"
+            summary = tool.removeprefix("mcp__computer__native_").replace("_", " ") + " (bu Mac'te)"
         async with runtime.session() as db:
             try:
                 approval = await store.create_approval(
@@ -643,7 +643,7 @@ class ThreadRuntime:
 
     async def send_turn(self, *args, **kwargs) -> store.Turn:
         if self._account_changing:
-            raise ProviderUnavailable("An engine account is changing. Try again after it finishes.")
+            raise ProviderUnavailable("Bir motor hesabı değişiyor. Bitince yeniden deneyin.")
         self._starting_turns += 1
         try:
             return await self._send_turn(*args, **kwargs)
@@ -679,13 +679,13 @@ class ThreadRuntime:
             from app.team.policy import strictest
             team_origin = strictest([team_origin, 'restricted'])
         if self._closing:
-            raise ProviderUnavailable("The app is shutting down; send this again after it restarts.")
+            raise ProviderUnavailable("Uygulama kapanıyor; yeniden başladıktan sonra tekrar gönderin.")
         async with self.session() as db:
             thread = await store.get_thread(db, thread_id)
         if thread is None:
             raise store.ThreadNotFound(thread_id)
         if thread.kind == "room" or (thread.kind == "room_member" and not internal):
-            raise ProviderUnavailable("Talk to this agent in the room.")
+            raise ProviderUnavailable("Bu ajanla odada konuşun.")
         adapter = self.adapters.get(thread.provider)
         if adapter is None:
             raise UnknownProvider(thread.provider)
@@ -698,7 +698,7 @@ class ThreadRuntime:
         if any(a.kind == "image" for a, _ in attached) and not capabilities_of(adapter).images:
             raise ImagesUnsupported(getattr(adapter, "label", None) or thread.provider)
         if not thread.workspace_path:
-            raise ProviderUnavailable("This conversation has no pinned workspace. Upgrade its database before continuing.")
+            raise ProviderUnavailable("Bu sohbetin sabitlenmiş bir çalışma klasörü yok. Devam etmeden önce veritabanını yükseltin.")
         try:
             require_workspace(Path(thread.workspace_path))
         except OSError as exc:
@@ -708,7 +708,7 @@ class ThreadRuntime:
         with app_settings.use(snapshot):
             status = await self._provider_status(adapter, config)
         if not status.ready:
-            raise ProviderUnavailable(status.error or f"{thread.provider} is not ready")
+            raise ProviderUnavailable(status.error or f"{thread.provider} hazır değil")
 
         # A named agent's current settings apply to every turn. A deleted agent
         # leaves the thread with its own provider and model only.
@@ -935,7 +935,7 @@ class ThreadRuntime:
             await begin_write(db)
             await store._add_event(
                 db, room.thread_id, "room.notice",
-                {"kind": "recall" if recalled else "brief", "author": {"kind": "system", "label": "Memory"},
+                {"kind": "recall" if recalled else "brief", "author": {"kind": "system", "label": "Bellek"},
                  "text": recent_work.crossing_label(agent.name, len(fresh), recalled=recalled)},
                 None,
             )
@@ -1031,12 +1031,12 @@ class ThreadRuntime:
         except asyncio.TimeoutError:
             return ProviderStatus(
                 ready=False,
-                error=f"This engine did not report its status within {STATUS_TIMEOUT_SECONDS:g} seconds. "
-                "Check that its command starts in a terminal.",
+                error=f"Bu motor durumunu {STATUS_TIMEOUT_SECONDS:g} saniye içinde bildirmedi. "
+                "Komutunun bir terminalde başladığını kontrol edin.",
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning("engine status failed", engine=getattr(adapter, "key", "?"), error=exc.__class__.__name__)
-            return ProviderStatus(ready=False, error=f"The engine's status check failed ({exc.__class__.__name__}).")
+            return ProviderStatus(ready=False, error=f"Motorun durum kontrolü başarısız oldu ({exc.__class__.__name__}).")
         if status.ready:
             self._status_cache[cache_key] = (loop.time(), status)
         return status
@@ -1096,8 +1096,8 @@ class ThreadRuntime:
             except _EngineWithoutComputers:
                 outcome = TurnOutcome(
                     "failed",
-                    error="This agent has a computer, and this engine cannot run its tools in one. "
-                    "Switch the agent to Claude, or remove its computer.",
+                    error="Bu ajanın bir bilgisayarı var ve bu motor araçlarını bilgisayarda çalıştıramıyor. "
+                    "Ajanı Claude'a geçirin ya da bilgisayarını kaldırın.",
                     error_code="engine_without_computers",
                 )
             except computer_service.ComputerUnavailable as exc:
@@ -1105,7 +1105,7 @@ class ThreadRuntime:
             except Exception:  # noqa: BLE001
                 logger.exception("provider run crashed", thread_id=run.thread_id)
                 outcome = TurnOutcome(
-                    "failed", error="Local run failed unexpectedly", error_code="runner_error"
+                    "failed", error="Yerel çalışma beklenmedik biçimde başarısız oldu", error_code="runner_error"
                 )
         finally:
             heartbeat.cancel()
@@ -1135,8 +1135,8 @@ class ThreadRuntime:
             seconds = settings.TURN_STALL_SECONDS
             outcome = TurnOutcome(
                 "failed",
-                error=f"The engine stopped responding: nothing happened for {seconds:g} seconds, "
-                "so it was stopped. Send the message again to retry.",
+                error=f"Motor yanıt vermeyi bıraktı: {seconds:g} saniye boyunca hiçbir şey olmadı, "
+                "bu yüzden durduruldu. Yeniden denemek için mesajı tekrar gönderin.",
                 error_code="engine_stalled",
                 model=outcome.model,
                 usage=outcome.usage,
@@ -1214,8 +1214,8 @@ class ThreadRuntime:
         if run.accepted:
             if run.fallback is not None:
                 limited.error = (
-                    f"{message} {label} had already started on this message, so it was not moved to the "
-                    "fallback engine (it may have run tools). Check what it did, then send it again."
+                    f"{message} {label} bu mesaja zaten başlamıştı, bu yüzden yedek motora "
+                    "aktarılmadı (araç çalıştırmış olabilir). Ne yaptığını kontrol edip yeniden gönderin."
                 )
             return limited
         if run.fallback is None or run.switched:
@@ -1226,8 +1226,8 @@ class ThreadRuntime:
         refusal = await self._fallback_refusal(run, adapter, fallback, fallback_id, fallback_model)
         if refusal is not None:
             limited.error = (
-                f"{message} The agent's fallback engine, {fallback_label}, cannot take this turn: {refusal}. "
-                "Wait for the limit to reset, or change the agent's engine or fallback."
+                f"{message} Ajanın yedek motoru {fallback_label} bu yanıtı devralamıyor: {refusal}. "
+                "Sınırın sıfırlanmasını bekleyin ya da ajanın motorunu veya yedek motorunu değiştirin."
             )
             return limited
         config = await self.prepare_adapter(fallback_id, fallback)
@@ -1239,7 +1239,7 @@ class ThreadRuntime:
             "model": fallback_model,
             "reason": limit.kind,
             "resets_at": limit.resets_at.isoformat() if limit.resets_at else None,
-            "message": f"Switched this turn to {fallback_label} because {label} refused it before starting: {message}",
+            "message": f"Bu yanıt {fallback_label} motoruna aktarıldı, çünkü {label} başlamadan reddetti: {message}",
         })
         if not switched:
             return limited
@@ -1284,13 +1284,13 @@ class ThreadRuntime:
     async def _fallback_refusal(self, run: ActiveRun, adapter, fallback, fallback_id: str, model: str | None) -> str | None:
         """Why the fallback cannot take this turn, or None when it can."""
         if fallback is None:
-            return "it is not an engine this app has"
+            return "bu uygulamada böyle bir motor yok"
         if self.engine_limit(fallback_id) is not None:
-            return "it is limited too"
+            return "o da sınıra takılmış"
         try:
             self.engines.check_model(fallback_id, model)
         except (UnknownEngine, InvalidModel) as exc:
-            return str(exc) or "its model is not accepted"
+            return str(exc) or "modeli kabul edilmiyor"
         own, other = capabilities_of(adapter), capabilities_of(fallback)
         computer = run.ctx.computer is not None
         with app_settings.use(run.settings_snapshot):
@@ -1298,28 +1298,28 @@ class ThreadRuntime:
         tools = own.tools and (computer or tools_on)
         missing = []
         if tools and not other.tools:
-            missing.append("tools")
+            missing.append("araçlar")
         if tools and own.approvals and not other.approvals:
-            missing.append("approvals")
+            missing.append("onaylar")
         if run.ctx.images and not other.images:
-            missing.append("images")
+            missing.append("görseller")
         if computer and not other.computers:
-            missing.append("an agent computer")
+            missing.append("ajan bilgisayarı")
         if run.ctx.team is not None and not other.mcp:
-            missing.append("team tools")
+            missing.append("takım araçları")
         # A conversation that already has earlier messages needs an engine
         # that reads them from the stored transcript: another engine cannot
         # resume this one's own session.
         if run.continues or run.ctx.resume or run.ctx.provider_state:
             if fallback.new_session_id() is not None:
-                missing.append("this conversation's earlier messages (it cannot resume another engine's session)")
+                missing.append("bu sohbetin önceki mesajları (başka bir motorun oturumunu sürdüremez)")
         if missing:
-            return "it lacks " + ", ".join(missing)
+            return "şunlar eksik: " + ", ".join(missing)
         config = await self.prepare_adapter(fallback_id, fallback)
         with app_settings.use(run.settings_snapshot):
             status = await self._provider_status(fallback, config)
         if not status.ready:
-            return f"it is not ready ({status.error or 'no reason given'})"
+            return f"hazır değil ({status.error or 'gerekçe belirtilmedi'})"
         return None
 
     async def _watchdog(self, run: ActiveRun) -> None:

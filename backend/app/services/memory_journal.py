@@ -93,11 +93,11 @@ def record(
     reason: str | None = None
     if before is not None:
         if len(before.encode("utf-8")) > BEFORE_MAX_BYTES:
-            can_undo, reason = False, "The earlier version was too large to keep."
+            can_undo, reason = False, "Önceki sürüm saklanamayacak kadar büyüktü."
         else:
             kept, redacted = redact_secrets(before)
             if redacted:
-                can_undo, reason = False, "The earlier version held text that looked like a secret, so it was not kept."
+                can_undo, reason = False, "Önceki sürümde gizli bilgiye benzeyen bir metin vardı, bu yüzden saklanmadı."
     row = {
         "id": uuid4().hex,
         "at": time.time(),
@@ -199,16 +199,16 @@ def undo(agent_id: int, entry_id: str) -> dict | None:
     if row is None:
         raise JournalEntryNotFound(entry_id)
     if not row.get("can_undo"):
-        raise CannotUndo(row.get("reason") or "This change cannot be undone.")
+        raise CannotUndo(row.get("reason") or "Bu değişiklik geri alınamaz.")
     path = row["path"]
     if path != agent_memory.MEMORY_FILE:
         if not path.startswith(f"{memory_topics.TOPICS_DIR}/"):
-            raise CannotUndo("This row does not name a note.")
+            raise CannotUndo("Bu satır bir notu belirtmiyor.")
         memory_topics.check_name(path.split("/", 1)[1])
     before_now = _current(agent_id, path)
     current_hash = None if before_now is None else text_hash(before_now)
     if "after_hash" not in row or current_hash != row["after_hash"]:
-        raise CannotUndo("The notes changed after this entry. Undo newer changes first or review the current notes.")
+        raise CannotUndo("Notlar bu kayıttan sonra değişti. Önce daha yeni değişiklikleri geri alın ya da güncel notları gözden geçirin.")
     # Pass the observed hash through to the write/delete as well, so an edit
     # between this check and the mutation cannot be overwritten silently.
     expected_hash = text_hash(before_now or "")
@@ -224,5 +224,5 @@ def undo(agent_id: int, entry_id: str) -> dict | None:
             doc, _, _ = memory_topics.write_topic(agent_id, path.split("/", 1)[1], target, expected_hash=expected_hash)
             after = doc.text
     except agent_memory.MemoryConflict:
-        raise CannotUndo("The notes changed while Undo was being applied. Review the current notes and try again.") from None
+        raise CannotUndo("Geri alma uygulanırken notlar değişti. Güncel notları gözden geçirip yeniden deneyin.") from None
     return record(agent_id, path, actor="undo", before=before_now, after=after)

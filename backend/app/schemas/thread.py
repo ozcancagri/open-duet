@@ -38,13 +38,13 @@ class ThreadUpdateRequest(BaseModel):
             return None
         value = value.strip()
         if not value:
-            raise ValueError("title must not be blank")
+            raise ValueError("başlık boş olamaz")
         return value
 
     @model_validator(mode="after")
     def _something_to_change(self):
         if self.title is None and self.archived is None and "model" not in self.model_fields_set:
-            raise ValueError("send a title, archived, model, or several")
+            raise ValueError("title, archived, model alanlarından en az birini gönderin")
         return self
 
 
@@ -113,7 +113,7 @@ class TurnCreateRequest(BaseModel):
     @classmethod
     def _not_blank(cls, value: str) -> str:
         if not value.strip():
-            raise ValueError("prompt_text must not be blank")
+            raise ValueError("mesaj boş olamaz")
         return value
 
 

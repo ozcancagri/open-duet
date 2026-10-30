@@ -36,7 +36,7 @@ export function PairScreen() {
       await auth.pair(code, label);
       window.location.replace(withBase("/chat/"));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not pair. Check the code and try again.");
+      setError(err instanceof ApiError ? err.message : "Eşleştirilemedi. Kodu kontrol edip yeniden deneyin.");
       setBusy(false);
     }
   };
@@ -44,22 +44,22 @@ export function PairScreen() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-inset px-4">
       <main className="w-full max-w-sm space-y-5 rounded-lg border border-line bg-raised p-6">
-        <h1 className="text-lg font-semibold">Pair this browser</h1>
-        <p className="text-sm text-muted">Enter the code shown in Settings → Devices on a signed-in browser. Codes work once and expire after five minutes.</p>
+        <h1 className="text-lg font-semibold">Bu tarayıcıyı eşleştirin</h1>
+        <p className="text-sm text-muted">Giriş yapılmış bir tarayıcıda Ayarlar → Cihazlar bölümünde gösterilen kodu girin. Kodlar bir kez çalışır ve beş dakika sonra geçerliliğini yitirir.</p>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1">
-            <label htmlFor="code" className="block text-sm font-medium">Pairing code</label>
+            <label htmlFor="code" className="block text-sm font-medium">Eşleştirme kodu</label>
             <input id="code" className={`${inputClass} font-mono uppercase tracking-widest`} value={code} onChange={(e) => setCode(e.target.value)}
               placeholder="ABCD-EFGH" autoComplete="one-time-code" autoCapitalize="characters" spellCheck={false} required maxLength={32} />
           </div>
           <div className="space-y-1">
-            <label htmlFor="label" className="block text-sm font-medium">Name for this device (optional)</label>
-            <input id="label" className={inputClass} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="My phone" maxLength={80} />
+            <label htmlFor="label" className="block text-sm font-medium">Bu cihazın adı (isteğe bağlı)</label>
+            <input id="label" className={inputClass} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Telefonum" maxLength={80} />
           </div>
           {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-          <button type="submit" className={buttonClass} disabled={busy || !code.trim()}>{busy ? "Pairing…" : "Pair"}</button>
+          <button type="submit" className={buttonClass} disabled={busy || !code.trim()}>{busy ? "Eşleştiriliyor…" : "Eşleştir"}</button>
         </form>
-        <p className="text-xs text-muted">Are you the owner? <Link href="/login/" className="underline">Sign in with the passphrase</Link>.</p>
+        <p className="text-xs text-muted">Sahip siz misiniz? <Link href="/login/" className="underline">Parolayla giriş yapın</Link>.</p>
       </main>
     </div>
   );

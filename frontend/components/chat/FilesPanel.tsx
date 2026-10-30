@@ -6,7 +6,7 @@ import { api, ApiError, type FilePreview, type FolderListing } from "@/lib/api";
 import { formatBytes, parentPath } from "@/lib/everyday";
 
 function message(err: unknown, fallback: string): string {
-  return err instanceof ApiError ? err.message || fallback : "Could not reach the backend.";
+  return err instanceof ApiError ? err.message || fallback : "Arka uca ulaşılamadı.";
 }
 
 // Read-only view of the open conversation's workspace: folders, a preview of
@@ -33,7 +33,7 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
         setListing(value);
         setListError(null);
       })
-      .catch((err) => alive && setListError(message(err, "Could not list this folder.")));
+      .catch((err) => alive && setListError(message(err, "Bu klasör listelenemedi.")));
     return () => {
       alive = false;
     };
@@ -52,7 +52,7 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
       setPreview(found);
       if (found.kind === "image") setImageUrl(await api.workspaceImageUrl(threadId, filePath));
     } catch (err) {
-      setPreviewError(message(err, "Could not open this file."));
+      setPreviewError(message(err, "Bu dosya açılamadı."));
     }
   };
 
@@ -70,7 +70,7 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
     try {
       save(await api.workspaceDownloadUrl(threadId, filePath), name);
     } catch (err) {
-      setPreviewError(message(err, "Could not download this file."));
+      setPreviewError(message(err, "Bu dosya indirilemedi."));
     } finally {
       setDownloading(false);
     }
@@ -83,7 +83,7 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
       const name = path ? path.split("/").pop() : "workspace";
       save(await api.workspaceZipUrl(threadId, path), `${name}.zip`);
     } catch (err) {
-      setZipError({ path, text: message(err, "Could not download this folder.") });
+      setZipError({ path, text: message(err, "Bu klasör indirilemedi.") });
     } finally {
       setZipping(false);
     }
@@ -92,11 +92,11 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
   const crumbs = path ? path.split("/") : [];
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }} title="Files" description={workspace ?? undefined} size="lg" flush>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }} title="Dosyalar" description={workspace ?? undefined} size="lg" flush>
         <div className="flex h-[min(68dvh,40rem)] min-h-0 flex-col md:flex-row">
           <section className="flex min-h-0 flex-col border-b border-line md:w-80 md:border-b-0 md:border-r">
-            <nav aria-label="Folder" className="flex flex-wrap items-center gap-1 px-3 py-2 text-xs">
-              <button onClick={() => setPath("")} className="cursor-pointer underline">workspace</button>
+            <nav aria-label="Klasör" className="flex flex-wrap items-center gap-1 px-3 py-2 text-xs">
+              <button onClick={() => setPath("")} className="cursor-pointer underline">çalışma klasörü</button>
               {crumbs.map((part, i) => (
                 <span key={i} className="flex items-center gap-1">
                   <span className="text-faint">/</span>
@@ -108,10 +108,10 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
               <button
                 onClick={() => void downloadFolder()}
                 disabled={zipping || listError !== null}
-                title="Download this folder as a zip (secret files are left out)"
+                title="Bu klasörü zip olarak indirin (gizli dosyalar dahil edilmez)"
                 className="ml-auto cursor-pointer rounded-md border border-zinc-300 px-2 py-0.5 disabled:opacity-50 dark:border-zinc-700"
               >
-                {zipping ? "Zipping…" : "Download zip"}
+                {zipping ? "Sıkıştırılıyor…" : "Zip olarak indir"}
               </button>
             </nav>
             {zipError?.path === path && <p role="alert" className="px-3 pb-2 text-xs text-red-600 dark:text-red-400">{zipError.text}</p>}
@@ -124,17 +124,17 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
                 </li>
               )}
               {listError && <li className="px-2 py-2 text-xs text-danger">{listError}</li>}
-              {!listError && listing === null && <li className="px-2 py-2 text-xs text-muted">Loading…</li>}
+              {!listError && listing === null && <li className="px-2 py-2 text-xs text-muted">Yükleniyor…</li>}
               {!listError && listing?.entries.length === 0 && (
                 <li className="px-2 py-2 text-xs text-muted">
-                  {path ? "This folder is empty." : "The workspace is empty. Files the agent writes appear here."}
+                  {path ? "Bu klasör boş." : "Çalışma klasörü boş. Ajanın yazdığı dosyalar burada görünür."}
                 </li>
               )}
               {!listError &&
                 listing?.entries.map((entry) => (
                   <li key={entry.path}>
                     {entry.type === "hidden" ? (
-                      <span className="flex items-center gap-2 px-2 py-1 text-faint" title="Secret files (keys, .env, credentials) are never shown.">
+                      <span className="flex items-center gap-2 px-2 py-1 text-faint" title="Gizli dosyalar (anahtarlar, .env, kimlik bilgileri) hiçbir zaman gösterilmez.">
                         <span aria-hidden>🔒</span>
                         <span className="truncate">{entry.name}</span>
                       </span>
@@ -152,12 +152,12 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
                     )}
                   </li>
                 ))}
-              {listing?.truncated && <li className="px-2 py-2 text-xs text-muted">Only the first 500 entries are shown.</li>}
+              {listing?.truncated && <li className="px-2 py-2 text-xs text-muted">Yalnız ilk 500 öğe gösteriliyor.</li>}
             </ul>
           </section>
           <section className="flex min-h-0 min-w-0 flex-1 flex-col">
             {previewError && <p role="alert" className="px-4 py-3 text-sm text-danger">{previewError}</p>}
-            {!preview && !previewError && <p className="px-4 py-6 text-sm text-muted">Choose a file to preview it.</p>}
+            {!preview && !previewError && <p className="px-4 py-6 text-sm text-muted">Önizlemek için bir dosya seçin.</p>}
             {preview && (
               <>
                 <div className="flex items-center gap-3 border-b border-line px-4 py-2 text-xs">
@@ -168,14 +168,14 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
                     disabled={downloading}
                     className="cursor-pointer rounded-md border border-line px-2 py-1 disabled:opacity-50"
                   >
-                    {downloading ? "Downloading…" : "Download"}
+                    {downloading ? "İndiriliyor…" : "İndir"}
                   </button>
                 </div>
                 <div className="min-h-0 flex-1 overflow-auto p-4">
                   {preview.kind === "text" && (
                     <>
                       <pre className="whitespace-pre-wrap break-words font-mono text-xs">{preview.text}</pre>
-                      {preview.truncated && <p className="mt-2 text-xs text-muted">Only the first 256 KB is shown. Download the file for all of it.</p>}
+                      {preview.truncated && <p className="mt-2 text-xs text-muted">Yalnız ilk 256 KB gösteriliyor. Tamamı için dosyayı indirin.</p>}
                     </>
                   )}
                   {preview.kind === "image" &&
@@ -183,9 +183,9 @@ export function FilesPanel({ threadId, workspace, onClose }: { threadId: number;
                       // eslint-disable-next-line @next/next/no-img-element -- a local object URL
                       <img src={imageUrl} alt={preview.name} className="max-h-full max-w-full" />
                     ) : (
-                      <p className="text-sm text-muted">Loading image…</p>
+                      <p className="text-sm text-muted">Görsel yükleniyor…</p>
                     ))}
-                  {preview.kind === "binary" && <p className="text-sm text-muted">This file can&apos;t be previewed. Download it to open it.</p>}
+                  {preview.kind === "binary" && <p className="text-sm text-muted">Bu dosya önizlenemiyor. Açmak için indirin.</p>}
                 </div>
               </>
             )}

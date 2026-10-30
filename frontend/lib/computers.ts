@@ -4,8 +4,8 @@ import type { Computer, ComputerNetwork, ComputerSummary } from "./api";
 export const COMPUTER_TOOL_PREFIX = "mcp__computer__";
 
 export const NETWORK_MODES: { value: ComputerNetwork; label: string; description: string }[] = [
-  { value: "none", label: "No network", description: "The computer cannot reach the internet or anything else." },
-  { value: "default", label: "Internet", description: "Docker's default network: it can reach the internet; nothing can reach it." },
+  { value: "none", label: "Ağ yok", description: "Bilgisayar internete ya da başka hiçbir yere ulaşamaz." },
+  { value: "default", label: "İnternet", description: "Docker'ın varsayılan ağı: internete ulaşabilir; dışarıdan ona ulaşılamaz." },
 ];
 
 export function computerCreationGate(supported: boolean | undefined, engineLabel: string): { enabled: boolean; reason: string | null } {
@@ -13,29 +13,29 @@ export function computerCreationGate(supported: boolean | undefined, engineLabel
   if (supported === false) {
     return {
       enabled: false,
-      reason: `${engineLabel} can't run its tools in an agent computer. Choose an engine that supports computers to create one.`,
+      reason: `${engineLabel} araçlarını bir ajan bilgisayarında çalıştıramıyor. Bilgisayar oluşturmak için bilgisayarları destekleyen bir motor seçin.`,
     };
   }
   return {
     enabled: false,
-    reason: `Computer support for ${engineLabel} could not be confirmed. Refresh engine details before creating one.`,
+    reason: `${engineLabel} için bilgisayar desteği doğrulanamadı. Oluşturmadan önce motor bilgilerini yenileyin.`,
   };
 }
 
 const STATE_LABEL: Record<string, string> = {
-  missing: "Not made yet",
-  creating: "Starting…",
-  running: "Running",
-  stopped: "Stopped",
-  error: "Problem",
-  deleting: "Removing…",
-  foreign: "Name taken",
-  unsafe: "Unsafe",
-  unavailable: "Unreachable",
+  missing: "Henüz oluşturulmadı",
+  creating: "Başlatılıyor…",
+  running: "Çalışıyor",
+  stopped: "Durduruldu",
+  error: "Sorun var",
+  deleting: "Kaldırılıyor…",
+  foreign: "Ad kullanımda",
+  unsafe: "Güvensiz",
+  unavailable: "Ulaşılamıyor",
 };
 
 export function computerStateLabel(state: string | null | undefined): string {
-  if (!state) return "Unknown";
+  if (!state) return "Bilinmiyor";
   return STATE_LABEL[state] ?? state;
 }
 
@@ -46,7 +46,7 @@ export function effectiveState(computer: Pick<Computer, "state" | "live_state">)
 
 export function computerChip(summary: ComputerSummary | null | undefined, liveState?: string | null): string | null {
   if (!summary) return null;
-  return `${summary.kind === "desktop" ? "Desktop" : "Computer"} · ${computerStateLabel(liveState ?? summary.state).toLowerCase()}`;
+  return `${summary.kind === "desktop" ? "Masaüstü" : "Bilgisayar"} · ${computerStateLabel(liveState ?? summary.state).toLocaleLowerCase("tr")}`;
 }
 
 // Short image name for a narrow space: "python:3.12-slim-bookworm" from a pinned reference.
@@ -58,7 +58,7 @@ export function imageLabel(image: string): string {
 
 export function limitsText(computer: Pick<Computer, "cpus" | "memory_mb" | "pids_limit">): string {
   const memory = computer.memory_mb >= 1024 && computer.memory_mb % 1024 === 0 ? `${computer.memory_mb / 1024} GB` : `${computer.memory_mb} MB`;
-  return `${computer.cpus} CPU · ${memory} · ${computer.pids_limit} processes`;
+  return `${computer.cpus} CPU · ${memory} · ${computer.pids_limit} süreç`;
 }
 
 export function isComputerTool(tool: string | null | undefined): boolean {
@@ -66,17 +66,17 @@ export function isComputerTool(tool: string | null | undefined): boolean {
 }
 
 const TOOL_LABEL: Record<string, string> = {
-  exec: "run a command",
-  read_file: "read a file",
-  write_file: "write a file",
-  list_files: "list a folder",
+  exec: "bir komut çalıştırmak",
+  read_file: "bir dosya okumak",
+  write_file: "bir dosya yazmak",
+  list_files: "bir klasörü listelemek",
 };
 
-// "run a command in its computer" for mcp__computer__exec; the name itself otherwise.
+// "kendi bilgisayarında bir komut çalıştırmak" for mcp__computer__exec; the name itself otherwise.
 export function toolLabel(tool: string): string {
   if (!isComputerTool(tool)) return tool;
   const name = tool.slice(COMPUTER_TOOL_PREFIX.length);
-  return `${TOOL_LABEL[name] ?? name} in its computer`;
+  return `kendi bilgisayarında ${TOOL_LABEL[name] ?? name}`;
 }
 
 // What the person can do next, in check order.
@@ -95,16 +95,16 @@ export function nextActions(computer: Computer): ComputerAction[] {
 }
 
 export const ACTION_LABEL: Record<ComputerAction, string> = {
-  "prepare-image": "Download image",
-  start: "Start",
-  stop: "Stop",
-  recreate: "Recreate",
+  "prepare-image": "İmajı indir",
+  start: "Başlat",
+  stop: "Durdur",
+  recreate: "Yeniden oluştur",
 };
 
 export function lastCommandText(computer: Pick<Computer, "last_command">): string | null {
   const last = computer.last_command;
   if (!last || !last.subject) return null;
-  const outcome = last.timed_out ? "timed out" : last.exit_code === null ? "no exit code" : `exit ${last.exit_code}`;
+  const outcome = last.timed_out ? "zaman aşımı" : last.exit_code === null ? "çıkış kodu yok" : `çıkış ${last.exit_code}`;
   const verb = last.tool === "exec" || last.tool === null ? "" : `${last.tool} `;
   return `${verb}${last.subject} (${outcome})`;
 }

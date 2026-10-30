@@ -77,26 +77,26 @@ def validate(key: str, value: object, *, prepare: bool = False):
     definition = REGISTRY[key]
     if definition.kind == "boolean":
         if type(value) is not bool:
-            raise ValueError("Must be a boolean.")
+            raise ValueError("Açık ya da kapalı (true/false) olmalı.")
     elif definition.kind == "integer":
         if type(value) is not int or not definition.minimum <= value <= definition.maximum:
-            raise ValueError(f"Must be an integer from {definition.minimum} to {definition.maximum}.")
+            raise ValueError(f"{definition.minimum} ile {definition.maximum} arasında bir tam sayı olmalı.")
     else:
         if not isinstance(value, str) or len(value) > 4096 or any(ord(c) < 32 for c in value):
-            raise ValueError("Must be a full path.")
+            raise ValueError("Tam bir yol olmalı.")
         value = value.strip()
         if value:
             path = Path(value)
             if not path.is_absolute():
-                raise ValueError("Must be a full absolute path.")
+                raise ValueError("Tam (mutlak) bir yol olmalı.")
             if definition.kind == "file":
                 if not path.is_file():
-                    raise ValueError("The Claude executable is missing or is not a file. Choose it again in Settings.")
+                    raise ValueError("Claude çalıştırılabilir dosyası yok ya da bir dosya değil. Ayarlar'da yeniden seçin.")
             else:
                 if prepare:
                     path.mkdir(parents=True, exist_ok=True, mode=0o700)
                 if not path.is_dir() or not os.access(path, os.R_OK | os.W_OK | os.X_OK):
-                    raise ValueError("The workspace root is missing or inaccessible. Choose another folder in Settings.")
+                    raise ValueError("Çalışma klasörü kökü yok ya da erişilemiyor. Ayarlar'da başka bir klasör seçin.")
     return value
 
 
@@ -129,7 +129,7 @@ def resolve(key: str, *, live: bool = False) -> Resolved:
 def get(key: str, *, live: bool = False):
     value = resolve(key, live=live)
     if value.effective_value is None:
-        raise SettingUnavailable(value.error or f"{key} is unavailable.")
+        raise SettingUnavailable(value.error or f"{key} kullanılamıyor.")
     return value.effective_value
 
 
@@ -162,7 +162,7 @@ async def save(db, key: str, value: object, expected_version: int, actor: str = 
     if key not in REGISTRY:
         raise KeyError(key)
     if not profile.active():
-        raise PermissionError("Desktop settings can only be changed in the app.")
+        raise PermissionError("Masaüstü ayarları yalnız uygulamada değiştirilebilir.")
     async with _save_lock:
         try:
             await begin_write(db)

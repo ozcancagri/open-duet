@@ -25,7 +25,7 @@ function Thumbnail({ threadId, item }: { threadId: number; item: AttachmentRef }
       if (made) URL.revokeObjectURL(made);
     };
   }, [threadId, item.id]);
-  if (failed) return <FileChip item={item} note="image unavailable" />;
+  if (failed) return <FileChip item={item} note="görsel kullanılamıyor" />;
   if (!url) return <span className="inline-block h-24 w-24 animate-pulse rounded-lg bg-inset" />;
   return (
     <a href={url} target="_blank" rel="noreferrer" title={item.name}>
@@ -91,7 +91,7 @@ export function PendingAttachments({
   }, [files]);
   if (files.length === 0) return null;
   return (
-    <ul aria-label="Attached files" className="mb-2 flex flex-wrap gap-2">
+    <ul aria-label="Eklenen dosyalar" className="mb-2 flex flex-wrap gap-2">
       {files.map((file, index) => (
         <li
           key={`${file.name}-${index}`}
@@ -109,7 +109,7 @@ export function PendingAttachments({
             type="button"
             onClick={() => onRemove(index)}
             disabled={disabled}
-            aria-label={`Remove ${file.name}`}
+            aria-label={`${file.name} dosyasını kaldır`}
             className="cursor-pointer rounded px-1 text-muted hover:bg-hover disabled:opacity-50 touch:px-2 touch:py-1"
           >
             ✕

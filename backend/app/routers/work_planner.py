@@ -80,7 +80,7 @@ async def item(item_id: int, rt=Depends(get_runtime)):
         record = await db.scalar(select(WorkItem).where(
             WorkItem.id == item_id, WorkItem.owner_id == rt.owner_id))
         if record is None:
-            raise service.error(404, "Task not found")
+            raise service.error(404, "Görev bulunamadı")
         return (await work_execution.with_status(db, rt.owner_id, [record]))[0]
 
 
@@ -95,14 +95,14 @@ async def update_item(item_id: int, payload: WorkUpdate, rt=Depends(get_runtime)
 @router.get("/routine-calendar")
 async def routine_calendar(start: AwareDatetime, end: AwareDatetime, rt=Depends(get_runtime)):
     if end <= start or end - start > timedelta(days=62):
-        raise service.error(422, "Choose a calendar window of at most 62 days")
+        raise service.error(422, "En çok 62 günlük bir takvim aralığı seçin")
     events, warnings = [], []
     now = datetime.now(UTC)
     async with rt.session() as db:
         routines = (await db.scalars(select(Routine).where(Routine.owner_id == rt.owner_id).order_by(Routine.id))).all()
         for routine in routines:
             if len(events) >= MAX_PROJECTED_EVENTS:
-                warnings.append(f"Showing the first {MAX_PROJECTED_EVENTS:,} scheduled occurrences. Choose a shorter window to see more.")
+                warnings.append(f"İlk {MAX_PROJECTED_EVENTS:,} zamanlanmış tekrar gösteriliyor. Daha fazlasını görmek için daha kısa bir aralık seçin.")
                 break
             if routine.paused or routine.schedule_kind == "manual":
                 continue
@@ -119,9 +119,9 @@ async def routine_calendar(start: AwareDatetime, end: AwareDatetime, rt=Depends(
                     cursor = at
                 else:
                     if capacity == 500:
-                        warnings.append(f"{routine.name}: showing the first 500 occurrences in this window.")
+                        warnings.append(f"{routine.name}: bu aralıktaki ilk 500 tekrar gösteriliyor.")
                     else:
-                        warnings.append(f"Showing the first {MAX_PROJECTED_EVENTS:,} scheduled occurrences. Choose a shorter window to see more.")
+                        warnings.append(f"İlk {MAX_PROJECTED_EVENTS:,} zamanlanmış tekrar gösteriliyor. Daha fazlasını görmek için daha kısa bir aralık seçin.")
                         break
             except (routine_schedule.InvalidSchedule, KeyError, ValueError):
                 warnings.append(f"{routine.name}: the schedule could not be read.")
@@ -130,7 +130,7 @@ async def routine_calendar(start: AwareDatetime, end: AwareDatetime, rt=Depends(
             .where(Routine.owner_id == rt.owner_id, at_column >= start, at_column < end)
             .order_by(at_column).limit(2001))).all()
         if len(runs) > 2000:
-            warnings.append("Showing the first 2,000 routine runs in this window.")
+            warnings.append("Bu aralıktaki ilk 2.000 rutin çalışması gösteriliyor.")
         # A run receipt supersedes a projection for the same occurrence.
         receipts = {(run.routine_id, run.scheduled_for) for run, _ in runs[:2000]}
         events = [e for e in events if (e["routine_id"], e["at"]) not in receipts]

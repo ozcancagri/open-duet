@@ -16,7 +16,7 @@ router = APIRouter(prefix='/team', tags=['Team'], dependencies=[Depends(require_
 
 class LeadRequest(BaseModel):
     agent_id: int
-    name: str = Field(default='My team', min_length=1, max_length=80)
+    name: str = Field(default='Takımım', min_length=1, max_length=80)
 
 
 class MemberRequest(BaseModel):
@@ -41,7 +41,7 @@ async def get_team(rt=Depends(get_runtime)):
     async with rt.session() as db:
         team = await service.team_for(db, rt.owner_id)
         if not team:
-            return {'enabled': bool(app_settings.get('TEAM_ENABLED')), 'team': None, 'agents': [], 'limits': {'max_agents': settings.TEAM_MAX_AGENTS, 'max_depth': settings.TEAM_MAX_DEPTH}, 'lead_ready': {'ok': False, 'reason': 'Choose a team lead.'}}
+            return {'enabled': bool(app_settings.get('TEAM_ENABLED')), 'team': None, 'agents': [], 'limits': {'max_agents': settings.TEAM_MAX_AGENTS, 'max_depth': settings.TEAM_MAX_DEPTH}, 'lead_ready': {'ok': False, 'reason': 'Bir takım lideri seçin.'}}
         rows = list((await db.execute(select(Agent).where(Agent.owner_id == rt.owner_id, Agent.team_id == team.id, Agent.archived_at.is_(None)).order_by(Agent.id))).scalars())
         output = []
         for agent in rows:
@@ -55,7 +55,7 @@ async def get_team(rt=Depends(get_runtime)):
         available = bool(lead and lead_engine_ok(rt, lead))
         return {'enabled': bool(app_settings.get('TEAM_ENABLED')), 'team': {'id': team.id, 'name': team.name, 'lead_agent_id': team.lead_agent_id}, 'agents': output,
                 'limits': {'max_agents': settings.TEAM_MAX_AGENTS, 'max_depth': settings.TEAM_MAX_DEPTH, 'max_parallel': settings.TEAM_MAX_PARALLEL},
-                'lead_ready': {'ok': available, 'reason': None if available else 'This lead needs an engine with team tools (Claude or Codex).'}}
+                'lead_ready': {'ok': available, 'reason': None if available else 'Bu liderin takım araçları olan bir motora (Claude ya da Codex) ihtiyacı var.'}}
 
 
 def lead_engine_ok(rt, agent):
@@ -69,7 +69,7 @@ async def lead(payload: LeadRequest, rt=Depends(get_runtime)):
         async with rt.session() as db:
             candidate = await db.get(Agent, payload.agent_id)
             if candidate is not None and not lead_engine_ok(rt, candidate):
-                raise service.TeamError('lead_engine', 'A lead needs an engine with team tools (Claude or Codex).')
+                raise service.TeamError('lead_engine', 'Liderin takım araçları olan bir motora (Claude ya da Codex) ihtiyacı var.')
             await service.set_lead(db, rt.owner_id, payload.agent_id, payload.name)
     except service.TeamError as exc:
         raise error(exc) from None
@@ -82,7 +82,7 @@ async def clear_lead(agent_id: int = Query(...), rt=Depends(get_runtime)):
         await begin_write(db)
         team = await service.team_for(db, rt.owner_id, lock=True)
         if team is None or team.lead_agent_id != agent_id:
-            raise HTTPException(409, detail={'error_code': 'changed_since', 'message': 'The lead changed. Refresh the team.'})
+            raise HTTPException(409, detail={'error_code': 'changed_since', 'message': 'Lider değişti. Takımı yenileyin.'})
         team.lead_agent_id = None
         team.updated_at = service.now()
         service.audit(db, team, 'lead_removed', agent_id=agent_id)
@@ -96,8 +96,8 @@ async def update_team(payload: TeamUpdate, rt=Depends(get_runtime)):
         await begin_write(db)
         team = await service.team_for(db, rt.owner_id, lock=True)
         if not team:
-            raise HTTPException(404, 'Team not found')
-        team.name = service.clean_line(payload.name, 80, 'Name')
+            raise HTTPException(404, 'Takım bulunamadı')
+        team.name = service.clean_line(payload.name, 80, 'Ad')
         await db.commit()
     return await get_team(rt)
 
@@ -162,7 +162,7 @@ async def setup_receipt(request_id: str, rt=Depends(get_runtime)):
     async with rt.session() as db:
         row = await setup.existing(db, rt.owner_id, request_id)
         if row is None:
-            raise HTTPException(404, 'Team change not found')
+            raise HTTPException(404, 'Takım değişikliği bulunamadı')
         status = await setup.undo_status(db, row)
         return {**row.result, 'request_id': row.request_id, 'state': row.state,
                 'undo_available': status['available'], 'undo_reason': status['reason']}
@@ -180,7 +180,7 @@ async def undo_setup(request_id: str, rt=Depends(get_runtime)):
 async def owned_job(rt, db, job_id):
     job = await db.get(AgentJob, job_id)
     if job is None or job.owner_id != rt.owner_id:
-        raise HTTPException(404, 'Job not found')
+        raise HTTPException(404, 'İş bulunamadı')
     return job
 
 

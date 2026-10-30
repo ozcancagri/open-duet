@@ -14,7 +14,7 @@ function Row({ group, link }: { group: UsageTotals; link?: string }) {
       <td className="py-1.5 pr-3 text-right tabular-nums">{group.turns}</td>
       <td className="py-1.5 pr-3 text-right tabular-nums">{formatTokens(group.input_tokens)}</td>
       <td className="py-1.5 pr-3 text-right tabular-nums">{formatTokens(group.output_tokens)}</td>
-      <td className="py-1.5 text-right tabular-nums" title={group.unreported_turns ? `${group.unreported_turns} turn(s) reported nothing` : undefined}>
+      <td className="py-1.5 text-right tabular-nums" title={group.unreported_turns ? `${group.unreported_turns} tur hiçbir şey bildirmedi` : undefined}>
         {formatCost(group.cost_usd)}
         {group.cost_usd !== null && group.unreported_turns > 0 ? "*" : ""}
       </td>
@@ -30,11 +30,11 @@ function Table({ title, groups, linkFor }: { title: string; groups: UsageTotals[
       <table className="w-full text-xs">
         <thead className="text-muted">
           <tr>
-            <th className="py-1 text-left font-normal">Name</th>
-            <th className="py-1 text-right font-normal">Turns</th>
-            <th className="py-1 text-right font-normal">Input</th>
-            <th className="py-1 text-right font-normal">Output</th>
-            <th className="py-1 text-right font-normal">Cost</th>
+            <th className="py-1 text-left font-normal">Ad</th>
+            <th className="py-1 text-right font-normal">Tur</th>
+            <th className="py-1 text-right font-normal">Girdi</th>
+            <th className="py-1 text-right font-normal">Çıktı</th>
+            <th className="py-1 text-right font-normal">Maliyet</th>
           </tr>
         </thead>
         <tbody>
@@ -63,7 +63,7 @@ export function UsageView() {
         setSummary(value);
         setError(null);
       })
-      .catch((err) => alive && setError(err instanceof ApiError ? err.message : "Could not reach the backend."));
+      .catch((err) => alive && setError(err instanceof ApiError ? err.message : "Sunucuya ulaşılamadı."));
     return () => {
       alive = false;
     };
@@ -80,7 +80,7 @@ export function UsageView() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch (err) {
-      setCsvError(err instanceof ApiError ? err.message : "Could not export.");
+      setCsvError(err instanceof ApiError ? err.message : "Dışa aktarılamadı.");
     }
   };
 
@@ -90,58 +90,57 @@ export function UsageView() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
-        <button onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month" className="cursor-pointer rounded px-3 py-1 text-sm hover:bg-hover">‹</button>
+        <button onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Önceki ay" className="cursor-pointer rounded px-3 py-1 text-sm hover:bg-hover">‹</button>
         <span className="text-sm tabular-nums">{month}</span>
-        <button onClick={() => setMonth(shiftMonth(month, 1))} disabled={month >= currentMonth()} aria-label="Next month" className="cursor-pointer rounded px-3 py-1 text-sm hover:bg-hover disabled:opacity-40">›</button>
+        <button onClick={() => setMonth(shiftMonth(month, 1))} disabled={month >= currentMonth()} aria-label="Sonraki ay" className="cursor-pointer rounded px-3 py-1 text-sm hover:bg-hover disabled:opacity-40">›</button>
       </div>
       <div className="space-y-5">
           {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-          {!error && !shown && <p className="text-sm text-muted">Loading…</p>}
-          {total && total.turns === 0 && <p className="text-sm text-muted">No finished turns in {month}.</p>}
+          {!error && !shown && <p className="text-sm text-muted">Yükleniyor…</p>}
+          {total && total.turns === 0 && <p className="text-sm text-muted">{month} döneminde tamamlanmış tur yok.</p>}
           {total && total.turns > 0 && (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div><p className="text-xs text-muted">Turns</p><p className="text-lg tabular-nums">{total.turns}</p></div>
+                <div><p className="text-xs text-muted">Tur</p><p className="text-lg tabular-nums">{total.turns}</p></div>
                 <div>
-                  <p className="text-xs text-muted">Input tokens</p>
+                  <p className="text-xs text-muted">Girdi tokenı</p>
                   <p className="text-lg tabular-nums">{formatTokens(total.input_tokens)}</p>
                   {total.cache_read_input_tokens + total.cache_creation_input_tokens > 0 && (
                     <p className="text-[11px] text-muted">
-                      + {formatTokens(total.cache_read_input_tokens + total.cache_creation_input_tokens)} cached
+                      + {formatTokens(total.cache_read_input_tokens + total.cache_creation_input_tokens)} önbellekten
                     </p>
                   )}
                 </div>
-                <div><p className="text-xs text-muted">Output tokens</p><p className="text-lg tabular-nums">{formatTokens(total.output_tokens)}</p></div>
-                <div><p className="text-xs text-muted">Cost</p><p className="text-lg tabular-nums">{formatCost(total.cost_usd)}</p></div>
+                <div><p className="text-xs text-muted">Çıktı tokenı</p><p className="text-lg tabular-nums">{formatTokens(total.output_tokens)}</p></div>
+                <div><p className="text-xs text-muted">Maliyet</p><p className="text-lg tabular-nums">{formatCost(total.cost_usd)}</p></div>
               </div>
               <p className="text-xs text-muted">
-                Numbers are what each engine reported; nothing is estimated. Days and months are in UTC.
+                Sayılar her motorun bildirdiği değerlerdir; hiçbir şey tahmin edilmez. Günler ve aylar UTC&apos;ye göredir.
                 {total.unreported_turns > 0 &&
-                  ` ${total.unreported_turns} of ${total.turns} turns reported no usage, so they are not in these totals (marked * where a cost is shown).`}
+                  ` ${total.turns} turun ${total.unreported_turns} tanesi kullanım bildirmedi; bu yüzden bu toplamlarda yer almıyorlar (maliyet gösterilen yerlerde * ile işaretli).`}
               </p>
-              <Table title="By conversation" groups={shown.by_thread} linkFor={(g) => (g.thread_id ? `/chat?thread=${g.thread_id}` : undefined)} />
-              <Table title="By engine and model" groups={shown.by_engine} />
-              <Table title="By day" groups={shown.by_day} />
+              <Table title="Sohbete göre" groups={shown.by_thread} linkFor={(g) => (g.thread_id ? `/chat?thread=${g.thread_id}` : undefined)} />
+              <Table title="Motor ve modele göre" groups={shown.by_engine} />
+              <Table title="Güne göre" groups={shown.by_day} />
             </>
           )}
           {shown?.helper && shown.helper.calls > 0 && (
-            <section aria-label="Helper model">
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Helper model</h3>
+            <section aria-label="Yardımcı model">
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Yardımcı model</h3>
               <p className="mb-1 text-xs text-muted">
-                {shown.helper.calls} call{shown.helper.calls === 1 ? "" : "s"} written for agents whose own engine cannot
-                write them
-                {shown.helper.failed > 0 && ` (${shown.helper.failed} failed)`}. Tokens only where the engine reported them.
+                Kendi motoru yazamayan ajanlar için {shown.helper.calls} çağrı yazıldı
+                {shown.helper.failed > 0 && ` (${shown.helper.failed} başarısız)`}. Token yalnız motorun bildirdiği yerlerde gösterilir.
               </p>
               <ul className="space-y-0.5 text-xs">
                 {shown.helper.groups.map((g) => (
                   <li key={`${g.engine}/${g.model}/${g.job}/${g.agent}`} className="flex flex-wrap gap-x-3">
-                    <span>{g.agent || "an agent"}</span>
-                    <span className="text-muted">{g.job === "compaction" ? "summaries" : "memory upkeep"}</span>
+                    <span>{g.agent || "bir ajan"}</span>
+                    <span className="text-muted">{g.job === "compaction" ? "özetler" : "bellek bakımı"}</span>
                     <span className="text-muted">{g.engine}{g.model ? ` · ${g.model}` : ""}</span>
-                    <span className="tabular-nums">{g.calls} call{g.calls === 1 ? "" : "s"}</span>
+                    <span className="tabular-nums">{g.calls} çağrı</span>
                     {g.input_tokens + g.output_tokens > 0 && (
                       <span className="tabular-nums text-muted">
-                        {formatTokens(g.input_tokens)} in · {formatTokens(g.output_tokens)} out
+                        {formatTokens(g.input_tokens)} girdi · {formatTokens(g.output_tokens)} çıktı
                       </span>
                     )}
                   </li>
@@ -151,7 +150,7 @@ export function UsageView() {
           )}
           <div className="flex items-center gap-3">
             <button onClick={() => void exportCsv()} className="cursor-pointer rounded-md border border-line px-3 py-1.5 text-xs">
-              Export {month} as CSV
+              {month} dönemini CSV olarak dışa aktar
             </button>
             {csvError && <span className="text-xs text-danger">{csvError}</span>}
           </div>

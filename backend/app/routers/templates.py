@@ -68,7 +68,7 @@ async def list_templates(
     category: str | None = Query(default=None, max_length=40),
 ):
     if category and category not in catalog.CATEGORIES:
-        raise HTTPException(status_code=422, detail={"error_code": "unknown_category", "message": "Unknown category."})
+        raise HTTPException(status_code=422, detail={"error_code": "unknown_category", "message": "Bilinmeyen kategori."})
     return TemplateListResponse(
         version=catalog.CATALOG_VERSION,
         categories=list(catalog.CATEGORIES),
@@ -80,5 +80,5 @@ async def list_templates(
 async def get_template(template_id: str):
     template = catalog.get(template_id)
     if template is None:
-        raise HTTPException(status_code=404, detail={"error_code": "unknown_template", "message": "No such template."})
+        raise HTTPException(status_code=404, detail={"error_code": "unknown_template", "message": "Böyle bir şablon yok."})
     return _response(template)

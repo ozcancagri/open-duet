@@ -48,7 +48,7 @@ export function ConnectTelegram({
             onLinked({ link_code: code.code });
           } else if (status.status === "expired") {
             if (pollRef.current) clearInterval(pollRef.current);
-            setError("Code expired — generate a new one.");
+            setError("Kodun süresi doldu — yeni bir kod oluşturun.");
             setLinkCode(null);
           }
         } catch {
@@ -56,7 +56,7 @@ export function ConnectTelegram({
         }
       }, POLL_INTERVAL_MS);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not generate a code.");
+      setError(err instanceof ApiError ? err.message : "Kod oluşturulamadı.");
     } finally {
       setLoading(false);
     }
@@ -64,21 +64,21 @@ export function ConnectTelegram({
 
   if (userId) {
     return (
-      <Card step={1} title="Get started" done>
+      <Card step={1} title="Başlayın" done>
         {isGuestId(userId) ? (
           <p className="text-sm text-muted">
-            Continuing without Telegram.
+            Telegram olmadan devam ediliyor.
           </p>
         ) : (
           <p className="text-sm text-muted">
-            Linked as Telegram user <code className="font-mono">{userId}</code>.
+            <code className="font-mono">{userId}</code> Telegram kullanıcısı olarak bağlandı.
           </p>
         )}
         <button
           onClick={onReset}
           className="mt-2 text-sm text-muted underline hover:text-ink"
         >
-          Start over
+          Baştan başla
         </button>
       </Card>
     );
@@ -90,20 +90,20 @@ export function ConnectTelegram({
 
   if (mode === "choice") {
     return (
-      <Card step={1} title="Get started">
+      <Card step={1} title="Başlayın">
         <p className="mb-3 text-sm text-muted">
-          You don&apos;t need Telegram to use this — continue as a guest, or
-          link Telegram if you want the same account/history there too.
+          Bunu kullanmak için Telegram gerekmez — konuk olarak devam edin ya da
+          aynı hesabı/geçmişi orada da istiyorsanız Telegram&apos;ı bağlayın.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => onLinked({ guest: true })}>
-            Continue without Telegram
+            Telegram olmadan devam et
           </Button>
           <button
             onClick={() => setMode("telegram")}
             className="rounded-md border border-line px-4 py-2 text-sm font-medium hover:bg-hover"
           >
-            Link Telegram instead
+            Bunun yerine Telegram&apos;ı bağla
           </button>
         </div>
       </Card>
@@ -111,22 +111,22 @@ export function ConnectTelegram({
   }
 
   return (
-    <Card step={1} title="Get started">
+    <Card step={1} title="Başlayın">
       <p className="mb-3 text-sm text-muted">
-        Generates a one-time code. Send it to the bot in Telegram to link your
-        account — no token or password needed here.
+        Tek kullanımlık bir kod oluşturur. Hesabınızı bağlamak için kodu Telegram&apos;daki
+        bota gönderin — burada token ya da parola gerekmez.
       </p>
 
       {!linkCode && (
         <div className="flex flex-wrap items-center gap-3">
           <Button onClick={generateCode} disabled={loading}>
-            {loading ? "Generating…" : "Generate code"}
+            {loading ? "Oluşturuluyor…" : "Kod oluştur"}
           </Button>
           <button
             onClick={() => setMode("choice")}
             className="text-sm text-muted underline hover:text-ink"
           >
-            Back
+            Geri
           </button>
         </div>
       )}
@@ -134,7 +134,7 @@ export function ConnectTelegram({
       {linkCode && (
         <div className="space-y-2">
           <p className="text-sm">
-            Send this to the bot:{" "}
+            Bunu bota gönderin:{" "}
             <code className="rounded bg-inset px-2 py-1 font-mono text-base font-semibold">
               /link {linkCode.code}
             </code>
@@ -146,10 +146,10 @@ export function ConnectTelegram({
               rel="noopener noreferrer"
               className="inline-block text-sm font-medium text-accent underline hover:opacity-80"
             >
-              Open Telegram →
+              Telegram&apos;ı aç →
             </a>
           )}
-          <p className="text-xs text-muted">Waiting for you to send it…</p>
+          <p className="text-xs text-muted">Göndermeniz bekleniyor…</p>
         </div>
       )}
 

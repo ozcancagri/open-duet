@@ -236,7 +236,7 @@ def test_stale_topic_undo_preserves_newer_edit_then_reverse_order_works():
     first = memory_journal.record(7, 'memory/trip.md', actor='person', before=None, after='Lisbon')
     memory_topics.write_topic(7, 'trip.md', 'Porto')
     second = memory_journal.record(7, 'memory/trip.md', actor='person', before='Lisbon', after='Porto')
-    with pytest.raises(memory_journal.CannotUndo, match='changed after'):
+    with pytest.raises(memory_journal.CannotUndo, match='bu kayıttan sonra değişti'):
         memory_journal.undo(7, first['id'])
     assert memory_topics.read_topic(7, 'trip.md').text == 'Porto'
     memory_journal.undo(7, second['id'])
@@ -264,7 +264,7 @@ def test_undo_checks_hash_again_at_mutation(monkeypatch, kind):
             original_write(7, 'trip.md', 'Concurrent')
             return original_mutation(*args, **kwargs)
         monkeypatch.setattr(memory_topics, 'delete_topic' if kind == 'topic_delete' else 'write_topic', changed)
-    with pytest.raises(memory_journal.CannotUndo, match='changed while'):
+    with pytest.raises(memory_journal.CannotUndo, match='uygulanırken notlar değişti'):
         memory_journal.undo(7, row['id'])
     current = agent_memory.read_memory(7).text if kind == 'memory' else memory_topics.read_topic(7, 'trip.md').text
     assert current == 'Concurrent'
@@ -275,6 +275,6 @@ def test_stale_undo_of_topic_deletion_preserves_recreated_note():
     memory_topics.delete_topic(7, 'trip.md')
     row = memory_journal.record(7, 'memory/trip.md', actor='person', before='Lisbon', after=None)
     memory_topics.write_topic(7, 'trip.md', 'New plan')
-    with pytest.raises(memory_journal.CannotUndo, match='changed after'):
+    with pytest.raises(memory_journal.CannotUndo, match='bu kayıttan sonra değişti'):
         memory_journal.undo(7, row['id'])
     assert memory_topics.read_topic(7, 'trip.md').text == 'New plan'

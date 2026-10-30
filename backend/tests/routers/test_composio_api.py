@@ -269,7 +269,7 @@ async def test_a_failed_removal_is_not_reported_as_done(admin, composio):
     composio.fail_next["DELETE /connected_accounts/"] = 503
     response = await admin.delete(f"{PATH}/accounts/ca_1")
     assert response.status_code == 502 and code_of(response) == "composio_unavailable"
-    assert "not removed" in response.json()["detail"]["message"]
+    assert "kaldırılmadı" in response.json()["detail"]["message"]
     assert [a["id"] for a in composio.accounts] == ["ca_1"]
     assert (await admin.delete(f"{PATH}/accounts/ca_1")).status_code == 204  # retry works
 

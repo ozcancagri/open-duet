@@ -251,7 +251,7 @@ async def test_ending_without_a_result_is_not_a_success(db_session, user_id, mon
         db_session, user_id, monkeypatch, lines=[message_start(), delta("text")], exit_code=0
     )
     assert task.status == "failed"
-    assert task.error == "Claude ended without a result"
+    assert task.error == "Claude sonuç vermeden bitti"
     assert task.result == "text"
 
 
@@ -268,7 +268,7 @@ async def test_a_refused_tool_use_is_a_failure_even_if_the_result_says_success(
     task, _ = await run_local(
         db_session, user_id, monkeypatch, lines=[result("done", denials=[{"tool_name": "Bash"}])]
     )
-    assert task.status == "failed" and "tool" in task.error
+    assert task.status == "failed" and "araç" in task.error
 
 
 async def test_timeout_is_a_failure_and_keeps_partial_text(db_session, user_id, monkeypatch):
@@ -276,7 +276,7 @@ async def test_timeout_is_a_failure_and_keeps_partial_text(db_session, user_id, 
         db_session, user_id, monkeypatch, watch=True, timed_out=True, exit_code=1,
         lines=[message_start(), delta("so far")],
     )
-    assert task.status == "failed" and "Timed out" in task.error
+    assert task.status == "failed" and "zaman aşımı" in task.error
     assert task.result == "so far"
     assert drained(sub)[-1].type == "turn.failed"
 
@@ -289,7 +289,7 @@ async def test_oversized_output_is_a_failure_and_keeps_partial_text(
         db_session, user_id, monkeypatch,
         lines=[message_start(), delta("12345"), delta("67890"), delta("overflow"), result("x")],
     )
-    assert task.status == "failed" and "more output" in task.error
+    assert task.status == "failed" and "fazla çıktı" in task.error
     assert task.result == "1234567890"
 
 
@@ -305,15 +305,15 @@ async def test_a_nonzero_exit_without_stderr_still_explains_itself(
     db_session, user_id, monkeypatch
 ):
     task, _ = await run_local(db_session, user_id, monkeypatch, exit_code=2)
-    assert task.status == "failed" and task.error == "Claude exited with code 2"
+    assert task.status == "failed" and task.error == "Claude 2 koduyla çıktı"
 
 
 async def test_missing_cli_during_the_run_is_a_failure(db_session, user_id, monkeypatch):
     task, sub = await run_local(
         db_session, user_id, monkeypatch, watch=True,
-        error=local_claude_runner.ClaudeCliUnavailable("Claude CLI not found."),
+        error=local_claude_runner.ClaudeCliUnavailable("Claude CLI bulunamadı."),
     )
-    assert task.status == "failed" and task.error == "Claude CLI not found."
+    assert task.status == "failed" and task.error == "Claude CLI bulunamadı."
     assert drained(sub)[-1].type == "turn.failed"
 
 
@@ -322,7 +322,7 @@ async def test_crash_is_recorded_without_leaking_details(db_session, user_id, mo
         db_session, user_id, monkeypatch, error=RuntimeError("secret path C:/x")
     )
     assert task.status == "failed"
-    assert task.error == "Local run failed unexpectedly"
+    assert task.error == "Yerel çalışma beklenmedik biçimde başarısız oldu"
 
 
 async def test_informational_events_do_not_disturb_a_run(db_session, user_id, monkeypatch):

@@ -54,14 +54,14 @@ test('highlights count characters, so an emoji before a match does not shift the
 });
 
 test('usage text says "not reported" instead of inventing numbers', () => {
-  assert.equal(turnUsageText(null), 'Usage not reported');
-  assert.equal(turnUsageText({}), 'Usage not reported');
-  assert.equal(turnUsageText({ input_tokens: 1200, output_tokens: 34 }), '1.2k in · 34 out · cost not reported');
+  assert.equal(turnUsageText(null), 'Kullanım bildirilmedi');
+  assert.equal(turnUsageText({}), 'Kullanım bildirilmedi');
+  assert.equal(turnUsageText({ input_tokens: 1200, output_tokens: 34 }), '1.2k giriş · 34 çıkış · maliyet bildirilmedi');
   assert.equal(
     turnUsageText({ input_tokens: 3, output_tokens: 2, cache_read_input_tokens: 5000, cost_usd: 0.0012 }),
-    '3 in · 2 out · 5.0k cached · $0.0012'
+    '3 giriş · 2 çıkış · 5.0k önbellek · $0.0012'
   );
-  assert.equal(formatCost(null), 'not reported');
+  assert.equal(formatCost(null), 'bildirilmedi');
   assert.equal(formatCost(1.5), '$1.50');
 });
 
@@ -80,8 +80,8 @@ test('attachments are checked like the server does', () => {
   assert.equal(attachmentProblem({ name: 'notes.MD', type: '', size: 10 }), null);
   assert.match(attachmentProblem({ name: 'big.png', type: 'image/png', size: 11 * 1024 * 1024 }), /10 MB/);
   assert.match(attachmentProblem({ name: 'big.txt', type: 'text/plain', size: 2 * 1024 * 1024 }), /1 MB/);
-  assert.match(attachmentProblem({ name: 'setup.exe', type: 'application/x-msdownload', size: 10 }), /can't be attached/);
-  assert.match(attachmentProblem({ name: 'empty.txt', type: 'text/plain', size: 0 }), /empty/);
+  assert.match(attachmentProblem({ name: 'setup.exe', type: 'application/x-msdownload', size: 10 }), /eklenemez/);
+  assert.match(attachmentProblem({ name: 'empty.txt', type: 'text/plain', size: 0 }), /boş/);
 });
 
 test('small formatting helpers', () => {
@@ -92,7 +92,7 @@ test('small formatting helpers', () => {
   assert.equal(parentPath('a'), '');
   assert.equal(shiftMonth('2026-01', -1), '2025-12');
   assert.equal(shiftMonth('2026-12', 1), '2027-01');
-  assert.match(failureNextStep('engine_stalled'), /stopped responding/);
+  assert.match(failureNextStep('engine_stalled'), /yanıt vermeyi bıraktı/);
   assert.equal(failureNextStep('something_new'), null);
 });
 
@@ -149,17 +149,17 @@ test('sendTurn sends attachment ids only when there are some', async () => {
 test('an engine limit reads as a short chip with the time to its reset', () => {
   const now = Date.parse('2026-10-18T12:00:00Z');
   assert.equal(engineLimitText(null, now), null);
-  assert.equal(engineLimitText({ kind: 'usage_limit', resets_at: '2026-10-18T14:05:00Z' }, now), 'Usage limit · resets in 2h 5m');
-  assert.equal(engineLimitText({ kind: 'rate_limit', resets_at: '2026-10-18T12:00:20Z' }, now), 'Rate limited · resets in 1m');
-  assert.equal(engineLimitText({ kind: 'credits', resets_at: null }, now), 'Out of credits');
-  assert.equal(engineLimitText({ kind: 'usage_limit', resets_at: '2026-10-20T13:00:00Z' }, now), 'Usage limit · resets in 2d 1h');
-  assert.equal(engineLimitText({ kind: 'usage_limit', resets_at: '2026-10-18T11:00:00Z' }, now), 'Usage limit');
+  assert.equal(engineLimitText({ kind: 'usage_limit', resets_at: '2026-10-18T14:05:00Z' }, now), 'Kullanım sınırı · 2 sa 5 dk sonra sıfırlanır');
+  assert.equal(engineLimitText({ kind: 'rate_limit', resets_at: '2026-10-18T12:00:20Z' }, now), 'İstek sınırı · 1 dk sonra sıfırlanır');
+  assert.equal(engineLimitText({ kind: 'credits', resets_at: null }, now), 'Kredi bitti');
+  assert.equal(engineLimitText({ kind: 'usage_limit', resets_at: '2026-10-20T13:00:00Z' }, now), 'Kullanım sınırı · 2 g 1 sa sonra sıfırlanır');
+  assert.equal(engineLimitText({ kind: 'usage_limit', resets_at: '2026-10-18T11:00:00Z' }, now), 'Kullanım sınırı');
 });
 
 test('an interrupted turn says whether the engine had the message', () => {
-  assert.match(interruptedText('shutdown', 'before_accept'), /^The app was closed before the engine received this message, so nothing ran/);
-  assert.match(interruptedText('lease_expired', 'after_accept'), /may already have run tools/);
-  assert.match(interruptedText('lease_expired', 'unknown'), /just after the engine received this message/);
-  assert.match(interruptedText('shutdown', ''), /^The app was closed while the agent was working/);
+  assert.match(interruptedText('shutdown', 'before_accept'), /^Uygulama kapatıldı\. Motor bu mesajı henüz almamıştı, bu yüzden hiçbir şey çalışmadı/);
+  assert.match(interruptedText('lease_expired', 'after_accept'), /Araç çalıştırmış ya da dosya değiştirmiş olabilir/);
+  assert.match(interruptedText('lease_expired', 'unknown'), /Motor bu mesajı az önce almıştı/);
+  assert.match(interruptedText('shutdown', ''), /^Uygulama kapatıldı\. Ajan o sırada çalışıyordu/);
   assert.ok(failureNextStep('engine_limited'));
 });

@@ -701,7 +701,7 @@ class MemoryCapture:
         report = {"at": time.time(), "expired": 0, "duplicates": 0, "superseded": 0, "deferred": 0, "organized": 0, "note": None}
         agent = await self._agent(agent_id)
         if agent is None:
-            report["note"] = "Memory upkeep is off for this agent."
+            report["note"] = "Bu ajan için bellek bakımı kapalı."
             return report
         can_ask = await self.source(agent, agent.provider, agent.model) is not None
         report["organized"] = await self.organize(agent_id)
@@ -730,15 +730,15 @@ class MemoryCapture:
                     memory_status.update(agent_id, topic_cursor=path)
                 answer = await self.ask(agent, memory_tidy.contradiction_prompt(candidates))
                 if await self._agent(agent_id) is None:
-                    report["note"] = "Memory upkeep was switched off during the tidy-up."
+                    report["note"] = "Bellek bakımı düzenleme sırasında kapatıldı."
                     break
                 current = agent_memory.read_memory(agent_id) if is_core else memory_topics.read_topic(agent_id, path.split("/", 1)[1])
                 if current.text != text:
-                    report["note"] = "A note changed during the check; its contradictions wait for the next tidy-up."
+                    report["note"] = "Kontrol sırasında bir not değişti; çelişkileri bir sonraki düzenlemeyi bekliyor."
                 elif answer is not None:
                     pairs = memory_tidy.parse_pairs(answer, len(candidates))
             elif not can_ask:
-                report["note"] = "This agent's engine cannot make the quick call, so only expired and duplicate entries are tidied."
+                report["note"] = "Bu ajanın motoru kısa çağrıyı yapamıyor, bu yüzden yalnız süresi dolmuş ve yinelenen kayıtlar düzenlendi."
             plan = memory_tidy.plan(text, today, pairs, minimum_budget=0 if is_core else 1)
             report["deferred"] += plan.deferred
             if not plan.changes:
@@ -856,7 +856,7 @@ class MemoryCapture:
         agent_model = agent.model if agent.provider == provider else None
         text_source = await self.source(agent, provider, thread_model or agent_model)
         if text_source is None:
-            return Report(now, note="This engine cannot make the quick background call upkeep uses.")
+            return Report(now, note="Bu motor, bakımın kullandığı kısa arka plan çağrısını yapamıyor.")
         day = memory_entries.today()
         text = prompt(
             agent_name=agent.name,
@@ -871,7 +871,7 @@ class MemoryCapture:
             )
         except (RuntimeError, TimeoutError, OSError) as exc:
             logger.warning("memory capture call failed", agent_id=agent_id, error=str(exc)[:200])
-            return Report(now, note="The capture call did not answer.", via=text_source.via)
+            return Report(now, note="Bilgi yakalama çağrısı yanıt vermedi.", via=text_source.via)
         # Re-read after the wait: the switches, the agent, the room and the conversation may have changed.
         found = await self._conversation(agent_id, thread_id)
         if found is None:

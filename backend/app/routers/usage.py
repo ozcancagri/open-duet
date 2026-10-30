@@ -15,7 +15,7 @@ _MONTH = Query(None, pattern=r"^\d{4}-\d{2}$")
 
 def _bad_month() -> HTTPException:
     return HTTPException(
-        status_code=422, detail={"error_code": "bad_month", "message": "month must look like 2026-10."}
+        status_code=422, detail={"error_code": "bad_month", "message": "Ay 2026-10 biçiminde olmalı."}
     )
 
 

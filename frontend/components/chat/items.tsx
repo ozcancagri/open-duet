@@ -34,7 +34,7 @@ function LongText({ value }: { value: string }) {
       </pre>
       {cut && (
         <button onClick={() => setAll(true)} className="mt-1 cursor-pointer text-xs text-muted underline">
-          Show all ({value.length.toLocaleString()} characters)
+          Tümünü göster ({value.length.toLocaleString()} karakter)
         </button>
       )}
     </>
@@ -50,7 +50,7 @@ export function UserMessage({ item, threadId = null }: { item: Item<"user">; thr
       </p>
       {item.skills && item.skills.length > 0 && (
         <p className="max-w-[88%] break-words text-xs text-muted sm:max-w-[80%]">
-          Skill: <span className="font-mono">{item.skills.map((name) => `/${name}`).join(" ")}</span>
+          Beceri: <span className="font-mono">{item.skills.map((name) => `/${name}`).join(" ")}</span>
         </p>
       )}
     </div>
@@ -70,17 +70,17 @@ export function AssistantMessage({
     <div className="max-w-full text-[15px] leading-relaxed">
       <Markdown text={text} />
       {live && <span aria-hidden="true" className="animate-pulse text-muted">▍</span>}
-      {incomplete && <p className="mt-1 text-xs text-muted">This message stopped before it was finished.</p>}
+      {incomplete && <p className="mt-1 text-xs text-muted">Bu mesaj tamamlanmadan durdu.</p>}
     </div>
   );
 }
 
 const STEP_ICON = {
-  running: { icon: <Loader2 size={13} className="animate-spin" />, color: "text-warning", label: "Running" },
-  done: { icon: <Check size={13} />, color: "text-success", label: "Done" },
-  error: { icon: <X size={13} />, color: "text-danger", label: "Failed" },
+  running: { icon: <Loader2 size={13} className="animate-spin" />, color: "text-warning", label: "Çalışıyor" },
+  done: { icon: <Check size={13} />, color: "text-success", label: "Tamamlandı" },
+  error: { icon: <X size={13} />, color: "text-danger", label: "Başarısız" },
   // Never finished: the answer was stopped, failed or was interrupted first.
-  stopped: { icon: <Square size={11} />, color: "text-faint", label: "Stopped" },
+  stopped: { icon: <Square size={11} />, color: "text-faint", label: "Durduruldu" },
 } as const;
 
 export function ToolStep({ item }: { item: Item<"tool"> }) {
@@ -99,17 +99,17 @@ export function ToolStep({ item }: { item: Item<"tool"> }) {
       </summary>
       <div className="space-y-2 border-t border-line p-3">
         <div>
-          <p className="mb-1 text-muted">Input</p>
+          <p className="mb-1 text-muted">Girdi</p>
           <LongText value={input} />
         </div>
-        {item.state === "stopped" && <p className="text-muted">This call did not finish: the answer ended first.</p>}
+        {item.state === "stopped" && <p className="text-muted">Bu çağrı tamamlanmadı: yanıt önce sona erdi.</p>}
         {(item.state === "done" || item.state === "error") && (
           <div>
             <p className="mb-1 text-muted">
-              {item.state === "error" ? "Error" : "Output"}
-              {item.truncated && " (cut at the stored limit)"}
+              {item.state === "error" ? "Hata" : "Çıktı"}
+              {item.truncated && " (saklama sınırında kesildi)"}
             </p>
-            {item.output ? <LongText value={item.output} /> : <p className="text-muted">No output.</p>}
+            {item.output ? <LongText value={item.output} /> : <p className="text-muted">Çıktı yok.</p>}
           </div>
         )}
       </div>
@@ -120,13 +120,13 @@ export function ToolStep({ item }: { item: Item<"tool"> }) {
 // Three or more tool calls in a row, folded into one line while they are done.
 export function ToolRun({ tools }: { tools: Item<"tool">[] }) {
   const { total, running, failed } = toolRunSummary(tools);
-  const summary = running > 0 ? `Working · ${total} tool calls so far` : `Used ${total} tools`;
+  const summary = running > 0 ? `Çalışıyor · şimdiye dek ${total} araç çağrısı` : `${total} araç kullanıldı`;
   return (
     <details open={running > 0 || failed > 0} className="group rounded-card border border-line bg-raised/40">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs text-muted touch:py-3 [&::-webkit-details-marker]:hidden">
         {running > 0 ? <Loader2 size={13} aria-hidden="true" className="animate-spin text-warning" /> : <Check size={13} aria-hidden="true" className="text-success" />}
         <span className="flex-1 font-medium text-ink">{summary}</span>
-        {failed > 0 && <span className="text-danger">{failed} failed</span>}
+        {failed > 0 && <span className="text-danger">{failed} başarısız</span>}
         <ChevronRight size={14} aria-hidden="true" className="shrink-0 text-faint transition-transform group-open:rotate-90" />
       </summary>
       <div className="space-y-1.5 border-t border-line p-2">
@@ -139,11 +139,11 @@ export function ToolRun({ tools }: { tools: Item<"tool">[] }) {
 }
 
 const APPROVAL_LABEL: Record<Item<"approval">["status"], string> = {
-  pending: "Waiting for you",
-  allowed: "Allowed",
-  denied: "Denied",
-  expired: "Expired: nobody answered in time, so it did not run",
-  cancelled: "Cancelled: the run ended before it was answered",
+  pending: "Sizi bekliyor",
+  allowed: "İzin verildi",
+  denied: "Reddedildi",
+  expired: "Süresi doldu: zamanında yanıt verilmediği için çalışmadı",
+  cancelled: "İptal edildi: çalıştırma, yanıt verilmeden sona erdi",
 };
 
 // What became of "Always allow this command" on this card: the saved rule
@@ -187,26 +187,26 @@ export function ApprovalCard({
         {pending ? (
           isComputerTool(item.tool) ? (
             <>
-              {screenInput ? "Let your agent use this computer’s screen, keyboard and browser for this turn." : <>Your agent wants to {toolLabel(item.tool)}, an isolated machine, not this one.</>} It will not run
-              until you allow it.
+              {screenInput ? "Ajanınızın bu tur boyunca bu bilgisayarın ekranını, klavyesini ve tarayıcısını kullanmasına izin verin." : <>Ajanınız şunu yapmak istiyor: {toolLabel(item.tool)} (bu bilgisayarda değil, yalıtılmış bir makinede).</>} Siz izin
+              verene kadar çalışmaz.
             </>
           ) : (
             <>
-              Your agent wants to use <span className="font-mono">{item.tool}</span>. It will not run
-              until you allow it.
+              Ajanınız <span className="font-mono">{item.tool}</span> aracını kullanmak istiyor. Siz izin verene
+              kadar çalışmaz.
             </>
           )
         ) : (
           <>
             <span className="font-mono">{item.tool}</span>:{" "}
             {byRule && item.status === "allowed"
-              ? "Allowed by a saved rule, without asking"
+              ? "Kayıtlı bir kuralla, sorulmadan izin verildi"
               : item.resolvedBy === "computer_read"
-                ? "Allowed without asking: reading inside the agent's computer"
+                ? "Sorulmadan izin verildi: ajanın bilgisayarı içinde okuma"
                 : item.resolvedBy === "accept_edits"
-                  ? "Allowed without asking: edits are accepted"
+                  ? "Sorulmadan izin verildi: düzenlemeler kabul ediliyor"
                   : item.resolvedBy === "plan_mode"
-                    ? "Refused: plan only changes nothing"
+                    ? "Reddedildi: Yalnız plan modunda hiçbir şey değişmez"
                     : APPROVAL_LABEL[item.status]}
             {!pending && item.summary && <span className="font-mono text-faint"> · {item.summary}</span>}
           </>
@@ -227,29 +227,29 @@ export function ApprovalCard({
       {pending && (
         <div className="flex flex-wrap gap-2">
           <Button variant="primary" onClick={() => onAnswer("allow")} disabled={answering}>
-            {screenInput ? "Allow this turn" : "Allow"}
+            {screenInput ? "Bu tur için izin ver" : "İzin ver"}
           </Button>
           {rememberable && (
             <Button
               onClick={() => onAnswer("allow", true)}
               disabled={answering}
-              title="Allow it now, and run exactly this command in this folder without asking from now on"
+              title="Şimdi izin ver; bundan sonra da tam olarak bu komutu bu klasörde sormadan çalıştır"
             >
-              Always allow this command
+              Bu komuta her zaman izin ver
             </Button>
           )}
           <Button onClick={() => onAnswer("deny")} disabled={answering}>
-            Deny
+            Reddet
           </Button>
         </div>
       )}
-      {!pending && remembered?.error && <p className="text-xs text-muted">Allowed this once only: {remembered.error}.</p>}
-      {!pending && undone && <p className="text-xs text-muted">No longer always allowed. Next time it asks again.</p>}
+      {!pending && remembered?.error && <p className="text-xs text-muted">Yalnız bu seferlik izin verildi: {remembered.error}.</p>}
+      {!pending && undone && <p className="text-xs text-muted">Artık her zaman izinli değil. Bir dahaki sefere yeniden sorulacak.</p>}
       {!pending && savedRuleId != null && !undone && onUndo && (
         <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          {remembered?.ruleId != null ? "Always allowed in this folder from now on." : "A saved rule allows this command."}
+          {remembered?.ruleId != null ? "Bundan sonra bu klasörde her zaman izinli." : "Kayıtlı bir kural bu komuta izin veriyor."}
           <button onClick={() => onUndo(savedRuleId)} className="cursor-pointer underline hover:text-ink">
-            {remembered?.ruleId != null ? "Undo" : "Stop always allowing"}
+            {remembered?.ruleId != null ? "Geri al" : "Her zaman izin vermeyi bırak"}
           </button>
         </p>
       )}
@@ -260,8 +260,8 @@ export function ApprovalCard({
 
 const END_TEXT: Record<Item<"turn_end">["status"], (item: Item<"turn_end">) => string | null> = {
   completed: () => null,
-  failed: (i) => i.error || "The run failed.",
-  cancelled: () => "You stopped this answer.",
+  failed: (i) => i.error || "Çalıştırma başarısız oldu.",
+  cancelled: () => "Bu yanıtı siz durdurdunuz.",
   interrupted: (i) => interruptedText(i.reason, i.replay),
 };
 
@@ -282,7 +282,7 @@ export function TurnEnd({ item }: { item: Item<"turn_end"> }) {
         </div>
       )}
       {usage && (
-        <p className="text-right text-[11px] text-faint" title="As reported by the engine">
+        <p className="text-right text-[11px] text-faint" title="Motorun bildirdiği değerler">
           {usage}
         </p>
       )}
@@ -294,7 +294,7 @@ export function SessionReset({ item }: { item: Item<"session_reset"> }) {
   return (
     <p className="border-y border-dashed border-line py-2 text-center text-xs text-muted">
       {item.message ||
-        "The engine's session for this conversation was reset. The messages above are shown for reference only."}
+        "Motorun bu sohbetteki oturumu sıfırlandı. Yukarıdaki mesajlar yalnız bilgi amacıyla gösteriliyor."}
     </p>
   );
 }
@@ -304,9 +304,9 @@ function ComputerBadge() {
   return (
     <span
       className="mr-1 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent"
-      title="Runs in the agent's computer (an isolated container), not on this machine"
+      title="Bu makinede değil, ajanın bilgisayarında (yalıtılmış bir kapsayıcı) çalışır"
     >
-      computer
+      bilgisayar
     </span>
   );
 }
@@ -326,7 +326,7 @@ export function RecalledChip({ item }: { item: Item<"recalled"> }) {
       </button>
       {open && (
         <ul className="mt-1 max-w-xl space-y-1 rounded-field border border-line bg-raised p-2 text-left">
-          <li className="text-muted">Background for the agent, not instructions. It grants no permission.</li>
+          <li className="text-muted">Ajan için arka plan bilgisidir, talimat değildir. Hiçbir izin vermez.</li>
           {item.notes.map((n, i) => (
             <li key={`n${i}`}>
               <span className="font-mono">memory/{n.name}</span>: {n.snippet}
@@ -334,8 +334,8 @@ export function RecalledChip({ item }: { item: Item<"recalled"> }) {
           ))}
           {item.conversations.map((c, i) => (
             <li key={`c${i}`}>
-              <span className="font-medium">“{c.title || "untitled"}”</span>
-              {c.at ? ` (${c.at.slice(0, 10)})` : ""}, {c.role === "user" ? "you said" : "the agent said"}: {c.snippet}
+              <span className="font-medium">“{c.title || "adsız"}”</span>
+              {c.at ? ` (${c.at.slice(0, 10)})` : ""}, {c.role === "user" ? "siz dediniz" : "ajan dedi"}: {c.snippet}
             </li>
           ))}
         </ul>
@@ -349,7 +349,7 @@ export function EngineSwitched({ item }: { item: Item<"engine_switched"> }) {
   return (
     <div role="status" className="rounded-card border border-warning/50 bg-warning/10 px-3.5 py-2.5 text-xs">
       <p className="font-medium text-ink">
-        Switched engine: {item.from} → {item.to}
+        Motor değiştirildi: {item.from} → {item.to}
         {item.model ? ` (${item.model})` : ""}
       </p>
       {item.message && <p className="mt-1 whitespace-pre-wrap break-words text-muted">{item.message}</p>}
@@ -365,7 +365,7 @@ export function CompactedMarker({ item }: { item: Item<"compacted"> }) {
       <p>{compactedLabel(item.folded, item.writtenBy)}</p>
       {item.summary && (
         <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="mt-1 cursor-pointer underline">
-          {open ? "Hide the summary" : "Show the summary"}
+          {open ? "Özeti gizle" : "Özeti göster"}
         </button>
       )}
       {open && <pre className="mt-2 whitespace-pre-wrap break-words text-left font-mono">{item.summary}</pre>}

@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { en, t } from "./i18n.ts";
+import { en, t, tr } from "./i18n.ts";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -17,8 +17,14 @@ function sources(dir) {
 }
 
 test("t returns the message, fills placeholders and falls back to the key", () => {
-  assert.equal(t("common.close"), "Close");
+  assert.equal(t("common.close"), "Kapat");
+  assert.equal(t("notifications.unread", { count: 3 }), "Bildirimler, 3 okunmamış");
   assert.equal(t("nope.unknown"), "nope.unknown");
+});
+
+test("the Turkish table has exactly the English keys, each translated", () => {
+  assert.deepEqual(Object.keys(tr).sort(), Object.keys(en).sort());
+  for (const [key, value] of Object.entries(tr)) assert.ok(value.trim(), `${key} is empty`);
 });
 
 test("every literal t(key) in the app exists in the English table", () => {

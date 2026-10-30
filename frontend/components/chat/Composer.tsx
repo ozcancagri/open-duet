@@ -136,12 +136,12 @@ export function Composer({
             <div className="px-2 pt-1"><PendingAttachments files={files} onRemove={onRemoveFile} disabled={sending} /></div>
           )}
           {chosenSkills.length > 0 && onToggleSkill && (
-            <ul aria-label="Skills for this message" className="flex flex-wrap gap-1.5 px-2 pt-1">
+            <ul aria-label="Bu mesajın becerileri" className="flex flex-wrap gap-1.5 px-2 pt-1">
               {chosenSkills.map((name) => (
                 <li key={name} className="inline-flex max-w-full items-center gap-1 rounded-full border border-accent/40 bg-accent/10 py-0.5 pl-2.5 pr-1 text-xs text-ink">
                   <Sparkles size={12} aria-hidden="true" className="shrink-0 text-accent" />
                   <span className="truncate font-mono">{name}</span>
-                  <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => onToggleSkill(name)} aria-label={`Remove skill ${name}`} className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted hover:bg-hover hover:text-ink">
+                  <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => onToggleSkill(name)} aria-label={`${name} becerisini kaldır`} className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted hover:bg-hover hover:text-ink">
                     <X size={12} aria-hidden="true" />
                   </button>
                 </li>
@@ -149,7 +149,7 @@ export function Composer({
             </ul>
           )}
           {slashOpen && completions.length > 0 && (
-            <ul id={menuId} role="listbox" aria-label="Skills" className="mx-2 mt-1 max-h-48 overflow-y-auto rounded-field border border-line bg-raised text-sm">
+            <ul id={menuId} role="listbox" aria-label="Beceriler" className="mx-2 mt-1 max-h-48 overflow-y-auto rounded-field border border-line bg-raised text-sm">
               {completions.map((s, i) => (
                 <li key={s.name} role="presentation">
                   <button id={`${menuId}-${i}`} type="button" role="option" aria-selected={i === activeIndex}
@@ -168,16 +168,16 @@ export function Composer({
           {slashOpen && completions.length === 0 && (
             <p role="status" className="px-3 py-2 text-xs text-muted">
               {chosenSkills.length >= MAX_SKILLS_PER_MESSAGE
-                ? `Up to ${MAX_SKILLS_PER_MESSAGE} skills per message. Remove one to choose another.`
+                ? `Bir mesajda en çok ${MAX_SKILLS_PER_MESSAGE} beceri kullanılabilir. Başka birini seçmek için birini kaldırın.`
                 : enabledSkills.length === 0
-                  ? "No skills are switched on for this agent. Add one in the agent's settings."
-                  : "No matching skills available. Try another name or open the skill picker."}
+                  ? "Bu ajan için açık beceri yok. Ajanın ayarlarından bir beceri ekleyin."
+                  : "Eşleşen beceri yok. Başka bir ad deneyin ya da beceri seçiciyi açın."}
             </p>
           )}
           {pickerOpen && onToggleSkill && (
-            <div role="group" aria-label="Pick skills" className="mx-2 mt-1 max-h-48 overflow-y-auto rounded-field border border-line bg-raised text-sm">
+            <div role="group" aria-label="Beceri seç" className="mx-2 mt-1 max-h-48 overflow-y-auto rounded-field border border-line bg-raised text-sm">
               {enabledSkills.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-muted">No skills are switched on for this agent. Add one in the agent&apos;s settings.</p>
+                <p className="px-3 py-2 text-xs text-muted">Bu ajan için açık beceri yok. Ajanın ayarlarından bir beceri ekleyin.</p>
               ) : (
                 enabledSkills.map((s) => {
                   const on = chosenSkills.includes(s.name);
@@ -193,10 +193,10 @@ export function Composer({
                   );
                 })
               )}
-              {enabledSkills.length > 0 && <p className="px-3 py-1 text-xs text-faint">Up to {MAX_SKILLS_PER_MESSAGE} per message, used for the next message only.</p>}
+              {enabledSkills.length > 0 && <p className="px-3 py-1 text-xs text-faint">Mesaj başına en çok {MAX_SKILLS_PER_MESSAGE}; yalnız bir sonraki mesajda kullanılır.</p>}
             </div>
           )}
-          {dragging && <p className="px-3 pb-1 text-xs text-accent">Drop to attach</p>}
+          {dragging && <p className="px-3 pb-1 text-xs text-accent">Eklemek için bırakın</p>}
           <div className="flex items-end gap-1">
             {onAddFiles && (
               <>
@@ -217,8 +217,8 @@ export function Composer({
                   type="button"
                   onClick={() => picker.current?.click()}
                   disabled={sending}
-                  aria-label="Attach files"
-                  title="Attach images or text files (or paste, or drop them here)"
+                  aria-label="Dosya ekle"
+                  title="Görsel ya da metin dosyası ekleyin (yapıştırabilir ya da buraya bırakabilirsiniz)"
                   className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted transition-colors duration-(--dur-fast) hover:bg-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 touch:size-11"
                 >
                   <Paperclip size={18} aria-hidden="true" />
@@ -230,15 +230,16 @@ export function Composer({
                 type="button"
                 onClick={() => { dismissMenu(); setPickerOpen((open) => !open); }}
                 disabled={sending}
-                aria-label="Pick skills"
+                aria-label="Beceri seç"
                 aria-expanded={pickerOpen}
-                title="Use a saved skill for this message (or type / and a name)"
+                title="Bu mesajda kayıtlı bir beceri kullanın (ya da / ve bir ad yazın)"
                 className={cn("inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted transition-colors duration-(--dur-fast) hover:bg-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 touch:size-11", (pickerOpen || chosenSkills.length > 0) && "text-accent")}
               >
                 <Sparkles size={18} aria-hidden="true" />
               </button>
             )}
             <textarea
+              data-tip="composer"
               ref={box}
               value={value}
               onChange={(e) => {
@@ -289,8 +290,8 @@ export function Composer({
                 }
               }}
               rows={1}
-              placeholder={blockedReason ?? "Message your agent"}
-              aria-label="Message"
+              placeholder={blockedReason ?? "Ajanınıza mesaj yazın"}
+              aria-label="Mesaj"
               className="max-h-52 min-h-10 min-w-0 flex-1 resize-none bg-transparent px-2 py-2.5 text-[15px] leading-5 outline-none placeholder:text-faint focus-visible:outline-none"
             />
             {running ? (
@@ -301,7 +302,7 @@ export function Composer({
                 className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-line bg-raised px-4 text-sm font-medium text-ink transition-colors duration-(--dur-fast) hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 touch:h-11"
               >
                 <Square size={13} aria-hidden="true" />
-                {stopping ? "Stopping…" : "Stop"}
+                {stopping ? "Durduruluyor…" : "Durdur"}
               </button>
             ) : (
               <button
@@ -311,7 +312,7 @@ export function Composer({
                 className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-accent-fg transition-opacity duration-(--dur-fast) hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 touch:h-11"
               >
                 <ArrowUp size={16} aria-hidden="true" />
-                {sending ? "Sending…" : "Send"}
+                {sending ? "Gönderiliyor…" : "Gönder"}
               </button>
             )}
           </div>
@@ -319,7 +320,7 @@ export function Composer({
         {onSaveAsSkill && (
           <div className="mt-1 flex justify-end px-3">
             <button type="button" onClick={onSaveAsSkill} className="cursor-pointer text-xs text-muted underline-offset-2 hover:text-ink hover:underline">
-              Save as skill
+              Beceri olarak kaydet
             </button>
           </div>
         )}

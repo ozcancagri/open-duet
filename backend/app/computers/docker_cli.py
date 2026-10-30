@@ -337,7 +337,7 @@ def run(args: list[str], *, timeout: float, input_bytes: bytes | None = None,
     the CLI process is killed and `timed_out` is set."""
     executable = docker or docker_executable()
     if not executable:
-        raise DockerMissing("Docker is not installed (no docker command was found).")
+        raise DockerMissing("Docker kurulu değil (docker komutu bulunamadı).")
     kwargs: dict = {}
     if sys.platform == "win32":
         kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -345,7 +345,7 @@ def run(args: list[str], *, timeout: float, input_bytes: bytes | None = None,
         kwargs["start_new_session"] = True
     env = dict(os.environ)
     env["PATH"] = os.pathsep.join([env.get("PATH", ""), *_EXTRA_PATHS])
-    host_exec.ensure_allowed("a Docker command")
+    host_exec.ensure_allowed("Docker komutu")
     try:
         proc = subprocess.Popen(
             [executable, *args],
@@ -356,7 +356,7 @@ def run(args: list[str], *, timeout: float, input_bytes: bytes | None = None,
             **kwargs,
         )
     except OSError as exc:
-        raise DockerMissing(f"The docker command could not be started: {exc}") from None
+        raise DockerMissing(f"docker komutu başlatılamadı: {exc}") from None
     try:
         out, err = proc.communicate(input=input_bytes, timeout=timeout)
         timed_out = False

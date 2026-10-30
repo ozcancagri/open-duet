@@ -135,7 +135,7 @@ async def _learn_preview(rt: ThreadRuntime, agent_id: int, payload: SkillLearnRe
         thread = await db.get(Thread, payload.thread_id)
         turn = await db.get(Turn, payload.turn_id)
         if thread is None or turn is None:
-            raise _http(skills.SkillError(404, "skill_source_not_found", "No such source conversation for this agent."))
+            raise _http(skills.SkillError(404, "skill_source_not_found", "Bu ajanın böyle bir kaynak sohbeti yok."))
         try:
             return skill_learning.draft(thread, turn, owner_id=rt.owner_id, agent_id=agent_id)
         except skills.SkillError as exc:
@@ -154,7 +154,7 @@ async def save_learned(
 ):
     await _learn_preview(rt, agent_id, payload)
     if not payload.reviewed:
-        raise _http(skills.SkillError(422, "skill_review_required", "Review the instructions before saving."))
+        raise _http(skills.SkillError(422, "skill_review_required", "Kaydetmeden önce talimatları gözden geçirin."))
     try:
         return _response(skills.write_skill(
             agent_id, name, payload.description, payload.body, enabled=False,

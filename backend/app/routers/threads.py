@@ -84,7 +84,7 @@ async def _thread_or_404(rt: ThreadRuntime, thread_id: int) -> store.Thread:
     async with rt.session() as db:
         thread = await store.get_thread(db, thread_id)
     if thread is None or thread.owner_id != rt.owner_id:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="Sohbet bulunamadı")
     return thread
 
 
@@ -102,16 +102,16 @@ async def create_thread(payload: ThreadCreateRequest, rt: ThreadRuntime = Depend
             agent_id=payload.agent_id,
         )
     except UnknownProvider:
-        raise _error(422, "unknown_provider", f"Unknown engine: {payload.provider}") from None
+        raise _error(422, "unknown_provider", f"Bilinmeyen motor: {payload.provider}") from None
     except EngineModelInvalid as exc:
         raise _error(422, "unknown_model", str(exc)) from None
     except UnknownAgent:
-        raise _error(422, "agent_not_found", "No such agent.") from None
+        raise _error(422, "agent_not_found", "Böyle bir ajan yok.") from None
     except AgentArchived:
-        raise _error(409, "agent_archived", "This agent is archived; unarchive it first.") from None
+        raise _error(409, "agent_archived", "Bu ajan arşivde; önce arşivden çıkarın.") from None
     except AgentProviderMismatch:
         raise _error(
-            422, "agent_provider_mismatch", "The provider must match the agent's, or be omitted."
+            422, "agent_provider_mismatch", "Motor, ajanınkiyle aynı olmalı ya da hiç belirtilmemeli."
         ) from None
     except (OSError, ValueError) as exc:
         raise _error(409, "workspace_unavailable", str(exc)) from None
@@ -160,7 +160,7 @@ async def update_thread(
         try:
             rt.check_engine_model(current.provider, payload.model)
         except UnknownProvider:
-            raise _error(409, "unknown_provider", f"No provider is registered for {current.provider}.") from None
+            raise _error(409, "unknown_provider", f"{current.provider} için kayıtlı bir motor yok.") from None
         except EngineModelInvalid as exc:
             raise _error(422, "unknown_model", str(exc)) from None
     try:
@@ -176,9 +176,9 @@ async def update_thread(
             async with rt.session() as db:
                 thread = await store.set_model(db, thread_id, payload.model)
     except store.ThreadNotFound:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="Sohbet bulunamadı")
     except store.ThreadBusy:
-        raise _error(409, "turn_running", "Stop the running answer before archiving this conversation.")
+        raise _error(409, "turn_running", "Bu sohbeti arşivlemeden önce süren yanıtı durdurun.")
     rt.hub.notify(thread_id)
     return thread
 
@@ -195,9 +195,9 @@ async def delete_thread(thread_id: int, rt: ThreadRuntime = Depends(get_runtime)
         async with rt.session() as db:
             await store.delete_thread(db, thread_id)
     except store.ThreadNotFound:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="Sohbet bulunamadı")
     except store.ThreadBusy:
-        raise _error(409, "turn_running", "Stop the running answer before deleting this conversation.")
+        raise _error(409, "turn_running", "Bu sohbeti silmeden önce süren yanıtı durdurun.")
     rt.hub.close(thread_id)
     attachments.remove_thread(thread_id)
 
@@ -213,7 +213,7 @@ async def send_turn(
     as soon as the turn has started."""
     thread = await _thread_or_404(rt, thread_id)
     if thread.kind in ("room", "room_member"):
-        raise _error(409, thread.kind + "_thread", "Talk to this agent in the room.")
+        raise _error(409, thread.kind + "_thread", "Bu ajanla odada konuşun.")
     try:
         from app.auth.middleware import principal_of
         principal = principal_of(request.scope)
@@ -232,19 +232,19 @@ async def send_turn(
             f"{exc} can't read images. Remove the image, or start a conversation on an engine that can.",
         )
     except store.ThreadNotFound:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="Sohbet bulunamadı")
     except store.ThreadBusy:
-        raise _error(409, "turn_running", "A turn is already running in this thread.")
+        raise _error(409, "turn_running", "Bu sohbette zaten bir yanıt sürüyor.")
     except SessionBroken:
         raise _error(
             409,
             "session_broken",
-            "This conversation's session could not be continued. Start a new session to go on.",
+            "Bu sohbetin oturumu sürdürülemedi. Devam etmek için yeni bir oturum başlatın.",
         )
     except ProviderUnavailable as exc:
         raise _error(503, "provider_unavailable", str(exc))
     except UnknownProvider as exc:
-        raise _error(409, "unknown_provider", f"No provider is registered for {exc}.")
+        raise _error(409, "unknown_provider", f"{exc} için kayıtlı bir motor yok.")
 
 
 @router.post("/{thread_id}/stop", response_model=StopResponse, status_code=202)
@@ -257,13 +257,13 @@ async def stop_turn(thread_id: int, rt: ThreadRuntime = Depends(get_runtime)):
     try:
         return StopResponse(turn_id=await rt.stop_turn(thread_id))
     except NoRunningTurn:
-        raise _error(409, "no_running_turn", "Nothing is running in this conversation.")
+        raise _error(409, "no_running_turn", "Bu sohbette çalışan bir şey yok.")
     except TurnNotHere:
         raise _error(
             409,
             "turn_not_stoppable",
-            "This answer is running in another process, so it cannot be stopped from here. "
-            "It ends by itself, or is marked stopped within a minute if that process is gone.",
+            "Bu yanıt başka bir süreçte çalışıyor, bu yüzden buradan durdurulamaz. "
+            "Kendiliğinden biter; o süreç artık yoksa bir dakika içinde durdurulmuş olarak işaretlenir.",
         )
 
 
@@ -275,13 +275,13 @@ async def reset_session(thread_id: int, rt: ThreadRuntime = Depends(get_runtime)
     try:
         return await rt.reset_session(thread_id)
     except store.ThreadNotFound:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail="Sohbet bulunamadı")
     except store.ThreadBusy:
-        raise _error(409, "turn_running", "A turn is running; wait for it to finish first.")
+        raise _error(409, "turn_running", "Bir yanıt sürüyor; önce bitmesini bekleyin.")
     except SessionNotResettable:
-        raise _error(409, "no_session", "This provider keeps no session, so there is nothing to reset.")
+        raise _error(409, "no_session", "Bu motor oturum tutmuyor, sıfırlanacak bir şey yok.")
     except UnknownProvider as exc:
-        raise _error(409, "unknown_provider", f"No provider is registered for {exc}.")
+        raise _error(409, "unknown_provider", f"{exc} için kayıtlı bir motor yok.")
 
 
 # --- events -------------------------------------------------------------------------------
@@ -323,9 +323,9 @@ async def stream_events(
         try:
             cursor = int(last_event_id)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Last-Event-ID must be an event number")
+            raise HTTPException(status_code=400, detail="Last-Event-ID bir olay numarası olmalı")
         if cursor < 0:
-            raise HTTPException(status_code=400, detail="Last-Event-ID must be an event number")
+            raise HTTPException(status_code=400, detail="Last-Event-ID bir olay numarası olmalı")
     return StreamingResponse(
         event_frames(thread_id, cursor=cursor, hub=rt.hub, session_factory=rt.session),
         media_type="text/event-stream",
@@ -368,10 +368,10 @@ async def answer_approval(
     async with rt.session() as db:
         approval = await store.get_approval(db, approval_id)
     if approval is None or approval.thread_id != thread_id:
-        raise HTTPException(status_code=404, detail="Approval not found")
+        raise HTTPException(status_code=404, detail="Onay bulunamadı")
     if not await rt.answer_approval(approval_id, payload.decision, remember=payload.remember):
         raise _error(
-            409, "approval_not_waiting", "That request is no longer waiting for an answer."
+            409, "approval_not_waiting", "Bu istek artık yanıt beklemiyor."
         )
     if not (payload.remember and payload.decision == "allow"):
         return ApprovalAnswerResponse(decision=payload.decision)

@@ -53,7 +53,7 @@ def kill_group(proc: asyncio.subprocess.Process) -> None:
 
 async def run(args: list[str], *, timeout: float, cwd: str | None = None, env: dict | None = None) -> ProbeRun:
     try:
-        host_exec.ensure_allowed("an engine check")
+        host_exec.ensure_allowed("motor kontrolü")
         proc = await asyncio.create_subprocess_exec(
             *args,
             stdin=asyncio.subprocess.DEVNULL,

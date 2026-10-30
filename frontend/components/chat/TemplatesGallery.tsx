@@ -27,14 +27,14 @@ export function TemplatesGallery({ onAdd }: { onAdd: (template: AgentTemplate) =
     api
       .listTemplates()
       .then((value) => { if (!cancelled) setCatalog(value); })
-      .catch(() => { if (!cancelled) setError("Could not load the templates."); });
+      .catch(() => { if (!cancelled) setError("Şablonlar yüklenemedi."); });
     return () => { cancelled = true; };
   }, []);
 
   const shown = useMemo(() => filterTemplates(catalog?.templates ?? [], query, category), [catalog, query, category]);
 
   if (error) return <p role="alert" className="text-sm text-danger">{error}</p>;
-  if (!catalog) return <p className="text-sm text-muted">Loading templates…</p>;
+  if (!catalog) return <p className="text-sm text-muted">Şablonlar yükleniyor…</p>;
 
   return (
     <div className="space-y-3">
@@ -42,11 +42,11 @@ export function TemplatesGallery({ onAdd }: { onAdd: (template: AgentTemplate) =
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search templates"
-        aria-label="Search templates"
+        placeholder="Şablonlarda ara"
+        aria-label="Şablonlarda ara"
         className={FIELD}
       />
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Category">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Kategori">
         {[null, ...catalog.categories].map((value) => (
           <button
             key={value ?? "all"}
@@ -55,12 +55,12 @@ export function TemplatesGallery({ onAdd }: { onAdd: (template: AgentTemplate) =
             onClick={() => setCategory(value)}
             className={`${CHIP} ${category === value ? "border-accent bg-inset" : "border-line hover:bg-hover"}`}
           >
-            {value === null ? "All" : categoryLabel(value)}
+            {value === null ? "Tümü" : categoryLabel(value)}
           </button>
         ))}
       </div>
       {shown.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted">No templates match. Try another word or category.</p>
+        <p className="py-6 text-center text-sm text-muted">Eşleşen şablon yok. Başka bir sözcük ya da kategori deneyin.</p>
       ) : (
         <ul className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((template) => (
@@ -85,12 +85,12 @@ export function TemplatesGallery({ onAdd }: { onAdd: (template: AgentTemplate) =
               <div className="mt-2 flex flex-wrap gap-1">
                 {template.requires.map((item) => (
                   <span key={item} className="rounded border border-line px-1.5 py-0.5 text-[11px] text-muted">
-                    Needs {requirementLabel(item)}{template.available ? "" : " · not available yet"}
+                    Gerekli: {requirementLabel(item)}{template.available ? "" : " · henüz kullanılamıyor"}
                   </span>
                 ))}
                 {template.skills.length > 0 && (
                   <span className="rounded border border-line px-1.5 py-0.5 text-[11px] text-muted">
-                    {template.skills.length} suggested skill{template.skills.length === 1 ? "" : "s"}
+                    {template.skills.length} önerilen beceri
                   </span>
                 )}
               </div>
@@ -99,10 +99,10 @@ export function TemplatesGallery({ onAdd }: { onAdd: (template: AgentTemplate) =
                   type="button"
                   onClick={() => onAdd(template)}
                   disabled={!template.available}
-                  aria-label={`Add ${template.name}`}
+                  aria-label={`${template.name} ekle`}
                   className="cursor-pointer rounded-md border border-line px-3 py-1 text-xs font-medium hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {template.available ? "Add" : "Unavailable"}
+                  {template.available ? "Ekle" : "Kullanılamıyor"}
                 </button>
               </div>
             </li>
@@ -127,7 +127,7 @@ export function TemplateSkillChoices({
 }) {
   return (
     <fieldset className="text-xs text-muted">
-      <legend>Suggested skills (added after the agent is created)</legend>
+      <legend>Önerilen beceriler (ajan oluşturulduktan sonra eklenir)</legend>
       <ul className="mt-1 space-y-1">
         {skills.map((skill) => (
           <li key={skill.name}>

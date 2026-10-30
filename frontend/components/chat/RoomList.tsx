@@ -25,10 +25,10 @@ export function RoomList({ selected, onTeam, onNavigate }: { selected: number | 
     return () => { cancelled = true; clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
   }, []);
   if (rooms === null && !teamReady) return null;
-  return <section aria-label="Rooms and team" className="space-y-1 py-2">
-    {teamReady && <button type="button" className="w-full rounded-field px-3 py-2 text-left text-sm font-medium hover:bg-hover" onClick={() => { onTeam(); onNavigate?.(); }}>Team</button>}
-    {rooms !== null && <><div className="flex items-center justify-between px-3 pt-2"><h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Rooms</h2>{admin && <Link href={roomHref("new")} aria-label="New room" className="rounded p-2 text-sm hover:bg-hover" onClick={onNavigate}>+</Link>}</div>
-      {rooms.length === 0 && <p className="px-3 text-xs text-muted">No rooms yet.</p>}
-      <ul>{rooms.map(room => <li key={room.id}><Link href={roomHref(room.id)} onClick={onNavigate} aria-current={selected === room.id ? "page" : undefined} className={`flex items-center gap-2 rounded-field px-3 py-2 text-sm hover:bg-hover ${selected === room.id ? "bg-hover" : ""}`}><span className="min-w-0 flex-1 truncate">{room.name}</span>{room.dispatches.some(item => item.status === "running") && <span className="animate-pulse text-xs text-warning">working</span>}{room.unread > 0 && <span className="rounded-full bg-accent px-1.5 text-xs text-white" aria-label={`${room.unread} unread messages`}>{room.unread}</span>}</Link></li>)}</ul></>}
+  return <section aria-label="Odalar ve takım" className="space-y-1 py-2">
+    {teamReady && <button type="button" className="w-full rounded-field px-3 py-2 text-left text-sm font-medium hover:bg-hover" onClick={() => { onTeam(); onNavigate?.(); }}>Takım</button>}
+    {rooms !== null && <><div className="flex items-center justify-between px-3 pt-2"><h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Odalar</h2>{admin && <Link href={roomHref("new")} aria-label="Yeni oda" className="rounded p-2 text-sm hover:bg-hover" onClick={onNavigate}>+</Link>}</div>
+      {rooms.length === 0 && <p className="px-3 text-xs text-muted">Henüz oda yok.</p>}
+      <ul>{rooms.map(room => <li key={room.id}><Link href={roomHref(room.id)} onClick={onNavigate} aria-current={selected === room.id ? "page" : undefined} className={`flex items-center gap-2 rounded-field px-3 py-2 text-sm hover:bg-hover ${selected === room.id ? "bg-hover" : ""}`}><span className="min-w-0 flex-1 truncate">{room.name}</span>{room.dispatches.some(item => item.status === "running") && <span className="animate-pulse text-xs text-warning">çalışıyor</span>}{room.unread > 0 && <span className="rounded-full bg-accent px-1.5 text-xs text-white" aria-label={`${room.unread} okunmamış mesaj`}>{room.unread}</span>}</Link></li>)}</ul></>}
   </section>;
 }

@@ -85,7 +85,7 @@ def write(text: str, *, expected_hash: str | None = None) -> tuple[dict, int]:
     state and how many secrets were redacted. Raises MemoryConflict, MemoryTooLarge."""
     text = text.replace("\r\n", "\n")
     if len(text) > TEXT_MAX:
-        raise MemoryTooLarge(f"About me must be at most {TEXT_MAX:,} characters.")
+        raise MemoryTooLarge(f"Hakkımda en çok {TEXT_MAX:,} karakter olmalı.")
     with _lock:
         data = _read()
         if expected_hash is not None and text_hash(_text(data)) != expected_hash:

@@ -38,15 +38,15 @@ MAX_PER_MESSAGE = 3
 _WARNINGS = (
     (
         re.compile(r"(?i)\b(ignore|disregard|forget)\b.{0,30}\b(previous|prior|above|earlier)\b.{0,20}\binstructions?\b"),
-        "It tells the agent to ignore its earlier instructions.",
+        "Ajana önceki talimatlarını yok saymasını söylüyor.",
     ),
     (
         re.compile(r"(?i)\b(skip|bypass|disable|turn off|without)\b.{0,30}\b(approvals?|permissions?|confirmation)\b"),
-        "It mentions skipping approvals. Approvals still apply to every action.",
+        "Onayları atlamaktan söz ediyor. Onaylar yine de her işlem için geçerlidir.",
     ),
     (
         re.compile(r"(?i)\b(curl|wget)\b[^\n]*\|\s*(ba|z)?sh\b|\brm\s+-rf\b"),
-        "It contains a shell command that downloads and runs code or deletes files. Skills are text only and are never run.",
+        "Kod indirip çalıştıran ya da dosya silen bir kabuk komutu içeriyor. Beceriler yalnız metindir, hiçbir zaman çalıştırılmaz.",
     ),
 )
 
@@ -74,7 +74,7 @@ class Skill:
 def check_name(name: str) -> str:
     if not isinstance(name, str) or not NAME_RE.match(name):
         raise SkillError(
-            422, "invalid_skill_name", "A skill name uses lowercase letters, digits and dashes, up to 48 characters."
+            422, "invalid_skill_name", "Beceri adı en çok 48 karakterlik küçük harf, rakam ve tirelerden oluşur."
         )
     return name
 
@@ -90,13 +90,13 @@ def warnings_for(text: str) -> list[str]:
 def _clean(description: str, body: str, source: str) -> tuple[str, str, str, int]:
     description = _one_line(description or "")
     if not description:
-        raise SkillError(422, "invalid_skill", "A skill needs a short description.")
+        raise SkillError(422, "invalid_skill", "Becerinin kısa bir açıklaması olmalı.")
     if len(description) > DESCRIPTION_MAX:
-        raise SkillError(422, "invalid_skill", f"The description must be at most {DESCRIPTION_MAX} characters.")
+        raise SkillError(422, "invalid_skill", f"Açıklama en çok {DESCRIPTION_MAX} karakter olmalı.")
     if not body or not body.strip():
-        raise SkillError(422, "invalid_skill", "A skill needs instructions.")
+        raise SkillError(422, "invalid_skill", "Becerinin talimatları olmalı.")
     if len(body.encode("utf-8")) > BODY_MAX_BYTES:
-        raise SkillError(422, "skill_too_large", f"The instructions must be at most {BODY_MAX_BYTES // 1024} KB.")
+        raise SkillError(422, "skill_too_large", f"Talimatlar en çok {BODY_MAX_BYTES // 1024} KB olmalı.")
     source = _one_line(source or "user")[:SOURCE_MAX] or "user"
     description, n1 = redact_secrets(description)
     body, n2 = redact_secrets(body)
@@ -123,9 +123,9 @@ def parse_markdown(text: str) -> dict:
     """The header fields and instructions of a SKILL.md text: `{name,
     description, body, enabled, source}` (each may be None when absent)."""
     if not isinstance(text, str):
-        raise SkillError(422, "invalid_skill", "The skill must be text.")
+        raise SkillError(422, "invalid_skill", "Beceri metin olmalı.")
     if len(text.encode("utf-8")) > FILE_MAX_BYTES:
-        raise SkillError(422, "skill_too_large", f"A skill file must be at most {BODY_MAX_BYTES // 1024} KB.")
+        raise SkillError(422, "skill_too_large", f"Beceri dosyası en çok {BODY_MAX_BYTES // 1024} KB olmalı.")
     text = text.replace("\r\n", "\n").lstrip("﻿")
     fields: dict[str, str] = {}
     body = text
@@ -160,17 +160,17 @@ def preview(markdown: str) -> dict:
     description = _one_line(parsed["description"] or "")[:DESCRIPTION_MAX]
     body, redacted = redact_secrets(parsed["body"])
     if not body.strip():
-        raise SkillError(422, "invalid_skill", "This file has no instructions in it.")
+        raise SkillError(422, "invalid_skill", "Bu dosyada talimat yok.")
     warnings = warnings_for(body)
     if redacted:
-        warnings.append("Something that looked like a secret was replaced.")
+        warnings.append("Gizli bilgiye benzeyen bir şey değiştirildi.")
     if not name or not NAME_RE.match(name):
-        warnings.append("Choose a name: the file's name is missing or not usable.")
+        warnings.append("Bir ad seçin: dosyanın adı yok ya da kullanılamıyor.")
         name = ""
     if not description:
-        warnings.append("Add a short description.")
+        warnings.append("Kısa bir açıklama ekleyin.")
     if len(body.encode("utf-8")) > BODY_MAX_BYTES:
-        raise SkillError(422, "skill_too_large", f"The instructions must be at most {BODY_MAX_BYTES // 1024} KB.")
+        raise SkillError(422, "skill_too_large", f"Talimatlar en çok {BODY_MAX_BYTES // 1024} KB olmalı.")
     return {"name": name, "description": description, "body": body, "warnings": warnings}
 
 
@@ -183,7 +183,7 @@ def _skills_root(agent_id: int, *, create: bool = False):
     # No symlink on the way: not the agent folder, not the skills folder.
     for path in (home, root):
         if path.is_symlink():
-            raise SkillError(409, "skill_path_unsafe", "The skills folder is a link, so it is not used.")
+            raise SkillError(409, "skill_path_unsafe", "Beceriler klasörü bir bağlantı (link), bu yüzden kullanılmıyor.")
     if create:
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
     return root
@@ -194,7 +194,7 @@ def _skill_dir(agent_id: int, name: str, *, create: bool = False):
     root = _skills_root(agent_id, create=create)
     directory = root / name
     if directory.is_symlink():
-        raise SkillError(409, "skill_path_unsafe", "This skill is a link, so it is not used.")
+        raise SkillError(409, "skill_path_unsafe", "Bu beceri bir bağlantı (link), bu yüzden kullanılmıyor.")
     if create:
         directory.mkdir(exist_ok=True, mode=0o700)
     return directory
@@ -250,7 +250,7 @@ def list_skills(agent_id: int) -> list[Skill]:
 def read_skill(agent_id: int, name: str) -> Skill:
     skill = _read_file(agent_id, name)
     if skill is None:
-        raise SkillError(404, "skill_not_found", "No such skill.")
+        raise SkillError(404, "skill_not_found", "Böyle bir beceri yok.")
     return skill
 
 
@@ -264,7 +264,7 @@ def _mutation_lock(agent_id: int):
     root = _skills_root(agent_id, create=True)
     path = root.parent / ".skills.lock"
     if path.is_symlink():
-        raise SkillError(409, "skill_path_unsafe", "The skills lock is a link, so it is not used.")
+        raise SkillError(409, "skill_path_unsafe", "Beceri kilit dosyası bir bağlantı (link), bu yüzden kullanılmıyor.")
     fd = os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
     with os.fdopen(fd, "r+b") as handle:
         if os.name == "nt":
@@ -294,7 +294,7 @@ def write_skill(
     check_name(name)
     with _mutation_lock(agent_id):
         if create_only and (_skill_dir(agent_id, name) / SKILL_FILE).exists():
-            raise SkillError(409, "skill_exists", "A skill with this name already exists. Choose another name.")
+            raise SkillError(409, "skill_exists", "Bu adda bir beceri zaten var. Başka bir ad seçin.")
         return _write_skill(agent_id, name, description, body, enabled=enabled, source=source)
 
 
@@ -305,11 +305,11 @@ def _write_skill(
     description, body, source, redacted = _clean(description, body, source)
     existing = {s.name for s in list_skills(agent_id)}
     if name not in existing and len(existing) >= MAX_SKILLS:
-        raise SkillError(422, "too_many_skills", f"An agent can have at most {MAX_SKILLS} skills.")
+        raise SkillError(422, "too_many_skills", f"Bir ajanın en çok {MAX_SKILLS} becerisi olabilir.")
     directory = _skill_dir(agent_id, name, create=True)
     path = directory / SKILL_FILE
     if path.is_symlink():
-        raise SkillError(409, "skill_path_unsafe", "This skill is a link, so it is not used.")
+        raise SkillError(409, "skill_path_unsafe", "Bu beceri bir bağlantı (link), bu yüzden kullanılmıyor.")
     skill = Skill(name=name, description=description, body=body, enabled=enabled, source=source)
     fd, tmp = tempfile.mkstemp(dir=directory, prefix=".skill-", suffix=".tmp")
     try:
@@ -335,7 +335,7 @@ def delete_skill(agent_id: int, name: str, *, expected_revision: str | None = No
         if expected_revision is not None:
             current = read_skill(agent_id, name)
             if current.revision != expected_revision or not current.source.startswith("learned:"):
-                raise SkillError(409, "skill_undo_stale", "This skill changed after it was saved. Undo would remove a later edit.")
+                raise SkillError(409, "skill_undo_stale", "Bu beceri kaydedildikten sonra değişti. Geri almak daha sonraki bir düzenlemeyi siler.")
         _delete_skill(agent_id, name)
 
 
@@ -343,7 +343,7 @@ def _delete_skill(agent_id: int, name: str) -> None:
     directory = _skill_dir(agent_id, name)
     path = directory / SKILL_FILE
     if not directory.is_dir() or not (path.is_file() or path.is_symlink()):
-        raise SkillError(404, "skill_not_found", "No such skill.")
+        raise SkillError(404, "skill_not_found", "Böyle bir beceri yok.")
     # Only the skill file and our own temp files go; anything else in the
     # folder is left alone and keeps the folder in place.
     path.unlink()
@@ -383,17 +383,17 @@ def resolve(agent_id: int | None, names: list[str]) -> list[Skill]:
     if not names:
         return []
     if len(names) > MAX_PER_MESSAGE or len(set(names)) != len(names):
-        raise SkillError(422, "skill_unavailable", f"Choose up to {MAX_PER_MESSAGE} different skills.")
+        raise SkillError(422, "skill_unavailable", f"En çok {MAX_PER_MESSAGE} farklı beceri seçin.")
     if agent_id is None:
-        raise SkillError(422, "skill_unavailable", "Skills belong to an agent; this conversation has none.")
+        raise SkillError(422, "skill_unavailable", "Beceriler bir ajana aittir; bu sohbetin ajanı yok.")
     chosen = []
     for name in names:
         try:
             skill = read_skill(agent_id, name)
         except SkillError:
-            raise SkillError(422, "skill_unavailable", f"The skill {name!r} is not available.") from None
+            raise SkillError(422, "skill_unavailable", f"{name!r} becerisi kullanılamıyor.") from None
         if not skill.enabled:
-            raise SkillError(422, "skill_unavailable", f"The skill {name!r} is turned off.")
+            raise SkillError(422, "skill_unavailable", f"{name!r} becerisi kapalı.")
         chosen.append(skill)
     return chosen
 

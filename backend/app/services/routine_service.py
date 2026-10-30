@@ -69,10 +69,10 @@ EDITABLE = {
     "retry_limit", "retry_delay_minutes",
 }
 
-RETRY_REPLACED = "Skipped: a newer scheduled run of this routine replaced this retry."
+RETRY_REPLACED = "Atlandı: bu rutinin daha yeni bir zamanlanmış çalışması bu yeniden denemenin yerini aldı."
 INTERRUPTED_MESSAGE = (
-    "The app stopped while this run was in progress. It was not re-run, because it may "
-    "already have done part of its work; open the conversation to see how far it got."
+    "Bu çalışma sürerken uygulama durdu. İşinin bir kısmını yapmış olabileceği için yeniden "
+    "çalıştırılmadı; ne kadar ilerlediğini görmek için sohbeti açın."
 )
 
 
@@ -158,27 +158,27 @@ def compose_prompt(
 def _bounded(field: str, value) -> int:
     low, high = LIMITS[field]
     if not isinstance(value, int) or isinstance(value, bool) or not low <= value <= high:
-        raise InvalidRoutine(f"{field} must be a whole number from {low} to {high}", "invalid_limit")
+        raise InvalidRoutine(f"{field} {low} ile {high} arasında bir tam sayı olmalı", "invalid_limit")
     return value
 
 
 async def _check_agent(db: AsyncSession, owner_id: str, agent_id) -> Agent:
     if not isinstance(agent_id, int) or isinstance(agent_id, bool):
-        raise InvalidRoutine("Choose an agent", "agent_not_found")
+        raise InvalidRoutine("Bir ajan seçin", "agent_not_found")
     agent = await db.get(Agent, agent_id)
     if agent is None or agent.owner_id != owner_id:
-        raise InvalidRoutine("No such agent.", "agent_not_found")
+        raise InvalidRoutine("Böyle bir ajan yok.", "agent_not_found")
     if agent.archived_at is not None:
-        raise InvalidRoutine("This agent is archived; unarchive it first.", "agent_archived")
+        raise InvalidRoutine("Bu ajan arşivde; önce arşivden çıkarın.", "agent_archived")
     return agent
 
 
 def _clean_text(value, field: str, limit: int) -> str:
     if not isinstance(value, str) or not value.strip():
-        raise InvalidRoutine(f"{field} is required", f"invalid_{field}")
+        raise InvalidRoutine(f"{field} zorunlu", f"invalid_{field}")
     value = value.strip()
     if len(value) > limit:
-        raise InvalidRoutine(f"{field} is longer than {limit} characters", f"invalid_{field}")
+        raise InvalidRoutine(f"{field} {limit} karakterden uzun", f"invalid_{field}")
     return value
 
 
@@ -192,7 +192,7 @@ def _apply(routine: Routine, now: datetime) -> None:
         raise InvalidRoutine(str(exc), "invalid_schedule") from None
     routine.schedule_spec = spec
     if routine.schedule_kind == "once" and schedules.next_after("once", spec, routine.timezone, now) is None:
-        raise InvalidRoutine("That date and time has already passed.", "invalid_schedule")
+        raise InvalidRoutine("Bu tarih ve saat geçti.", "invalid_schedule")
     routine.next_run_at = None if routine.paused else schedules.next_after(
         routine.schedule_kind, spec, routine.timezone, now
     )
@@ -325,7 +325,7 @@ async def set_paused(
             .where(RoutineRun.routine_id == routine.id, RoutineRun.trigger == "retry",
                    RoutineRun.state == "queued")
             .values(state="skipped", finished_at=now,
-                    error="Skipped: the routine was paused before this retry started.")
+                    error="Atlandı: rutin bu yeniden deneme başlamadan önce duraklatıldı.")
         )
     # Resumed: computed from now, so occurrences that passed while paused do
     # not fire (they were not missed, they were paused).
@@ -436,7 +436,7 @@ async def import_document(
     """An imported routine is always paused and has no webhook, so it never
     runs until a person has looked at it."""
     if not isinstance(document, dict) or document.get("kind") != "open-dots.routine":
-        raise InvalidRoutine("Not a routine document", "invalid_document")
+        raise InvalidRoutine("Bu bir rutin belgesi değil", "invalid_document")
     data = {k: document.get(k) for k in EDITABLE if k in document}
     data["agent_id"] = agent_id
     data["paused"] = True
@@ -577,8 +577,8 @@ def _clip(text: str | None, limit: int) -> str | None:
 
 def _local(moment: datetime | None, timezone: str) -> str:
     if moment is None:
-        return "now"
-    return moment.astimezone(schedules.zone(timezone)).strftime("%a %d %b %H:%M %Z")
+        return "şimdi"
+    return moment.astimezone(schedules.zone(timezone)).strftime("%d.%m.%Y %H:%M %Z")
 
 
 class RoutineScheduler:
@@ -684,16 +684,16 @@ class RoutineScheduler:
                     run.state, run.error, run.finished_at = "interrupted", INTERRUPTED_MESSAGE, now
                     staged.append(self._notify(
                         db, routine, run, "routine_interrupted",
-                        f"Routine “{routine.name}” was interrupted", INTERRUPTED_MESSAGE,
+                        f"“{routine.name}” rutini yarıda kesildi", INTERRUPTED_MESSAGE,
                     ))
                     changed.append(run.id)
                 elif run.trigger in ("schedule", "retry") and self._too_late(routine, run.scheduled_for, now):
                     # A retry is held to the same catch-up window as an occurrence.
                     run.state, run.finished_at = "missed", now
-                    run.error = "Missed: the app was not running in time to start it."
+                    run.error = "Kaçırıldı: uygulama başlatma zamanında çalışmıyordu."
                     staged.append(self._notify(
                         db, routine, run, "routine_missed",
-                        f"Routine “{routine.name}” missed a run", f"Due {_local(run.scheduled_for, routine.timezone)}. {run.error}",
+                        f"“{routine.name}” rutini bir çalışmayı kaçırdı", f"Zamanı: {_local(run.scheduled_for, routine.timezone)}. {run.error}",
                     ))
                     changed.append(run.id)
                 if run.id in changed:
@@ -792,30 +792,30 @@ class RoutineScheduler:
             routine.next_run_at = schedules.next_after(kind, spec, tz, now)
         except (schedules.InvalidSchedule, KeyError, ValueError) as exc:
             routine.paused, routine.next_run_at = True, None
-            routine.paused_reason = f"Its schedule can no longer be read: {exc}"
+            routine.paused_reason = f"Zamanlaması artık okunamıyor: {exc}"
             return [self._notify(db, routine, None, "routine_failed",
-                                 f"Routine “{routine.name}” was paused", routine.paused_reason)]
+                                 f"“{routine.name}” rutini duraklatıldı", routine.paused_reason)]
         staged = []
         if passed:
             missed = RoutineRun(
                 routine_id=routine.id, trigger="schedule", state="missed", scheduled_for=first,
                 finished_at=now,
-                error=f"{passed} earlier occurrence{'s' if passed != 1 else ''} from "
-                f"{_local(first, tz)} on were missed while the app was not running.",
+                error=f"{_local(first, tz)} itibarıyla önceki {passed} çalışma, "
+                f"uygulama çalışmadığı için kaçırıldı.",
             )
             if await self._record(db, missed):
                 staged.append(self._notify(db, routine, missed, "routine_missed",
-                                           f"Routine “{routine.name}” missed runs", missed.error))
+                                           f"“{routine.name}” rutini çalışmaları kaçırdı", missed.error))
         if self._too_late(routine, latest, now):
             run = RoutineRun(
                 routine_id=routine.id, trigger="schedule", state="missed", scheduled_for=latest,
                 finished_at=now,
-                error=f"Missed: the app was not running at {_local(latest, tz)}, and the routine "
-                f"may start at most {routine.catch_up_minutes} minutes late.",
+                error=f"Kaçırıldı: uygulama {_local(latest, tz)} itibarıyla çalışmıyordu ve rutin "
+                f"en çok {routine.catch_up_minutes} dakika gecikmeyle başlayabilir.",
             )
             if await self._record(db, run):
                 staged.append(self._notify(db, routine, run, "routine_missed",
-                                           f"Routine “{routine.name}” missed a run", run.error))
+                                           f"“{routine.name}” rutini bir çalışmayı kaçırdı", run.error))
             return staged
         # A fresh occurrence replaces a retry that is still waiting: it does
         # the same work, newer.
@@ -828,7 +828,7 @@ class RoutineScheduler:
         if await _has_active_run(db, routine.id):
             await self._record(db, RoutineRun(
                 routine_id=routine.id, trigger="schedule", state="skipped", scheduled_for=latest,
-                finished_at=now, error="Skipped: the previous run of this routine was still in progress.",
+                finished_at=now, error="Atlandı: bu rutinin önceki çalışması hâlâ sürüyordu.",
             ))
             return staged
         run = RoutineRun(
@@ -934,7 +934,7 @@ class RoutineScheduler:
             body = run.error
             if retry and pause_reason is None:
                 body += await self._queue_retry(db, routine, run, now)
-            staged = [self._notify(db, routine, run, kind, f"Routine “{routine.name}” failed", body)]
+            staged = [self._notify(db, routine, run, kind, f"“{routine.name}” rutini başarısız oldu", body)]
             await db.commit()
         await self._deliver(staged)
 
@@ -964,7 +964,7 @@ class RoutineScheduler:
         if not await self._record(db, retry):
             return ""
         when = _local(start, routine.timezone)
-        return f" It will be tried again at {when} (attempt {attempt} of {routine.retry_limit + 1})."
+        return f" {when} zamanında yeniden denenecek ({routine.retry_limit + 1} denemenin {attempt}. denemesi)."
 
     async def _set(self, run_id: int, **values) -> None:
         async with self.session() as db:
@@ -985,22 +985,22 @@ class RoutineScheduler:
         run, routine = claimed
         if run.trigger == "retry" and routine.paused:
             await self._set(run.id, state="skipped", finished_at=now,
-                            error="Skipped: the routine was paused before this retry started.")
+                            error="Atlandı: rutin bu yeniden deneme başlamadan önce duraklatıldı.")
             return
         if not settings.LOCAL_EXECUTION_ENABLED:
             await self._fail(
                 run.id,
-                "Local execution is disabled. Set LOCAL_EXECUTION_ENABLED=true and restart the backend.",
+                "Yerel çalıştırma kapalı. LOCAL_EXECUTION_ENABLED=true ayarlayıp backend'i yeniden başlatın.",
                 retry=False,
             )
             return
         async with self.session() as db:
             agent = await db.get(Agent, routine.agent_id)
         if agent is None or agent.owner_id != routine.owner_id:
-            await self._fail(run.id, "Its agent no longer exists.", pause_reason="Its agent no longer exists. Choose another agent, then resume.")
+            await self._fail(run.id, "Ajanı artık yok.", pause_reason="Ajanı artık yok. Başka bir ajan seçip devam ettirin.")
             return
         if agent.archived_at is not None:
-            await self._fail(run.id, "Its agent is archived.", pause_reason="Its agent is archived. Unarchive it or choose another agent, then resume.")
+            await self._fail(run.id, "Ajanı arşivde.", pause_reason="Ajanı arşivde. Arşivden çıkarın ya da başka bir ajan seçip devam ettirin.")
             return
         mode = effective_approval_mode(routine.approval_mode, agent.approval_mode)
         title = f"{routine.name} · {_local(run.scheduled_for or now, routine.timezone)}"[:120]
@@ -1015,25 +1015,25 @@ class RoutineScheduler:
                 team_origin="outside" if run.trigger == "webhook" else "routine",
             )
         except runtime_module.ProviderUnavailable as exc:
-            await self._fail(run.id, f"The engine is not available: {exc}")
+            await self._fail(run.id, f"Motor kullanılamıyor: {exc}")
             return
         # Configuration problems do not fix themselves: never retried.
         except (runtime_module.UnknownAgent, runtime_module.AgentArchived):
-            await self._fail(run.id, "Its agent is not available.", retry=False)
+            await self._fail(run.id, "Ajanı kullanılamıyor.", retry=False)
             return
         except runtime_module.UnknownProvider as exc:
-            await self._fail(run.id, f"Unknown engine: {exc}", retry=False)
+            await self._fail(run.id, f"Bilinmeyen motor: {exc}", retry=False)
             return
         except runtime_module.EngineModelInvalid as exc:
             await self._fail(run.id, str(exc), retry=False)
             return
         except OSError as exc:
-            await self._fail(run.id, f"The agent's workspace is not usable: {exc}")
+            await self._fail(run.id, f"Ajanın çalışma klasörü kullanılamıyor: {exc}")
             return
         except Exception as exc:  # noqa: BLE001
             # Unexpected and possibly transient (a database or process hiccup): retryable.
             logger.exception("routine run could not start", run_id=run.id)
-            await self._fail(run.id, f"Could not start: {type(exc).__name__}")
+            await self._fail(run.id, f"Başlatılamadı: {type(exc).__name__}")
             return
         await self._set(run.id, turn_id=turn.id)
         async with self.session() as db:
@@ -1095,7 +1095,7 @@ class RoutineScheduler:
                 # (it is never left like this while this process is starting it).
                 run.state, run.error, run.finished_at = "interrupted", INTERRUPTED_MESSAGE, now
                 staged.append(self._notify(db, routine, run, "routine_interrupted",
-                                           f"Routine “{routine.name}” was interrupted", INTERRUPTED_MESSAGE))
+                                           f"“{routine.name}” rutini yarıda kesildi", INTERRUPTED_MESSAGE))
             else:
                 turn = await db.get(Turn, run.turn_id)
                 if turn is None or turn.status != "running":
@@ -1113,9 +1113,9 @@ class RoutineScheduler:
                         what = pending.summary or pending.tool
                         staged.append(self._notify(
                             db, routine, run, "routine_needs_input",
-                            f"Routine “{routine.name}” needs your approval",
-                            f"It wants to: {what}. Answer in its conversation within "
-                            f"{routine.approval_timeout_minutes} minutes, or it is denied.",
+                            f"“{routine.name}” rutini onayınızı bekliyor",
+                            f"Yapmak istediği: {what}. "
+                            f"{routine.approval_timeout_minutes} dakika içinde sohbetinde yanıt verin; yoksa reddedilir.",
                         ))
                     elif pending is None and run.state == "needs_input":
                         self._close_wait(run, now)
@@ -1123,9 +1123,9 @@ class RoutineScheduler:
                     if self.active_seconds(run, now) > routine.run_limit_minutes * 60:
                         self._close_wait(run, now)
                         run.state, run.finished_at = "failed", now
-                        run.error = f"Stopped after reaching its {routine.run_limit_minutes}-minute run limit."
+                        run.error = f"{routine.run_limit_minutes} dakikalık çalışma sınırına ulaştığı için durduruldu."
                         staged.append(self._notify(db, routine, run, "routine_failed",
-                                                   f"Routine “{routine.name}” failed", run.error))
+                                                   f"“{routine.name}” rutini başarısız oldu", run.error))
                         stop_thread = run.thread_id
             if run.state != previous_state:
                 await work_events.execution(db, run, run.state)
@@ -1145,21 +1145,21 @@ class RoutineScheduler:
         if status == "succeeded":
             run.state, run.error = "completed", None
             return [self._notify(db, routine, run, "routine_completed",
-                                 f"Routine “{routine.name}” finished", run.result or "(no reply)")]
+                                 f"“{routine.name}” rutini tamamlandı", run.result or "(yanıt yok)")]
         if status == "interrupted":
             run.state, run.error = "interrupted", INTERRUPTED_MESSAGE
             return [self._notify(db, routine, run, "routine_interrupted",
-                                 f"Routine “{routine.name}” was interrupted", INTERRUPTED_MESSAGE)]
+                                 f"“{routine.name}” rutini yarıda kesildi", INTERRUPTED_MESSAGE)]
         run.state = "failed"
         body = None
         if status == "cancelled":
             # Stopped by a person (or by the run limit): never retried.
-            run.error = "The run was stopped."
+            run.error = "Çalışma durduruldu."
         else:
-            run.error = _clip(turn.error or "The engine reported a failure.", ERROR_CHARS)
+            run.error = _clip(turn.error or "Motor bir hata bildirdi.", ERROR_CHARS)
             body = run.error + await self._queue_retry(db, routine, run, now)
         return [self._notify(db, routine, run, "routine_failed",
-                             f"Routine “{routine.name}” failed", body or run.error)]
+                             f"“{routine.name}” rutini başarısız oldu", body or run.error)]
 
 
 scheduler = RoutineScheduler()

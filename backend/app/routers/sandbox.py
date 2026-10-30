@@ -43,7 +43,7 @@ router = APIRouter(
 async def known_box(box_id: str, db: AsyncSession = Depends(get_db)):
     """A box id only reaches a box this app created and recorded."""
     if await user_sandbox_service.get_by_box_id(db, box_id) is None:
-        raise HTTPException(status_code=404, detail="Sandbox not found")
+        raise HTTPException(status_code=404, detail="Korumalı alan bulunamadı")
     return box_id
 
 
@@ -82,7 +82,7 @@ async def create_sandbox(
     except ApiException as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"ASCII error: {exc.reason}",
+            detail=f"ASCII hatası: {exc.reason}",
         )
 
 
@@ -100,7 +100,7 @@ async def ensure_sandbox(
             db, user_id=payload.user_id, ttl_seconds=payload.ttl_seconds
         )
     except ApiException as exc:
-        raise HTTPException(status_code=502, detail=f"ASCII error: {exc.reason}") from exc
+        raise HTTPException(status_code=502, detail=f"ASCII hatası: {exc.reason}") from exc
 
     return SandboxResponse(
         box_id=box.id,
@@ -145,7 +145,7 @@ async def get_sandbox(box_id: str, db: AsyncSession = Depends(get_db)):
     except ApiException as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"ASCII error: {exc.reason}",
+            detail=f"ASCII hatası: {exc.reason}",
         )
 
 
@@ -169,7 +169,7 @@ async def stop_sandbox(box_id: str, db: AsyncSession = Depends(get_db)):
     except ApiException as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"ASCII error: {exc.reason}",
+            detail=f"ASCII hatası: {exc.reason}",
         )
 
 
@@ -200,7 +200,7 @@ async def resume_sandbox(box_id: str, db: AsyncSession = Depends(get_db)):
     except ApiException as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"ASCII error: {exc.reason}",
+            detail=f"ASCII hatası: {exc.reason}",
         )
 
 @router.post("/{box_id}/test-command", dependencies=[Depends(known_box)])
@@ -307,7 +307,7 @@ async def _finish_device_auth_login(box_id: str, provider: str) -> None:
 async def get_auth_status(box_id: str, provider: str, db: AsyncSession = Depends(get_db)):
     sandbox_record = await user_sandbox_service.get_by_box_id(db, box_id)
     if sandbox_record is None:
-        raise HTTPException(status_code=404, detail="Sandbox not found")
+        raise HTTPException(status_code=404, detail="Korumalı alan bulunamadı")
 
     decrypted = await user_credential_service.get_decrypted(
         db, sandbox_record.user_id, provider
@@ -326,7 +326,7 @@ async def submit_auth_login(
 ):
     sandbox_record = await user_sandbox_service.get_by_box_id(db, box_id)
     if sandbox_record is None:
-        raise HTTPException(status_code=404, detail="Sandbox not found")
+        raise HTTPException(status_code=404, detail="Korumalı alan bulunamadı")
     await release_snapshot(db)  # the login below can take tens of seconds
 
     try:
@@ -374,5 +374,5 @@ async def delete_sandbox(box_id: str, db: AsyncSession = Depends(get_db)):
     except ApiException as exc:
         raise HTTPException(
             status_code=502,
-            detail=f"ASCII error: {exc.reason}",
+            detail=f"ASCII hatası: {exc.reason}",
         )

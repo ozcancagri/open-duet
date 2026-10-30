@@ -41,7 +41,7 @@ POLL_SECONDS = 1.5
 TURN_TIMEOUT_SECONDS = 1800
 WORK_DIR = "open-dots-work"
 CREDENTIAL_PROVIDER = "claude"
-SIGN_IN_REASON = "Connect your Claude account in Settings → Engines to use your private sandbox."
+SIGN_IN_REASON = "Size özel korumalı alanı kullanmak için Claude hesabınızı Ayarlar → Motorlar bölümünden bağlayın."
 # `ask` cannot be answered from inside a detached command, so tools that need permission are refused.
 _PERMISSION_MODES = {"ask": "dontAsk", "accept_edits": "acceptEdits", "plan": "plan"}
 TOOL_NAMES = "Read,Write,Edit,Glob,Grep,Bash"
@@ -106,7 +106,7 @@ def build_command(*, session_id: str, resume: bool, prompt_path: str, model: str
 
 class BoatClaudeAdapter:
     kind = "cli"
-    label = "Claude (private sandbox)"
+    label = "Claude (özel korumalı alan)"
     capabilities = Capabilities(tools=True, resume=True)
     models: list = []
     custom_models = True
@@ -138,14 +138,14 @@ class BoatClaudeAdapter:
             return TurnOutcome("failed", error=message, error_code=code, model=ctx.model, **extra)
 
         if ctx.computer is not None:
-            return failed("This engine cannot use an agent computer yet.", "engine_without_computers")
+            return failed("Bu motor henüz ajan bilgisayarı kullanamıyor.", "engine_without_computers")
         user = self._user()
         if not await self._boxes.credential_ready(user):
             return failed(SIGN_IN_REASON, "engine_signed_out")
         try:
             box = await self._boxes.ensure_box(user)
         except SandboxUnavailable as exc:
-            return failed(f"Your private sandbox is not available: {exc}", "sandbox_unavailable")
+            return failed(f"Size özel korumalı alan kullanılamıyor: {exc}", "sandbox_unavailable")
 
         session_id = ctx.provider_session_id or self.new_session_id()
         prompt_path = f".open-dots/prompt-{ctx.turn_id}.txt"
@@ -155,7 +155,7 @@ class BoatClaudeAdapter:
             await self._boxes.write_file(box, prompt_path, ctx.prompt)
             process = await self._boxes.start(box, command, self._timeout)
         except SandboxUnavailable as exc:
-            return failed(f"Your private sandbox is not available: {exc}", "sandbox_unavailable")
+            return failed(f"Size özel korumalı alan kullanılamıyor: {exc}", "sandbox_unavailable")
 
         normalizer = StreamNormalizer(max_text_bytes=2_000_000)
         seen = 0  # complete log lines already fed to the parser
@@ -188,15 +188,15 @@ class BoatClaudeAdapter:
                 await drain(final=not state.running)
                 if ctx.aborted or sink.lost:
                     await self._boxes.kill(box, process)
-                    return failed("The run was stopped because it no longer owns its turn.", "lost")
+                    return failed("Çalışma durduruldu, çünkü bu yanıt artık ona ait değil.", "lost")
                 if not state.running:
                     break
                 if loop.time() > deadline:
                     await self._boxes.kill(box, process)
-                    return failed(f"Timed out after {self._timeout} seconds", "timeout")
+                    return failed(f"{self._timeout} saniye sonra zaman aşımı", "timeout")
                 await asyncio.sleep(self._poll)
         except SandboxUnavailable as exc:
-            return failed(f"Lost contact with your private sandbox: {exc}", "sandbox_unavailable")
+            return failed(f"Size özel korumalı alanla bağlantı koptu: {exc}", "sandbox_unavailable")
 
         return self._outcome(normalizer, state, ctx)
 
@@ -221,17 +221,17 @@ class BoatClaudeAdapter:
         stderr = (state.stderr or "").strip()
         said = f"{stderr} {final.text if final and final.text else ''}".lower()
         if ctx.resume and not n.init_seen and "no conversation found" in said:
-            return failed("Claude could not find this conversation's session in your sandbox, so it cannot "
-                          "continue it. Start a new session to go on.", "session_resume_failed",
+            return failed("Claude korumalı alanınızda bu sohbetin oturumunu bulamadı, bu yüzden sohbeti "
+                          "sürdüremiyor. Devam etmek için yeni bir oturum başlatın.", "session_resume_failed",
                           session_state="broken")
         if final is None:
             if stderr:
                 return failed(stderr, "cli_error")
             if state.exit_code not in (0, None):
-                return failed(f"Claude exited with code {state.exit_code}", "cli_error")
-            return failed("Claude ended without a result", "no_result")
+                return failed(f"Claude {state.exit_code} koduyla çıktı", "cli_error")
+            return failed("Claude sonuç vermeden bitti", "no_result")
         if final.is_error:
-            return failed(final.text or n.api_error or stderr or "Claude reported an error", "claude_error",
+            return failed(final.text or n.api_error or stderr or "Claude bir hata bildirdi", "claude_error",
                           limit_resets_at=n.limit_resets_at)
         text = final.text if final.text and final.text.strip() else n.text
         return TurnOutcome("succeeded", result=text, **common)

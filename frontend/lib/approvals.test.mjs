@@ -29,18 +29,18 @@ function respond(status, body, type = 'application/json') {
 const entry = (event, more = {}) => ({ id: '1', at: '2026-01-01T00:00:00Z', event, summary: 'ls -la', tool: 'Bash', ...more });
 
 test('decision text says what happened and who decided', () => {
-  assert.equal(decisionText(entry('allowed')), 'You allowed ls -la');
-  assert.match(decisionText(entry('allowed', { remembered: true })), /always allow/);
-  assert.equal(decisionText(entry('denied')), 'You denied ls -la');
-  assert.match(decisionText(entry('auto_allowed')), /saved rule allowed it/);
-  assert.match(decisionText(entry('shown', { rule: 'safety_floor:delete-home' })), /safety floor/);
-  assert.match(decisionText(entry('expired')), /did not run/);
-  assert.equal(decisionText(entry('undone', { rule: 'exact@/w: npm test', summary: null })), 'You stopped always allowing npm test');
-  assert.equal(decisionText(entry('shown', { summary: null, tool: null })), 'Asked about a tool call');
+  assert.equal(decisionText(entry('allowed')), 'İzin verdiniz: ls -la');
+  assert.match(decisionText(entry('allowed', { remembered: true })), /her zaman izin/);
+  assert.equal(decisionText(entry('denied')), 'Reddettiniz: ls -la');
+  assert.match(decisionText(entry('auto_allowed')), /kayıtlı bir kural izin verdi/);
+  assert.match(decisionText(entry('shown', { rule: 'safety_floor:delete-home' })), /güvenlik tabanı/);
+  assert.match(decisionText(entry('expired')), /çalışmadı/);
+  assert.equal(decisionText(entry('undone', { rule: 'exact@/w: npm test', summary: null })), 'Artık her zaman izin verilmiyor: npm test');
+  assert.equal(decisionText(entry('shown', { summary: null, tool: null })), 'Soruldu: bir araç çağrısı');
 });
 
 test('event labels fall back to the raw name', () => {
-  assert.equal(decisionEventLabel('auto_allowed'), 'Allowed by a saved rule');
+  assert.equal(decisionEventLabel('auto_allowed'), 'Kayıtlı kuralla izin verildi');
   assert.equal(decisionEventLabel('something_new'), 'something_new');
 });
 
@@ -48,10 +48,10 @@ test('rule words', () => {
   assert.equal(ruleCommand('prefix@/a b: git status'), 'git status');
   assert.equal(ruleCommand('plain'), 'plain');
   assert.equal(ruleCommand(null), '');
-  assert.equal(ruleMatchLabel({ match: 'prefix' }), 'Starts with');
-  assert.equal(ruleMatchLabel({ match: 'exact' }), 'Exactly');
-  assert.equal(ruleScopeLabel({ workspace: '/w' }), 'In /w');
-  assert.equal(ruleScopeLabel({ workspace: null }), 'In every folder');
+  assert.equal(ruleMatchLabel({ match: 'prefix' }), 'Şununla başlar');
+  assert.equal(ruleMatchLabel({ match: 'exact' }), 'Tam olarak');
+  assert.equal(ruleScopeLabel({ workspace: '/w' }), 'Klasör: /w');
+  assert.equal(ruleScopeLabel({ workspace: null }), 'Her klasörde');
 });
 
 test('only a shell command with text can be always allowed', () => {
@@ -65,7 +65,7 @@ test('csv file names and issue labels', () => {
   const day = new Date('2026-10-17T10:00:00Z');
   assert.equal(csvFileName(3, day), 'decisions-thread-3-2026-10-17.csv');
   assert.equal(csvFileName(null, day), 'decisions-2026-10-17.csv');
-  assert.equal(issueKindLabel('retry_loop'), 'Retry loop');
+  assert.equal(issueKindLabel('retry_loop'), 'Yeniden deneme döngüsü');
   assert.equal(issueKindLabel('other'), 'other');
 });
 

@@ -28,7 +28,7 @@ STARTUP_SECONDS = 90
 def profile_dir(config):
     profile = config.get("profile")
     if not isinstance(profile, str) or not re.fullmatch(r"[a-f0-9]{32}", profile):
-        raise InvalidConfig("Sign in with Google in Settings → Engines.")
+        raise InvalidConfig("Ayarlar → Motorlar bölümünde Google ile giriş yapın.")
     return runtime.data_root() / "profiles" / profile
 
 
@@ -58,7 +58,7 @@ def profile_env(directory: Path, binary_dir: Path):
             env.pop(name)
     helper = f"import sys;sys.stderr.write({BROWSER_MARKER!r}+sys.argv[-1]+'\\n')"
     if any(c in sys.executable for c in ("\n", "\r", "%s", ":")):
-        raise InvalidConfig("The Python runtime path cannot safely launch Google sign-in.")
+        raise InvalidConfig("Python çalışma ortamı yolu Google girişini güvenle başlatamıyor.")
     env.update(GEMINI_HOME=str(directory), AGY_ACP_FORCE_FILE_STORAGE="1",
                ANTIGRAVITY_HARNESS_PATH=str(binary_dir / "localharness_external"),
                BROWSER=shlex.join([sys.executable, "-c", helper, "--", "%s"]), PYTHONUNBUFFERED="1")
@@ -79,7 +79,7 @@ def authorization(raw):
             raise ValueError
         return raw, redirect[0], state[0]
     except (ValueError, TypeError):
-        raise InvalidConfig("Antigravity returned an invalid Google sign-in URL.") from None
+        raise InvalidConfig("Antigravity geçersiz bir Google giriş adresi döndürdü.") from None
 
 
 def callback_url(raw, redirect, state):
@@ -95,7 +95,7 @@ def callback_url(raw, redirect, state):
             raise ValueError
         return raw
     except (ValueError, TypeError):
-        raise InvalidConfig("This redirect URL does not belong to the current sign-in.") from None
+        raise InvalidConfig("Bu yönlendirme adresi mevcut girişe ait değil.") from None
 
 
 def option(session, name):
@@ -137,9 +137,9 @@ class AntigravityAdapter(AcpAdapter):
     resume_method = "session/resume"
     redact_diagnostics = True
     exit_grace_seconds = 5
-    config_fields = [{"name": "model", "label": "Default model", "advanced": True}]
+    config_fields = [{"name": "model", "label": "Varsayılan model", "advanced": True}]
     setup = {"credential": "google", "managed_install": True, "docs_url": "https://www.antigravity.google/docs/install?tab=cli",
-             "notes": ["Sign in with an eligible personal Google account. Models depend on your plan.", "One connected account at a time. Removing it deletes this app's isolated credentials.", "Enterprise authentication is not supported by this integration."]}
+             "notes": ["Uygun bir kişisel Google hesabıyla giriş yapın. Modeller planınıza bağlıdır.", "Aynı anda tek bir bağlı hesap olabilir. Hesabı kaldırmak bu uygulamanın ayrı tuttuğu kimlik bilgilerini siler.", "Kurumsal kimlik doğrulama bu entegrasyonda desteklenmiyor."]}
 
     def __init__(self):
         super().__init__()
@@ -163,7 +163,7 @@ class AntigravityAdapter(AcpAdapter):
             check_model_id(model)
             self.config = current
             if model not in {m.id for m in self.models}:
-                raise InvalidConfig("Choose a model offered to your Google account.")
+                raise InvalidConfig("Google hesabınıza sunulan bir model seçin.")
         return {**(current or {}), "model": model}
 
     def public_config(self, config):
@@ -187,31 +187,31 @@ class AntigravityAdapter(AcpAdapter):
         caps = initialized.get("agentCapabilities", {})
         methods = initialized.get("authMethods", [])
         if initialized.get("protocolVersion") != 1 or info.get("name") not in ("antigravity-acp", "Google Antigravity") or info.get("version") != runtime.VERSION or caps.get("loadSession") is not True or not any(isinstance(m, dict) and m.get("id") == "oauth-personal" for m in methods):
-            raise InvalidConfig("The runtime is not the pinned Google Antigravity ACP release.")
+            raise InvalidConfig("Çalışma ortamı sabitlenmiş Google Antigravity ACP sürümü değil.")
 
     def authenticate(self, methods, env):
         if not any(isinstance(m, dict) and m.get("id") == "oauth-personal" for m in methods):
-            raise InvalidConfig("The runtime does not support personal Google sign-in.")
+            raise InvalidConfig("Çalışma ortamı kişisel Google girişini desteklemiyor.")
         return "oauth-personal"
 
     async def configure_session(self, call, session_id, session, ctx):
         result = await call("session/set_config_option", {"sessionId": session_id, "configId": "mode", "value": "default"}, handle_incoming=True)
         if option(result or {}, "mode").get("currentValue") != "default":
-            raise InvalidConfig("Antigravity did not confirm tool approval mode.")
+            raise InvalidConfig("Antigravity araç onay modunu doğrulamadı.")
 
     async def select_model(self, call, session_id, session, model):
         offered = catalog(session)
         current = option(session, "model").get("currentValue")
         if not model:
             if current not in {m.id for m in offered}:
-                raise InvalidConfig("Antigravity did not return its current model.")
+                raise InvalidConfig("Antigravity geçerli modelini döndürmedi.")
             return current
         if model not in {m.id for m in offered}:
-            raise InvalidConfig("The account did not offer this model.")
+            raise InvalidConfig("Hesap bu modeli sunmadı.")
         if model != current:
             result = await call("session/set_config_option", {"sessionId": session_id, "configId": "model", "value": model}, handle_incoming=True)
             if option(result or {}, "model").get("currentValue") != model:
-                raise InvalidConfig("The engine did not confirm this model.")
+                raise InvalidConfig("Motor bu modeli doğrulamadı.")
         return model
 
     async def probe(self, *, handshake=True):
@@ -224,17 +224,17 @@ class AntigravityAdapter(AcpAdapter):
         models = self.models if signed else []
         return EngineProbe(installed=installed, ready=installed and signed and bool(models), signed_in=signed,
                            version=runtime.VERSION if installed else None, models=models,
-                           reason="Install Antigravity in Settings → Engines." if not installed else (self.signed_out_message() if not signed else "Refresh the account's models in Settings → Engines."))
+                           reason="Antigravity'yi Ayarlar → Motorlar bölümünden kurun." if not installed else (self.signed_out_message() if not signed else "Hesabın modellerini Ayarlar → Motorlar bölümünde yenileyin."))
 
     async def run_turn(self, ctx, sink, gate):
         if self.task and not self.task.done():
-            return TurnOutcome("failed", error="Wait for Antigravity setup to finish.", error_code="engine_busy")
+            return TurnOutcome("failed", error="Antigravity kurulumunun bitmesini bekleyin.", error_code="engine_busy")
         config = ctx.engine_config or self.config or {}
         if not authenticated(config):
             return TurnOutcome("failed", error=self.signed_out_message(), error_code="engine_signed_out")
         state = ctx.provider_state or {}
         if ctx.resume and state.get("antigravity_profile") != config.get("profile"):
-            return TurnOutcome("failed", error="The connected Google account changed. Start a new session.", error_code="session_resume_failed")
+            return TurnOutcome("failed", error="Bağlı Google hesabı değişti. Yeni bir oturum başlatın.", error_code="session_resume_failed")
         async with self.lock:
             if not authenticated(config):
                 return TurnOutcome("failed", error=self.signed_out_message(), error_code="engine_signed_out")
@@ -279,7 +279,7 @@ class AntigravityAdapter(AcpAdapter):
             session = await rpc.request("session/new", {"cwd": str(profile_dir(config)), "mcpServers": []}, timeout=STARTUP_SECONDS)
             models = catalog(session)
             if not models:
-                raise InvalidConfig("Antigravity did not offer any models to this account.")
+                raise InvalidConfig("Antigravity bu hesaba hiç model sunmadı.")
             path = profile_dir(config) / "models.json"
             path.write_text(json.dumps([{"id": m.id, "label": m.label, "default": m.default} for m in models]))
             path.chmod(0o600)
@@ -299,7 +299,7 @@ class AntigravityAdapter(AcpAdapter):
 
     def start_operation(self, kind, work):
         if self.lock.locked() or (self.task and not self.task.done()):
-            raise InvalidConfig("Antigravity is busy. Stop the conversation or wait for setup to finish.")
+            raise InvalidConfig("Antigravity meşgul. Sohbeti durdurun ya da kurulumun bitmesini bekleyin.")
         self.operation = {"id": uuid4().hex, "kind": kind, "phase": "running", "authorization_url": None, "error": None}
         self.auth_request = None
         async def run():
@@ -314,7 +314,7 @@ class AntigravityAdapter(AcpAdapter):
                     self.operation.update(phase="failed", error=str(exc))
                 except Exception:
                     # Native diagnostics and RPC errors can contain OAuth codes.
-                    self.operation.update(phase="failed", error="Antigravity setup failed. Retry setup and check your account eligibility and network connection.")
+                    self.operation.update(phase="failed", error="Antigravity kurulumu başarısız oldu. Kurulumu yeniden deneyin; hesabınızın uygunluğunu ve ağ bağlantınızı kontrol edin.")
                 finally:
                     self.operation["authorization_url"] = None
                     self.auth_request = None
@@ -330,7 +330,7 @@ class AntigravityAdapter(AcpAdapter):
             rpc = await self.client(config)
             await rpc.request("authenticate", {"methodId": "oauth-personal"}, timeout=AUTH_SECONDS)
             if not authenticated(config):
-                raise InvalidConfig("Google did not save credentials for this profile.")
+                raise InvalidConfig("Google bu profil için kimlik bilgilerini kaydetmedi.")
             (profile_dir(config) / "antigravity-acp/acp_token.json").chmod(0o600)
             await rpc.close(grace_seconds=self.exit_grace_seconds)
             rpc = None
@@ -348,7 +348,7 @@ class AntigravityAdapter(AcpAdapter):
 
     async def complete_callback(self, operation_id, raw):
         if not self.operation or self.operation["id"] != operation_id or self.operation["phase"] != "running" or not self.auth_request:
-            raise InvalidConfig("This Google sign-in is no longer active. Start again.")
+            raise InvalidConfig("Bu Google girişi artık etkin değil. Yeniden başlatın.")
         _, redirect, state = self.auth_request
         url = callback_url(raw, redirect, state)
         # OAuth codes must not enter HTTP client request logs or proxy settings.
@@ -359,7 +359,7 @@ class AntigravityAdapter(AcpAdapter):
                 connection.request("GET", parsed.path + "?" + parsed.query)
                 response = connection.getresponse()
                 if not 200 <= response.status < 300:
-                    raise InvalidConfig("Could not deliver the Google sign-in response.")
+                    raise InvalidConfig("Google giriş yanıtı iletilemedi.")
             finally:
                 connection.close()
         await asyncio.to_thread(forward)

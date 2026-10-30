@@ -80,8 +80,8 @@ MODEL_CACHE_SECONDS = 600.0
 RAW_STREAM_SIZE_FACTOR = 8
 
 NOT_FOUND = (
-    "Codex CLI not found. Install it (npm install -g @openai/codex), run `codex login`, "
-    "or set LOCAL_CODEX_CLI_PATH to the full path of the codex executable."
+    "Codex CLI bulunamadı. Kurun (npm install -g @openai/codex), `codex login` çalıştırın "
+    "ya da LOCAL_CODEX_CLI_PATH değerini codex çalıştırılabilir dosyasının tam yolu yapın."
 )
 
 COMMAND_REQUESTS = ("item/commandExecution/requestApproval", "execCommandApproval")
@@ -99,8 +99,8 @@ COMPUTER_CONFINEMENT = {
     "web_search": "disabled",
 }
 CONFINEMENT_BREACH = (
-    "Codex tried to use its own tools on this machine during a computer turn, so the turn was stopped. "
-    "Update Codex, or switch this agent to Claude."
+    "Codex bir bilgisayar yanıtı sırasında bu makinede kendi araçlarını kullanmaya çalıştı, bu yüzden yanıt durduruldu. "
+    "Codex'i güncelleyin ya da bu ajanı Claude'a geçirin."
 )
 _MCP_TOOL_MESSAGE = re.compile(r'run tool "([A-Za-z0-9_]+)"')
 TOOL_ITEMS = ("commandExecution", "fileChange", "mcpToolCall", "webSearch")
@@ -209,7 +209,7 @@ class CodexAdapter:
     setup = {
         "install": "npm install -g @openai/codex", "sign_in": "codex login",
         "credential": "terminal", "docs_url": "https://developers.openai.com/codex/cli/",
-        "notes": ["Install the CLI, then sign in here with a ChatGPT device code or use the terminal command."],
+        "notes": ["CLI'ı kurun, sonra burada bir ChatGPT cihaz koduyla giriş yapın ya da terminal komutunu kullanın."],
     }
     key = "codex"
     label = "Codex"
@@ -223,8 +223,8 @@ class CodexAdapter:
     # Optional: with an API key saved here, turns run in API mode (engine_api_mode.py).
     needs_config = True
     config_fields = [engine_api_mode.field(
-        "OpenAI API key (sk-…). With a key, Open Duet runs Codex on API credits in a folder of its own "
-        "and never uses your ChatGPT sign-in. Leave empty to keep the saved key."
+        "OpenAI API anahtarı (sk-…). Anahtar girilirse Open Duet, Codex'i kendine ait bir klasörde API kredisiyle çalıştırır "
+        "ve ChatGPT girişinizi hiç kullanmaz. Kayıtlı anahtarı korumak için boş bırakın."
     )]
     version_timeout = 5.0
     login_timeout = 8.0
@@ -261,7 +261,7 @@ class CodexAdapter:
                 cwd=home, timeout_seconds=20, max_output_bytes=20_000, keep_stdin_open=False,
             )
         if out.exit_code != 0:
-            return None, "Codex could not save the API key. Check the key in engine settings."
+            return None, "Codex API anahtarını kaydedemedi. Anahtarı motor ayarlarında kontrol edin."
         marker.write_text(want, encoding="utf-8")
         return values, None
 
@@ -289,9 +289,9 @@ class CodexAdapter:
             return EngineProbe(
                 installed=False,
                 ready=False,
-                reason="The Codex CLI did not answer `codex --version`."
+                reason="Codex CLI `codex --version` komutuna yanıt vermedi."
                 if version.timed_out or version.failed_to_start is None
-                else "The Codex CLI could not be started.",
+                else "Codex CLI başlatılamadı.",
             )
         number = version.stdout.strip() or None
         values, problem = await self._account(exe)
@@ -319,9 +319,9 @@ class CodexAdapter:
                 ready=False,
                 version=number,
                 signed_in=signed_in,
-                reason="Codex is not signed in. Open engine settings to sign in."
+                reason="Codex'te giriş yapılmamış. Giriş yapmak için motor ayarlarını açın."
                 if signed_in is False
-                else "Could not tell whether Codex is signed in.",
+                else "Codex'te giriş yapılıp yapılmadığı anlaşılamadı.",
             )
         catalog = await self._live_models(exe) if models else None
         return EngineProbe(installed=True, ready=True, version=number, signed_in=True, models=catalog)
@@ -364,8 +364,8 @@ class CodexAdapter:
         if ctx.resume and not codex_thread:
             return TurnOutcome(
                 "failed",
-                error="Codex has no session for this conversation, so it cannot continue it. "
-                "Start a new session to go on.",
+                error="Codex'te bu sohbetin oturumu yok, bu yüzden sohbet sürdürülemiyor. "
+                "Devam etmek için yeni bir oturum başlatın.",
                 error_code="session_resume_failed",
                 session_state="broken",
             )
@@ -373,7 +373,7 @@ class CodexAdapter:
             # Native control of the person's Mac needs per-call epochs only the Claude path has.
             return TurnOutcome(
                 "failed",
-                error="Codex cannot control this Mac's desktop. Use a Docker computer, or switch this agent to Claude.",
+                error="Codex bu Mac'in masaüstünü denetleyemez. Bir Docker bilgisayarı kullanın ya da bu ajanı Claude'a geçirin.",
                 error_code="engine_without_computers",
             )
         values, problem = await self._account(exe)
@@ -450,7 +450,7 @@ class _CodexTurn:
         except turn_sandbox.SandboxUnavailable as exc:
             return TurnOutcome("failed", error=str(exc), error_code="sandbox_unavailable")
         except (OSError, ValueError):
-            return TurnOutcome("failed", error="The Codex CLI could not be started.", error_code="cli_unavailable")
+            return TurnOutcome("failed", error="Codex CLI başlatılamadı.", error_code="cli_unavailable")
         try:
             early = await self._start()
             if early is not None:
@@ -510,7 +510,7 @@ class _CodexTurn:
                 info["capabilities"] = {"experimentalApi": True}
             await self._call("initialize", info)
         except (RpcError, RpcClosed, asyncio.TimeoutError) as exc:
-            return self._failed(self._why(exc, "Codex did not start its app-server."), "cli_error")
+            return self._failed(self._why(exc, "Codex app-server sürecini başlatmadı."), "cli_error")
         self.rpc.notify("initialized", {})
         common = {
             "cwd": str(self.workspace),
@@ -526,7 +526,7 @@ class _CodexTurn:
             try:
                 common["config"] = await self._computer_config()
             except (RpcError, RpcClosed, asyncio.TimeoutError) as exc:
-                return self._failed(self._why(exc, "Codex would not confirm its tool setup."), "codex_error")
+                return self._failed(self._why(exc, "Codex araç kurulumunu doğrulamadı."), "codex_error")
             note = self.computer.prompt_note() + " Your own shell and file tools are turned off."
             instructions = f"{instructions}\n\n{note}" if instructions else note
         if launch is not None:
@@ -566,19 +566,19 @@ class _CodexTurn:
         except RpcError as exc:
             if self.codex_thread:
                 return self._failed(
-                    "Codex could not find this conversation's session, so it cannot continue it. "
-                    f"Start a new session to go on. (Codex said: {exc})",
+                    "Codex bu sohbetin oturumunu bulamadı, bu yüzden sohbeti sürdüremiyor. "
+                    f"Devam etmek için yeni bir oturum başlatın. (Codex'in yanıtı: {exc})",
                     "session_resume_failed",
                     session_state="broken",
                     provider_state=None,
                 )
-            return self._failed(f"Codex refused to start a session: {exc}", "codex_error")
+            return self._failed(f"Codex oturum başlatmayı reddetti: {exc}", "codex_error")
         except (RpcClosed, asyncio.TimeoutError) as exc:
-            return self._failed(self._why(exc, "Codex did not start a session."), "cli_error")
+            return self._failed(self._why(exc, "Codex oturum başlatmadı."), "cli_error")
         thread = (started or {}).get("thread") if isinstance(started, dict) else None
         self.thread_id = thread.get("id") if isinstance(thread, dict) and isinstance(thread.get("id"), str) else None
         if not self.thread_id:
-            return self._failed("Codex did not return a session id.", "codex_error")
+            return self._failed("Codex oturum kimliği döndürmedi.", "codex_error")
         self.session_started = True
         self.model = started.get("model") if isinstance(started.get("model"), str) else self.ctx.model
         reported_policy = started.get("approvalPolicy")
@@ -587,8 +587,8 @@ class _CodexTurn:
         if reported_policy != self.policy.approval or reported_sandbox != self.policy.sandbox_type:
             # Fail closed: the turn never starts with permissions it was not given.
             return self._failed(
-                "Codex did not apply the requested approval policy and sandbox, so the turn was not "
-                "started. Update Codex and try again.",
+                "Codex istenen onay politikasını ve korumalı alanı uygulamadı, bu yüzden yanıt "
+                "başlatılmadı. Codex'i güncelleyip yeniden deneyin.",
                 "codex_policy_mismatch",
             )
         turn_params = {
@@ -605,9 +605,9 @@ class _CodexTurn:
         try:
             turn = await self._call("turn/start", turn_params)
         except RpcError as exc:
-            return self._failed(f"Codex refused the message: {exc}", "codex_error")
+            return self._failed(f"Codex mesajı reddetti: {exc}", "codex_error")
         except (RpcClosed, asyncio.TimeoutError) as exc:
-            return self._failed(self._why(exc, "Codex did not take the message."), "cli_error")
+            return self._failed(self._why(exc, "Codex mesajı almadı."), "cli_error")
         turn_info = (turn or {}).get("turn") if isinstance(turn, dict) else None
         if isinstance(turn_info, dict) and isinstance(turn_info.get("id"), str):
             self.codex_turn_id = turn_info["id"]
@@ -777,7 +777,7 @@ class _CodexTurn:
             self.file_items[item_id] = changes
             name = "apply_patch"
             paths = [c["path"] for c in changes]
-            summary = ("Edit " + ", ".join(paths))[:200] if paths else "Edit files"
+            summary = ("Düzenle: " + ", ".join(paths))[:200] if paths else "Dosyaları düzenle"
             tool_input = {"changes": [{"path": c["path"], "kind": c["kind"]} for c in changes]}
         elif kind == "mcpToolCall":
             tool_input = item.get("arguments") if isinstance(item.get("arguments"), dict) else {}
@@ -801,7 +801,7 @@ class _CodexTurn:
                 name = f"mcp:{item.get('server')}.{item.get('tool')}"
                 summary = name
         else:
-            name, summary = "web_search", str(item.get("query") or "web search")[:200]
+            name, summary = "web_search", str(item.get("query") or "web araması")[:200]
             tool_input = {"query": item.get("query")}
         await self._emit("tool.started", {"call_id": item_id, "name": name, "summary": summary, "input": tool_input})
 
@@ -833,7 +833,7 @@ class _CodexTurn:
             raw = item.get("error") or item.get("result") or item.get("action")
             output = raw if isinstance(raw, str) else json.dumps(raw, ensure_ascii=False) if raw is not None else ""
         if status == "declined":
-            output = (output + "\n" if output else "") + "(declined)"
+            output = (output + "\n" if output else "") + "(reddedildi)"
         stored, truncated = cap_tool_output(output)
         await self._emit(
             "tool.completed",
@@ -913,7 +913,7 @@ class _CodexTurn:
             if isinstance(params.get("reason"), str):
                 tool_input["reason"] = params["reason"]
             paths = [c["path"] for c in changes]
-            summary = ("Edit " + ", ".join(paths))[:200] if paths else "Edit files"
+            summary = ("Düzenle: " + ", ".join(paths))[:200] if paths else "Dosyaları düzenle"
         else:
             server = params.get("serverName") if isinstance(params.get("serverName"), str) else "mcp"
             text = params.get("message") if isinstance(params.get("message"), str) else ""
@@ -999,21 +999,21 @@ class _CodexTurn:
             )
 
         if self.ctx.aborted:
-            return failed("The run was stopped because it no longer owns its turn.", "lost")
+            return failed("Çalışma durduruldu, çünkü bu yanıt artık ona ait değil.", "lost")
         if self.breach:
             return failed(CONFINEMENT_BREACH, "codex_confinement_failed")
         if crashed:
-            return failed("Local run failed unexpectedly", "runner_error")
+            return failed("Yerel çalışma beklenmedik biçimde başarısız oldu", "runner_error")
         if self.timed_out:
-            return failed(f"Timed out after {app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} seconds", "timeout")
+            return failed(f"{app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} saniye sonra zaman aşımı", "timeout")
         if self.over_text or (self.rpc is not None and self.rpc.over_limit):
-            return failed("Codex produced more output than allowed", "output_too_large")
+            return failed("Codex izin verilenden fazla çıktı üretti", "output_too_large")
         if not self.completed:
             tail = self.rpc.stderr_tail.strip() if self.rpc is not None else ""
-            return failed(tail or "Codex ended without finishing the turn.", "cli_error")
+            return failed(tail or "Codex yanıtı bitirmeden sonlandı.", "cli_error")
         if self.turn_status == "completed":
             text = self.final_text or self.last_text or ""
             return TurnOutcome("succeeded", result=text, **self._common())
         if self.turn_status == "interrupted":
-            return failed("Codex stopped the turn.", "interrupted")
-        return failed(self.turn_error or self.last_error or "Codex reported an error", "codex_error")
+            return failed("Codex yanıtı durdurdu.", "interrupted")
+        return failed(self.turn_error or self.last_error or "Codex bir hata bildirdi", "codex_error")

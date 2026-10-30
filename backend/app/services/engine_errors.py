@@ -116,10 +116,10 @@ def classify(text: str | None, *, resets_at: float | None = None, now: datetime 
 
 def describe(label: str, limit: EngineLimit) -> str:
     """The limit in plain words, with when it resets when known."""
-    when = f" It resets at {limit.resets_at.strftime('%Y-%m-%d %H:%M UTC')}." if limit.resets_at else ""
-    said = f' ({label} says: "{limit.said.rstrip(". ")}")' if limit.said else ""
+    when = f" Sıfırlanma zamanı: {limit.resets_at.strftime('%Y-%m-%d %H:%M UTC')}." if limit.resets_at else ""
+    said = f' ({label} diyor ki: "{limit.said.rstrip(". ")}")' if limit.said else ""
     if limit.kind == CREDITS:
-        return f"{label} is out of credits{said}. Add credits, or switch this agent to another engine."
+        return f"{label} için kredi kalmadı{said}. Kredi ekleyin ya da bu ajanı başka bir motora geçirin."
     if limit.kind == USAGE_LIMIT:
-        return f"{label} has reached its usage limit{said}.{when} Until then, switch this agent to another engine or give it a fallback engine."
-    return f"{label} hit a rate limit{said}.{when or ' Wait a minute, then send it again.'}"
+        return f"{label} kullanım sınırına ulaştı{said}.{when} O zamana kadar bu ajanı başka bir motora geçirin ya da ona bir yedek motor verin."
+    return f"{label} istek sınırına takıldı{said}.{when or ' Bir dakika bekleyip yeniden gönderin.'}"

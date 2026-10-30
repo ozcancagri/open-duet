@@ -32,22 +32,22 @@ def audit(db, team, kind, *, agent_id=None, thread_id=None, job_id=None, data=No
 async def member(db, owner, agent_id, *, team_id=None):
     agent = await db.get(Agent, agent_id)
     if agent is None or agent.owner_id != owner or agent.archived_at is not None:
-        raise TeamError('agent_not_found', 'No live agent with that id.')
+        raise TeamError('agent_not_found', 'Bu kimlikle etkin bir ajan yok.')
     if team_id is not None and agent.team_id != team_id:
-        raise TeamError('unreachable_agent', 'That agent is outside this team.')
+        raise TeamError('unreachable_agent', 'Bu ajan bu takımın dışında.')
     return agent
 
 
-async def set_lead(db, owner, agent_id, name='My team', *, commit=True):
+async def set_lead(db, owner, agent_id, name='Takımım', *, commit=True):
     await begin_write(db)
     agent = await member(db, owner, agent_id)
     team = await team_for(db, owner, lock=True)
     if team is None:
-        team = Team(owner_id=owner, name=name.strip() or 'My team')
+        team = Team(owner_id=owner, name=name.strip() or 'Takımım')
         db.add(team)
         await db.flush()
     if agent.team_id is not None and agent.team_id != team.id:
-        raise TeamError('other_team', 'This agent already belongs to another team.')
+        raise TeamError('other_team', 'Bu ajan zaten başka bir takıma ait.')
     if team.lead_agent_id != agent.id:
         team.lead_agent_id = agent.id
         team.updated_at = now()
@@ -62,18 +62,18 @@ async def change_member(db, owner, agent_id, *, remove=False, delegation_enabled
     await begin_write(db)
     team = await team_for(db, owner, lock=True)
     if team is None:
-        raise TeamError('no_team', 'Choose a team lead first.')
+        raise TeamError('no_team', 'Önce bir takım lideri seçin.')
     agent = await member(db, owner, agent_id)
     if remove:
         if agent.team_id != team.id:
-            raise TeamError('unreachable_agent', 'This agent is outside this team.')
+            raise TeamError('unreachable_agent', 'Bu ajan bu takımın dışında.')
         if team.lead_agent_id == agent.id:
-            raise TeamError('lead_required', 'Choose another lead before removing this one.')
+            raise TeamError('lead_required', 'Bu lideri kaldırmadan önce başka bir lider seçin.')
         agent.team_id = None
         audit(db, team, 'member_removed', agent_id=agent.id)
     else:
         if agent.team_id not in (None, team.id):
-            raise TeamError('other_team', 'This agent belongs to another team.')
+            raise TeamError('other_team', 'Bu ajan başka bir takıma ait.')
         if agent.team_id is None:
             agent.team_id = team.id
             audit(db, team, 'member_added', agent_id=agent.id)
@@ -85,7 +85,7 @@ async def change_member(db, owner, agent_id, *, remove=False, delegation_enabled
 
 def clean_line(value, limit, label):
     if not isinstance(value, str) or not value.strip() or len(value) > limit or any(ord(c) < 32 for c in value):
-        raise TeamError('invalid_input', f'{label} must be one line, at most {limit} characters.')
+        raise TeamError('invalid_input', f'{label} tek satır ve en çok {limit} karakter olmalı.')
     return agent_memory.redact_secrets(value.strip())[0]
 
 
@@ -115,9 +115,9 @@ async def undo_create(db, owner, agent_id):
     await begin_write(db)
     agent = await member(db, owner, agent_id)
     if agent.created_by_agent_id is None:
-        raise TeamError('not_created_by_lead', 'This agent was added by the person.')
+        raise TeamError('not_created_by_lead', 'Bu ajanı kişi eklemiş.')
     if await _used(db, agent):
-        raise TeamError('agent_used', 'This specialist has already been used. Archive it from Agents instead.')
+        raise TeamError('agent_used', 'Bu uzman zaten kullanıldı. Bunun yerine Ajanlar bölümünden arşivleyin.')
     team = await db.get(Team, agent.team_id)
     await db.delete(agent)
     if team:

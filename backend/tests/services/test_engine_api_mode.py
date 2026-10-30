@@ -83,7 +83,7 @@ def test_api_mode_is_ready_only_when_the_cli_uses_the_key(monkeypatch):
     assert local_claude_runner._status_blocking().signed_in is True
     with local_claude_runner.engine_env({"ANTHROPIC_API_KEY": CLAUDE_KEY}):
         status = local_claude_runner._status_blocking()
-        assert status.signed_in is False and "API key" in status.error
+        assert status.signed_in is False and "API anahtarını" in status.error
         monkeypatch.setattr(local_claude_runner, "run_blocking", _claude_cli({"loggedIn": True, "authMethod": "api_key"}))
         assert local_claude_runner._status_blocking().signed_in is True
 

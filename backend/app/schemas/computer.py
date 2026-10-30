@@ -34,10 +34,10 @@ class ComputerUpdateRequest(ComputerSettings):
     @model_validator(mode="after")
     def _something_to_change(self):
         if not self.model_fields_set:
-            raise ValueError("send at least one field to change")
+            raise ValueError("değiştirmek için en az bir alan gönderin")
         for name in self.model_fields_set:
             if getattr(self, name) is None:
-                raise ValueError(f"{name} cannot be null")
+                raise ValueError(f"{name} boş (null) olamaz")
         return self
 
 

@@ -47,8 +47,8 @@ function limitsOf(computer: Computer): Limits {
 }
 
 function errorText(err: unknown): string {
-  if (err instanceof ApiError) return err.message || "That did not work.";
-  return err instanceof Error ? err.message : "Could not reach the backend.";
+  if (err instanceof ApiError) return err.message || "Bu işlem olmadı.";
+  return err instanceof Error ? err.message : "Sunucuya ulaşılamadı.";
 }
 
 // An agent's computer: whether it has one, its state, image and limits, what
@@ -128,9 +128,9 @@ function DockerComputerView({
     }
   };
 
-  if (phase.kind === "loading") return <p className="text-sm text-muted">Loading the computer…</p>;
+  if (phase.kind === "loading") return <p className="text-sm text-muted">Bilgisayar yükleniyor…</p>;
   if (phase.kind === "unsupported")
-    return <p className="text-sm text-muted">This backend does not offer computers yet. Update it to give agents their own computer.</p>;
+    return <p className="text-sm text-muted">Bu sunucu henüz bilgisayar sunmuyor. Ajanlara kendi bilgisayarlarını vermek için sunucuyu güncelleyin.</p>;
 
   const alert = error && (
     <p role="alert" className="text-sm text-danger">
@@ -144,26 +144,26 @@ function DockerComputerView({
       <div className="space-y-3 text-sm">
         {alert}
         <p className="text-muted">
-          {agent.name} works on this machine. Give it its own computer, an isolated Docker container, and its commands and
-          file edits run there instead: only its workspace folder is shared, it runs as a normal user with CPU, memory and
-          process limits. Reading files and listing folders inside the computer are automatically allowed. File writes and commands
-          follow the agent&apos;s approval mode and any applicable saved rule.
+          {agent.name} bu makinede çalışıyor. Ona kendi bilgisayarını, yalıtılmış bir Docker kapsayıcısını verirseniz
+          komutları ve dosya düzenlemeleri orada çalışır: yalnız çalışma klasörü paylaşılır; CPU, bellek ve süreç
+          sınırlarıyla sıradan bir kullanıcı olarak çalışır. Bilgisayar içinde dosya okuma ve klasör listeleme otomatik
+          olarak izinlidir. Dosya yazma ve komutlar, ajanın onay moduna ve geçerli kayıtlı kurallara uyar.
         </p>
         {docker && !docker.available && (
-          <p className="text-warning">Docker is not available: {docker.error}</p>
+          <p className="text-warning">Docker kullanılamıyor: {docker.error}</p>
         )}
         <fieldset className="space-y-1">
-          <legend className="text-xs text-muted">Computer</legend>
+          <legend className="text-xs text-muted">Bilgisayar</legend>
           {(["shell", "desktop"] as const).map((value) => (
             <label key={value} className="mr-4 inline-flex items-center gap-2">
               <input type="radio" name="kind" checked={kind === value} onChange={() => setKind(value)} />
-              {value === "shell" ? "Shell only" : "Desktop"}
+              {value === "shell" ? "Yalnız komut satırı" : "Masaüstü"}
             </label>
           ))}
-          {kind === "desktop" && <p className="text-xs text-muted">Linux desktop with a browser. Build the image locally first; see desktop-image/README.md. The first build downloads several hundred MB.</p>}
+          {kind === "desktop" && <p className="text-xs text-muted">Tarayıcılı Linux masaüstü. Önce imajı yerelde derleyin; bkz. desktop-image/README.md. İlk derleme birkaç yüz MB indirir.</p>}
         </fieldset>
         <fieldset className="space-y-1">
-          <legend className="text-xs text-muted">Network</legend>
+          <legend className="text-xs text-muted">Ağ</legend>
           {NETWORK_MODES.map((mode) => (
             <label key={mode.value} className="flex cursor-pointer items-start gap-2 text-xs">
               <input type="radio" name="network" checked={network === mode.value} onChange={() => setNetwork(mode.value)} />
@@ -173,7 +173,7 @@ function DockerComputerView({
             </label>
           ))}
         </fieldset>
-        {kind === "desktop" && network === "default" && <p className="text-xs text-warning">The browser can reach this machine&apos;s network, including your LAN and cloud metadata addresses. Use No network unless you need the internet.</p>}
+        {kind === "desktop" && network === "default" && <p className="text-xs text-warning">Tarayıcı, yerel ağınız ve bulut meta veri adresleri dahil bu makinenin ağına erişebilir. İnternete ihtiyacınız yoksa ağ erişimi olmayan seçeneği kullanın.</p>}
         {!createGate.enabled && (
           <p id={capabilityHelpId} className="text-xs text-warning">
             {createGate.reason}
@@ -185,7 +185,7 @@ function DockerComputerView({
           className={PRIMARY}
           onClick={() => act(() => api.createAgentComputer(agent.id, { network, kind }))}
         >
-          {busy ? "Working…" : "Give it a computer"}
+          {busy ? "Çalışıyor…" : "Bilgisayar ver"}
         </button>
       </div>
     );
@@ -215,17 +215,17 @@ function DockerComputerView({
       <div className="rounded-md border border-line p-3">
         <p className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{computerStateLabel(state)}</span>
-          {computer.screen_busy && <span role="status" className="text-xs text-muted">A conversation is using the screen. Other chats must wait, then take a fresh screenshot. Refused input is never queued.</span>}
-          {computer.busy && <span className="rounded bg-hover px-1.5 text-xs">in use by a turn</span>}
+          {computer.screen_busy && <span role="status" className="text-xs text-muted">Ekranı bir sohbet kullanıyor. Diğer sohbetler beklemeli, sonra yeni bir ekran görüntüsü almalı. Reddedilen girdi asla sıraya alınmaz.</span>}
+          {computer.busy && <span className="rounded bg-hover px-1.5 text-xs">bir tur tarafından kullanılıyor</span>}
           <span className="font-mono text-xs text-muted" title={computer.image}>
             {imageLabel(computer.image)}
-            {computer.image_pinned ? " · pinned" : " · not pinned"}
+            {computer.image_pinned ? " · sabitlendi" : " · sabitlenmedi"}
           </span>
         </p>
         <p className="mt-1 text-xs text-muted">
           {computer.provider} · {NETWORK_MODES.find((m) => m.value === computer.network)?.label ?? computer.network} ·{" "}
           {limitsText(computer)}
-          {computer.idle_minutes > 0 ? ` · stops after ${computer.idle_minutes} idle min` : " · never stops on its own"}
+          {computer.idle_minutes > 0 ? ` · ${computer.idle_minutes} dk boşta kalınca durur` : " · kendiliğinden asla durmaz"}
         </p>
         {computer.workspace_path && (
           <p className="mt-1 truncate text-xs text-muted" title={computer.workspace_path}>
@@ -233,7 +233,7 @@ function DockerComputerView({
           </p>
         )}
         {computer.health && !computer.health.available && (
-          <p className="mt-2 text-xs text-warning">Docker is not available: {computer.health.error}</p>
+          <p className="mt-2 text-xs text-warning">Docker kullanılamıyor: {computer.health.error}</p>
         )}
         {computer.problem && <p className="mt-2 text-xs text-warning">{computer.problem}</p>}
         {!computer.problem && computer.last_error && state !== "running" && (
@@ -241,7 +241,7 @@ function DockerComputerView({
         )}
         {computer.needs_recreate && (
           <p className="mt-2 text-xs text-warning">
-            Settings changed since it was made. Recreate it for them to apply (files in the workspace folder stay).
+            Bilgisayar oluşturulduktan sonra ayarlar değişti. Ayarların uygulanması için yeniden oluşturun (çalışma klasöründeki dosyalar kalır).
           </p>
         )}
         <div className="mt-2 flex flex-wrap gap-1">
@@ -251,13 +251,13 @@ function DockerComputerView({
             </button>
           ))}
           <button disabled={busy} className={SMALL} onClick={() => void load()}>
-            Refresh
+            Yenile
           </button>
         </div>
       </div>
 
       <div>
-        <p className="mb-1 text-xs text-muted">Last command</p>
+        <p className="mb-1 text-xs text-muted">Son komut</p>
         {last ? (
           <>
             <p className="truncate font-mono text-xs" title={last}>
@@ -270,11 +270,11 @@ function DockerComputerView({
             )}
           </>
         ) : (
-          <p className="text-xs text-muted">Nothing has run yet.</p>
+          <p className="text-xs text-muted">Henüz hiçbir şey çalışmadı.</p>
         )}
       </div>
 
-      <button className={SMALL} aria-expanded={advanced} onClick={() => setAdvanced(!advanced)}>Advanced</button>
+      <button className={SMALL} aria-expanded={advanced} onClick={() => setAdvanced(!advanced)}>Gelişmiş</button>
       {advanced && <>
       <form
         className="grid grid-cols-2 gap-2"
@@ -284,31 +284,31 @@ function DockerComputerView({
         }}
       >
         <label className="text-xs text-muted">
-          CPUs
+          CPU sayısı
           <input type="number" step="0.1" min="0.1" max="64" value={draft.cpus} onChange={(e) => setLimits({ ...draft, cpus: e.target.value })} className={`${FIELD} mt-1`} />
         </label>
         <label className="text-xs text-muted">
-          Memory (MB)
+          Bellek (MB)
           <input type="number" min="128" max="262144" value={draft.memory_mb} onChange={(e) => setLimits({ ...draft, memory_mb: e.target.value })} className={`${FIELD} mt-1`} />
         </label>
         <label className="text-xs text-muted">
-          Processes
+          Süreç sayısı
           <input type="number" min="32" max="65536" value={draft.pids_limit} onChange={(e) => setLimits({ ...draft, pids_limit: e.target.value })} className={`${FIELD} mt-1`} />
         </label>
         <label className="text-xs text-muted">
-          Stop after idle (min, 0 never)
+          Boşta kalınca durdur (dk, 0 = asla)
           <input type="number" min="0" max="10080" value={draft.idle_minutes} onChange={(e) => setLimits({ ...draft, idle_minutes: e.target.value })} className={`${FIELD} mt-1`} />
         </label>
         <label className="col-span-2 text-xs text-muted">
-          Image (applies on recreate; name@sha256:… pins it)
+          İmaj (yeniden oluşturunca uygulanır; ad@sha256:… sabitler)
           <input value={draft.image} onChange={(e) => setLimits({ ...draft, image: e.target.value })} className={`${FIELD} mt-1 font-mono`} />
         </label>
         <div className="col-span-2 flex flex-wrap items-center gap-2">
           <button type="submit" disabled={busy} className={SMALL}>
-            Save limits
+            Sınırları kaydet
           </button>
           <select
-            aria-label="Network"
+            aria-label="Ağ"
             value={computer.network}
             disabled={busy}
             onChange={(e) => act(() => api.updateComputer(computer.id, { network: e.target.value as ComputerNetwork }))}
@@ -327,12 +327,12 @@ function DockerComputerView({
               disabled={busy}
               onChange={() => act(() => api.updateComputer(computer.id, { auto_start: !computer.auto_start }))}
             />
-            Start when a turn needs it
+            Bir tur gerektirdiğinde başlat
           </label>
           {computer.kind === "desktop" && <label className="flex cursor-pointer items-center gap-1 text-xs text-muted">
             <input type="checkbox" checked={computer.browser_enabled} disabled={busy || computer.busy}
               onChange={() => act(() => api.updateComputer(computer.id, { browser_enabled: !computer.browser_enabled }))} />
-            Browser tools (requires the current desktop image)
+            Tarayıcı araçları (güncel masaüstü imajını gerektirir)
           </label>}
         </div>
       </form>
@@ -340,17 +340,17 @@ function DockerComputerView({
       <div className="border-t border-line pt-3">
         {confirmRemove ? (
           <p className="flex flex-wrap items-center gap-2 text-xs">
-            Remove the computer? Everything inside it is lost; the workspace folder stays. {agent.name} then works on this machine again.
+            Bilgisayar kaldırılsın mı? İçindeki her şey silinir; çalışma klasörü kalır. {agent.name} sonra yeniden bu makinede çalışır.
             <button disabled={busy} className={SMALL} onClick={() => act(() => api.deleteComputer(computer.id)).then(() => setConfirmRemove(false))}>
-              Remove
+              Kaldır
             </button>
             <button disabled={busy} className={SMALL} onClick={() => setConfirmRemove(false)}>
-              Keep
+              Kalsın
             </button>
           </p>
         ) : (
           <button disabled={busy || computer.busy} className={SMALL} onClick={() => setConfirmRemove(true)}>
-            Remove computer…
+            Bilgisayarı kaldır…
           </button>
         )}
       </div>

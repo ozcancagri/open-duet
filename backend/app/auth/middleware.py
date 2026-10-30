@@ -133,13 +133,13 @@ class AuthMiddleware:
         hostname = request_info.request_hostname(scope)
         if hostname is None or not request_info.host_is_trusted(hostname):
             return (421, "untrusted_host",
-                    "This server does not answer to that host name. Add it to TRUSTED_HOSTS.", False)
+                    "Bu sunucu o ana makine adına yanıt vermiyor. Adı TRUSTED_HOSTS listesine ekleyin.", False)
         origin = request_info.header(scope, b"origin")
         if origin is not None and (
             len(request_info.header_values(scope, b"origin")) != 1
             or not request_info.origin_is_trusted(scope, origin)
         ):
-            return (403, "untrusted_origin", "Requests from this page's address are not allowed.", False)
+            return (403, "untrusted_origin", "Bu sayfanın adresinden gelen isteklere izin verilmiyor.", False)
 
         method = scope.get("method", "GET").upper()
         path = scope.get("path", "")
@@ -150,9 +150,9 @@ class AuthMiddleware:
         if resolver is not None:
             hosted = await resolver(scope)
             if hosted is None:
-                return (401, "auth_required", "Sign in to use this server.", False)
+                return (401, "auth_required", "Bu sunucuyu kullanmak için giriş yapın.", False)
             if required_scope(method, path) not in hosted.scopes:
-                return (403, "scope_denied", "This sign-in cannot do that.", False)
+                return (403, "scope_denied", "Bu girişin buna yetkisi yok.", False)
             set_principal(scope, hosted)
             return None
 
@@ -165,16 +165,16 @@ class AuthMiddleware:
                 )
             if session is None:
                 return (401, "session_invalid",
-                        "This sign-in has expired or was revoked. Sign in or pair this device again.",
+                        "Bu girişin süresi doldu ya da iptal edildi. Yeniden giriş yapın ya da bu cihazı yeniden eşleştirin.",
                         cookie is not None)
             if cookie is not None and method not in SAFE_METHODS:
                 presented = request_info.header_values(scope, CSRF_HEADER)
                 expected = credentials.csrf_token_for(cookie)
                 if len(presented) != 1 or not hmac.compare_digest(presented[0].encode(), expected.encode()):
-                    return (403, "csrf_failed", "Missing or wrong CSRF token. Reload the page.", False)
+                    return (403, "csrf_failed", "CSRF belirteci eksik ya da yanlış. Sayfayı yeniden yükleyin.", False)
             needed = required_scope(method, path)
             if needed not in session.scopes:
-                return (403, "scope_denied", f"This device needs the {needed} scope for that.", False)
+                return (403, "scope_denied", f"Bu cihazın bunun için {needed} kapsamına ihtiyacı var.", False)
             set_principal(scope, Principal(kind=session.kind, scopes=session.scopes,
                                            session_id=session.id, label=session.label))
             return None
@@ -182,4 +182,4 @@ class AuthMiddleware:
         if loopback_trusted(scope):
             set_principal(scope, LOOPBACK_PRINCIPAL)
             return None
-        return (401, "auth_required", "Sign in to use this server.", False)
+        return (401, "auth_required", "Bu sunucuyu kullanmak için giriş yapın.", False)

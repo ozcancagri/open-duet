@@ -33,6 +33,7 @@ import {
   webhookUrl,
   type ScheduleDraft,
 } from "@/lib/routines";
+import { TipsGuide } from "@/components/TipsGuide";
 
 const REFRESH_MS = 5_000;
 const input = "w-full rounded-md border border-line bg-transparent px-2 py-1.5 text-sm";
@@ -97,7 +98,7 @@ function inputOf(draft: Draft): RoutineInput {
 
 function errorText(err: unknown, fallback: string): string {
   if (err instanceof ApiError) return err.message || fallback;
-  return "Could not reach the backend.";
+  return "Sunucuya ulaşılamadı.";
 }
 
 function State({ state }: { state: string }) {
@@ -130,7 +131,7 @@ function ScheduleFields({ value, onChange, onPreviewResult }: {
         })
         .catch((err) => {
           if (live) {
-            setPreviewResult({ key: previewKey, preview: null, problem: errorText(err, "This schedule is not valid.") });
+            setPreviewResult({ key: previewKey, preview: null, problem: errorText(err, "Bu zamanlama geçerli değil.") });
             onPreviewResult(previewKey, false);
           }
         });
@@ -142,8 +143,8 @@ function ScheduleFields({ value, onChange, onPreviewResult }: {
 
   return (
     <fieldset className="space-y-2 rounded-md border border-line p-3">
-      <legend className="px-1 text-xs font-medium text-muted">Schedule</legend>
-      <select aria-label="Schedule kind" value={value.kind} onChange={(e) => set({ kind: e.target.value as ScheduleDraft["kind"] })} className={input}>
+      <legend className="px-1 text-xs font-medium text-muted">Zamanlama</legend>
+      <select aria-label="Zamanlama türü" value={value.kind} onChange={(e) => set({ kind: e.target.value as ScheduleDraft["kind"] })} className={input}>
         {SCHEDULE_KINDS.map((kind) => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
       </select>
       {value.kind === "weekdays" && (
@@ -157,30 +158,30 @@ function ScheduleFields({ value, onChange, onPreviewResult }: {
               </button>
             );
           })}
-          <input aria-label="Time" type="time" value={value.time} onChange={(e) => set({ time: e.target.value })} className="ml-2 rounded-md border border-line bg-transparent px-2 py-1 text-sm" />
+          <input aria-label="Saat" type="time" value={value.time} onChange={(e) => set({ time: e.target.value })} className="ml-2 rounded-md border border-line bg-transparent px-2 py-1 text-sm" />
         </div>
       )}
       {value.kind === "interval" && (
-        <label className="flex items-center gap-2 text-sm">Every
-          <input aria-label="Minutes between runs" type="number" min={5} max={10080} value={value.everyMinutes} onChange={(e) => set({ everyMinutes: e.target.value })} className="w-24 rounded-md border border-line bg-transparent px-2 py-1" />
-          minutes
+        <label className="flex items-center gap-2 text-sm">Her
+          <input aria-label="Çalıştırmalar arasındaki dakika" type="number" min={5} max={10080} value={value.everyMinutes} onChange={(e) => set({ everyMinutes: e.target.value })} className="w-24 rounded-md border border-line bg-transparent px-2 py-1" />
+          dakikada bir
         </label>
       )}
       {value.kind === "cron" && (
-        <input aria-label="Cron expression" value={value.expression} onChange={(e) => set({ expression: e.target.value })} placeholder="minute hour day month weekday, e.g. 0 9 * * 1-5" spellCheck={false} className={`${input} font-mono`} />
+        <input aria-label="Cron ifadesi" value={value.expression} onChange={(e) => set({ expression: e.target.value })} placeholder="dakika saat gün ay haftanın-günü, ör. 0 9 * * 1-5" spellCheck={false} className={`${input} font-mono`} />
       )}
       {value.kind === "once" && (
-        <input aria-label="Date and time" type="datetime-local" value={value.at} onChange={(e) => set({ at: e.target.value })} className={input} />
+        <input aria-label="Tarih ve saat" type="datetime-local" value={value.at} onChange={(e) => set({ at: e.target.value })} className={input} />
       )}
       {value.kind !== "manual" && value.kind !== "interval" && (
-        <label className="block text-xs text-muted">Time zone
-          <input aria-label="Time zone" value={value.timezone} onChange={(e) => set({ timezone: e.target.value })} placeholder="Europe/Berlin" spellCheck={false} className={input} />
+        <label className="block text-xs text-muted">Saat dilimi
+          <input aria-label="Saat dilimi" value={value.timezone} onChange={(e) => set({ timezone: e.target.value })} placeholder="Europe/Berlin" spellCheck={false} className={input} />
         </label>
       )}
       {currentPreview?.problem ? (
         <p role="alert" className="text-xs text-danger">{currentPreview.problem}</p>
       ) : currentPreview?.preview ? (
-        <div className="text-xs text-muted" aria-label="Schedule preview">
+        <div className="text-xs text-muted" aria-label="Zamanlama önizlemesi">
           <p className="font-medium">{currentPreview.preview.summary}</p>
           {currentPreview.preview.next_dates.length > 0 && (
             <ul className="mt-1 list-inside list-disc">
@@ -189,7 +190,7 @@ function ScheduleFields({ value, onChange, onPreviewResult }: {
           )}
         </div>
       ) : (
-        <p role="status" className="text-xs text-muted">Checking schedule…</p>
+        <p role="status" className="text-xs text-muted">Zamanlama kontrol ediliyor…</p>
       )}
     </fieldset>
   );
@@ -200,25 +201,25 @@ function RunHistory({ routine, onClose, onOpen }: { routine: Routine; onClose: (
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
-    const load = () => api.listRoutineRuns(routine.id).then((r) => live && setRuns(r)).catch((err) => live && setError(errorText(err, "Could not load runs.")));
+    const load = () => api.listRoutineRuns(routine.id).then((r) => live && setRuns(r)).catch((err) => live && setError(errorText(err, "Çalıştırmalar yüklenemedi.")));
     load();
     const timer = setInterval(load, REFRESH_MS);
     return () => { live = false; clearInterval(timer); };
   }, [routine.id]);
   return (
     <div className="space-y-3">
-      <button onClick={onClose} className={button}>← Back</button>
-      <h3 className="text-sm font-semibold">Runs of {routine.name}</h3>
+      <button onClick={onClose} className={button}>← Geri</button>
+      <h3 className="text-sm font-semibold">{routine.name}: çalıştırmalar</h3>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      {runs === null ? <p className="text-sm text-muted">Loading…</p> : runs.length === 0 ? <p className="text-sm text-muted">No runs yet.</p> : (
+      {runs === null ? <p className="text-sm text-muted">Yükleniyor…</p> : runs.length === 0 ? <p className="text-sm text-muted">Henüz çalıştırma yok.</p> : (
         <ul className="space-y-2">
           {runs.map((run) => (
             <li key={run.id} className="rounded-md border border-line p-2 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <State state={run.state} />
-                <span className="text-xs text-muted">{triggerLabel(run.trigger)}{run.attempt > 1 ? ` (attempt ${run.attempt})` : ""} · {formatWhen(run.scheduled_for ?? run.created_at, routine.timezone)}</span>
+                <span className="text-xs text-muted">{triggerLabel(run.trigger)}{run.attempt > 1 ? ` (${run.attempt}. deneme)` : ""} · {formatWhen(run.scheduled_for ?? run.created_at, routine.timezone)}</span>
                 {run.thread_id !== null && (
-                  <Link href={`/chat?thread=${run.thread_id}`} onClick={onOpen} className="ml-auto text-xs underline">Open conversation</Link>
+                  <Link href={`/chat?thread=${run.thread_id}`} onClick={onOpen} className="ml-auto text-xs underline">Sohbeti aç</Link>
                 )}
               </div>
               {(run.error || run.result) && (
@@ -247,7 +248,7 @@ export function RoutinesPanel({ agents, onClose, routineId = null }: { agents: A
   const live = activeAgents(agents);
 
   const load = useCallback(() => {
-    api.listRoutines().then(setRoutines).catch((err) => setError(errorText(err, "Could not load routines.")));
+    api.listRoutines().then(setRoutines).catch((err) => setError(errorText(err, "Rutinler yüklenemedi.")));
   }, []);
 
   const reportPreviewResult = useCallback((key: string, valid: boolean) => {
@@ -278,34 +279,35 @@ export function RoutinesPanel({ agents, onClose, routineId = null }: { agents: A
   const save = async () => {
     if (!draft) return;
     const body = inputOf(draft);
-    const ok = await act(() => (draft.id === null ? api.createRoutine(body) : api.updateRoutine(draft.id, body)), "Could not save the routine.");
+    const ok = await act(() => (draft.id === null ? api.createRoutine(body) : api.updateRoutine(draft.id, body)), "Rutin kaydedilemedi.");
     if (ok) {
       setValidPreviewKey(null);
       setDraft(null);
     }
   };
 
-  const agentName = (id: number) => agents.find((agent) => agent.id === id)?.name ?? `Agent ${id}`;
-  const heading = draft ? (draft.id === null ? "New routine" : "Edit routine") : "Routines";
+  const agentName = (id: number) => agents.find((agent) => agent.id === id)?.name ?? `Ajan ${id}`;
+  const heading = draft ? (draft.id === null ? "Yeni rutin" : "Rutini düzenle") : "Rutinler";
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }} title={heading} size="wide">
+          <TipsGuide page="routines" inline />
           {error && <p role="alert" className="mb-3 text-sm text-danger">{error}</p>}
 
           {history ? (
             <RunHistory routine={history} onClose={() => setHistory(null)} onOpen={onClose} />
           ) : draft ? (
             <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-              <label className="block text-xs text-muted">Name
-                <input aria-label="Routine name" required maxLength={80} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={input} />
+              <label className="block text-xs text-muted">Ad
+                <input aria-label="Rutin adı" required maxLength={80} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={input} />
               </label>
-              <label className="block text-xs text-muted">Agent
-                <select aria-label="Agent" value={draft.agentId ?? ""} onChange={(e) => setDraft({ ...draft, agentId: Number(e.target.value) })} className={input}>
+              <label className="block text-xs text-muted">Ajan
+                <select aria-label="Ajan" value={draft.agentId ?? ""} onChange={(e) => setDraft({ ...draft, agentId: Number(e.target.value) })} className={input}>
                   {live.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
                 </select>
               </label>
-              <label className="block text-xs text-muted">What it should do
-                <textarea aria-label="Prompt" required rows={4} value={draft.prompt} onChange={(e) => setDraft({ ...draft, prompt: e.target.value })} className={input} />
+              <label className="block text-xs text-muted">Ne yapmalı
+                <textarea aria-label="İstem" required rows={4} value={draft.prompt} onChange={(e) => setDraft({ ...draft, prompt: e.target.value })} className={input} />
               </label>
               <ScheduleFields
                 value={draft.schedule}
@@ -316,43 +318,43 @@ export function RoutinesPanel({ agents, onClose, routineId = null }: { agents: A
                 onPreviewResult={reportPreviewResult}
               />
               <details className="rounded-md border border-line p-3 text-xs">
-                <summary className="cursor-pointer font-medium text-muted">Limits and approvals</summary>
+                <summary className="cursor-pointer font-medium text-muted">Sınırlar ve onaylar</summary>
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <label>Run limit (minutes)<input type="number" min={1} max={240} value={draft.runLimit} onChange={(e) => setDraft({ ...draft, runLimit: e.target.value })} className={input} /></label>
-                  <label>Approval wait (minutes)<input type="number" min={1} max={1440} value={draft.approvalWait} onChange={(e) => setDraft({ ...draft, approvalWait: e.target.value })} className={input} /></label>
-                  <label>May start late by (minutes)<input type="number" min={0} max={1440} value={draft.catchUp} onChange={(e) => setDraft({ ...draft, catchUp: e.target.value })} className={input} /></label>
-                  <label>Retries after a failure<input type="number" min={0} max={3} value={draft.retryLimit} onChange={(e) => setDraft({ ...draft, retryLimit: e.target.value })} className={input} /></label>
-                  <label>Retry after (minutes)<input type="number" min={1} max={1440} value={draft.retryDelay} onChange={(e) => setDraft({ ...draft, retryDelay: e.target.value })} className={input} /></label>
-                  <label>Approval mode
+                  <label>Çalışma sınırı (dakika)<input type="number" min={1} max={240} value={draft.runLimit} onChange={(e) => setDraft({ ...draft, runLimit: e.target.value })} className={input} /></label>
+                  <label>Onay bekleme süresi (dakika)<input type="number" min={1} max={1440} value={draft.approvalWait} onChange={(e) => setDraft({ ...draft, approvalWait: e.target.value })} className={input} /></label>
+                  <label>En fazla gecikmeli başlama (dakika)<input type="number" min={0} max={1440} value={draft.catchUp} onChange={(e) => setDraft({ ...draft, catchUp: e.target.value })} className={input} /></label>
+                  <label>Başarısızlıktan sonra yeniden deneme<input type="number" min={0} max={3} value={draft.retryLimit} onChange={(e) => setDraft({ ...draft, retryLimit: e.target.value })} className={input} /></label>
+                  <label>Yeniden deneme aralığı (dakika)<input type="number" min={1} max={1440} value={draft.retryDelay} onChange={(e) => setDraft({ ...draft, retryDelay: e.target.value })} className={input} /></label>
+                  <label>Onay modu
                     <select value={draft.approvalMode} onChange={(e) => setDraft({ ...draft, approvalMode: e.target.value as ApprovalMode })} className={input}>
                       {APPROVAL_MODES.map((mode) => <option key={mode.value} value={mode.value}>{mode.label}</option>)}
                     </select>
                   </label>
                 </div>
                 <p className="mt-2 text-muted">
-                  A run uses the stricter of this mode and the agent&apos;s own. When it needs your approval it waits, tells you,
-                  and is denied if nobody answers within the approval wait. Time spent waiting does not count toward the run limit.
-                  A failed run is started again up to the number of retries (0 turns it off); a run you stopped, one that reached
-                  its run limit and one cut short by the app stopping are never retried.
+                  Çalıştırma, bu mod ile ajanın kendi modundan hangisi daha sıkıysa onu kullanır. Onayınız gerektiğinde bekler,
+                  size haber verir ve onay bekleme süresi içinde kimse yanıt vermezse reddedilir. Beklemede geçen süre çalışma
+                  sınırına sayılmaz. Başarısız bir çalıştırma, yeniden deneme sayısı kadar tekrar başlatılır (0 kapatır); sizin
+                  durdurduğunuz, çalışma sınırına ulaşan ve uygulamanın kapanmasıyla yarıda kalan çalıştırmalar asla yeniden denenmez.
                 </p>
               </details>
               <div className="flex gap-2">
-                <button type="submit" disabled={busy || draft.agentId === null || !canSaveSchedulePreview(draft.schedule, validPreviewKey)} className="cursor-pointer rounded-md px-3 py-1.5 text-sm disabled:opacity-50 bg-accent text-accent-fg hover:opacity-90">{busy ? "Saving…" : "Save"}</button>
-                <button type="button" onClick={() => { setValidPreviewKey(null); setDraft(null); }} className="rounded-md border border-line px-3 py-1.5 text-sm">Cancel</button>
+                <button type="submit" disabled={busy || draft.agentId === null || !canSaveSchedulePreview(draft.schedule, validPreviewKey)} className="cursor-pointer rounded-md px-3 py-1.5 text-sm disabled:opacity-50 bg-accent text-accent-fg hover:opacity-90">{busy ? "Kaydediliyor…" : "Kaydet"}</button>
+                <button type="button" onClick={() => { setValidPreviewKey(null); setDraft(null); }} className="rounded-md border border-line px-3 py-1.5 text-sm">İptal</button>
               </div>
             </form>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <p className="min-w-0 flex-1 text-xs text-muted">
-                  A routine runs a prompt as a new conversation of one of your agents, on a schedule, by webhook, or when you press Run now.
-                  The backend must be running for it to run.
+                  Rutin, bir istemi ajanlarınızdan birinin yeni bir sohbeti olarak çalıştırır: zamanlamayla, webhook ile ya da Şimdi çalıştır&apos;a bastığınızda.
+                  Çalışabilmesi için sunucunun açık olması gerekir.
                 </p>
-                <button disabled={live.length === 0} onClick={() => { setValidPreviewKey(null); setDraft(newDraft(live)); }} className={button}>New routine</button>
+                <button disabled={live.length === 0} onClick={() => { setValidPreviewKey(null); setDraft(newDraft(live)); }} className={button}>Yeni rutin</button>
               </div>
-              {live.length === 0 && <p className="text-sm text-muted">Create an agent first: every routine runs as one.</p>}
-              {routines === null ? <p className="text-sm text-muted">Loading…</p> : routines.length === 0 ? (
-                <p className="text-sm text-muted">No routines yet.</p>
+              {live.length === 0 && <p className="text-sm text-muted">Önce bir ajan oluşturun: her rutin bir ajan olarak çalışır.</p>}
+              {routines === null ? <p className="text-sm text-muted">Yükleniyor…</p> : routines.length === 0 ? (
+                <p className="text-sm text-muted">Henüz rutin yok.</p>
               ) : (
                 <ul className="space-y-2">
                   {routines.map((routine) => {
@@ -362,45 +364,45 @@ export function RoutinesPanel({ agents, onClose, routineId = null }: { agents: A
                         <div className="flex flex-wrap items-baseline gap-2">
                           <p className="truncate text-sm font-medium">{routine.name}</p>
                           <span className="text-xs text-muted">{agentName(routine.agent_id)}</span>
-                          {routine.paused && <span className="rounded bg-hover px-1.5 text-xs">paused</span>}
+                          {routine.paused && <span className="rounded bg-hover px-1.5 text-xs">duraklatıldı</span>}
                           {routine.webhook_enabled && <span className="rounded bg-hover px-1.5 text-xs">webhook</span>}
                         </div>
                         <p className="text-xs text-muted">{routine.schedule_kind === "manual" ? routine.summary : `${routine.summary} · ${nextRunText(routine)}`}</p>
                         {routine.paused_reason && <p className="text-xs text-warning">{routine.paused_reason}</p>}
                         {routine.latest_run && (
                           <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                            <span className="text-muted">Latest:</span>
+                            <span className="text-muted">Son:</span>
                             <State state={routine.latest_run.state} />
                             <span className="text-muted">{formatWhen(routine.latest_run.scheduled_for ?? routine.latest_run.created_at, routine.timezone)}</span>
-                            {routine.latest_run.thread_id !== null && <Link href={`/chat?thread=${routine.latest_run.thread_id}`} onClick={onClose} className="underline">Open conversation</Link>}
+                            {routine.latest_run.thread_id !== null && <Link href={`/chat?thread=${routine.latest_run.thread_id}`} onClick={onClose} className="underline">Sohbeti aç</Link>}
                           </p>
                         )}
                         {secret?.routineId === routine.id && (
                           <div className="mt-2 space-y-1 rounded-md border border-warning/50 bg-warning/10 p-2 text-xs">
-                            <p className="font-medium">Copy this secret now: it is shown once.</p>
+                            <p className="font-medium">Bu gizli anahtarı şimdi kopyalayın: yalnız bir kez gösterilir.</p>
                             <p>URL: <code className="break-all">{secret.url}</code></p>
-                            <p>Secret: <code className="break-all">{secret.secret}</code></p>
+                            <p>Gizli anahtar: <code className="break-all">{secret.secret}</code></p>
                             <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-raised/60 p-1">{curlExample(secret.url, secret.secret)}</pre>
-                            <button className={button} onClick={() => setSecret(null)}>I have copied it</button>
+                            <button className={button} onClick={() => setSecret(null)}>Kopyaladım</button>
                           </div>
                         )}
                         <div className="mt-2 flex flex-wrap gap-1">
-                          <button disabled={busy || active} title={active ? "A run is in progress" : undefined} onClick={() => void act(() => api.runRoutineNow(routine.id), "Could not start the routine.")} className={button}>Run now</button>
-                          <button disabled={busy} onClick={() => void act(() => (routine.paused ? api.resumeRoutine(routine.id) : api.pauseRoutine(routine.id)), "Could not change the routine.")} className={button}>{routine.paused ? "Resume" : "Pause"}</button>
-                          <button disabled={busy} onClick={() => { setValidPreviewKey(null); setDraft(draftOf(routine)); }} className={button}>Edit</button>
-                          <button disabled={busy} onClick={() => setHistory(routine)} className={button}>History</button>
+                          <button disabled={busy || active} title={active ? "Bir çalıştırma sürüyor" : undefined} onClick={() => void act(() => api.runRoutineNow(routine.id), "Rutin başlatılamadı.")} className={button}>Şimdi çalıştır</button>
+                          <button disabled={busy} onClick={() => void act(() => (routine.paused ? api.resumeRoutine(routine.id) : api.pauseRoutine(routine.id)), "Rutin değiştirilemedi.")} className={button}>{routine.paused ? "Sürdür" : "Duraklat"}</button>
+                          <button disabled={busy} onClick={() => { setValidPreviewKey(null); setDraft(draftOf(routine)); }} className={button}>Düzenle</button>
+                          <button disabled={busy} onClick={() => setHistory(routine)} className={button}>Geçmiş</button>
                           <button disabled={busy} onClick={() => void act(async () => {
                             const result = await api.enableRoutineWebhook(routine.id);
                             setSecret({ routineId: routine.id, secret: result.secret, url: webhookUrl(result.path) });
-                          }, "Could not set up the webhook.")} className={button}>{routine.webhook_enabled ? "New webhook secret" : "Add webhook"}</button>
-                          {routine.webhook_enabled && <button disabled={busy} onClick={() => void act(() => api.disableRoutineWebhook(routine.id), "Could not turn off the webhook.")} className={button}>Remove webhook</button>}
+                          }, "Webhook kurulamadı.")} className={button}>{routine.webhook_enabled ? "Yeni webhook gizli anahtarı" : "Webhook ekle"}</button>
+                          {routine.webhook_enabled && <button disabled={busy} onClick={() => void act(() => api.disableRoutineWebhook(routine.id), "Webhook kapatılamadı.")} className={button}>Webhook&apos;u kaldır</button>}
                           {confirmDelete === routine.id ? (
                             <>
-                              <button disabled={busy} onClick={() => void act(() => api.deleteRoutine(routine.id), "Could not delete the routine.").then(() => setConfirmDelete(null))} className={`${button} text-danger`}>Delete it and its history</button>
-                              <button disabled={busy} onClick={() => setConfirmDelete(null)} className={button}>Keep</button>
+                              <button disabled={busy} onClick={() => void act(() => api.deleteRoutine(routine.id), "Rutin silinemedi.").then(() => setConfirmDelete(null))} className={`${button} text-danger`}>Rutini ve geçmişini sil</button>
+                              <button disabled={busy} onClick={() => setConfirmDelete(null)} className={button}>Kalsın</button>
                             </>
                           ) : (
-                            <button disabled={busy} onClick={() => setConfirmDelete(routine.id)} className={`${button} text-danger`}>Delete</button>
+                            <button disabled={busy} onClick={() => setConfirmDelete(routine.id)} className={`${button} text-danger`}>Sil</button>
                           )}
                         </div>
                       </li>

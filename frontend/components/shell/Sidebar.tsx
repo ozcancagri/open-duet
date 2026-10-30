@@ -99,7 +99,7 @@ export function Sidebar({
   return (
     <nav aria-label={t("shell.conversations")} className="flex h-full min-h-0 flex-col bg-surface text-ink">
       <div className="space-y-2 p-3 pb-1">
-        <Button className="w-full" icon={<Plus size={16} aria-hidden="true" />} onClick={() => newChat()}>
+        <Button className="w-full" data-tip="new-chat" icon={<Plus size={16} aria-hidden="true" />} onClick={() => newChat()}>
           {t("shell.newChat")}
         </Button>
       </div>
@@ -110,7 +110,7 @@ export function Sidebar({
           <section aria-label={t("sidebar.agents")}>
             <SectionHeader title={t("sidebar.agents")}>
               {onNewAgent && (
-                <IconButton label={t("sidebar.newAgent")} onClick={() => { onNewAgent(); onNavigate?.(); }} className="size-7 touch:size-10">
+                <IconButton label={t("sidebar.newAgent")} data-tip="new-agent" onClick={() => { onNewAgent(); onNavigate?.(); }} className="size-7 touch:size-10">
                   <Plus size={14} />
                 </IconButton>
               )}
@@ -139,7 +139,7 @@ export function Sidebar({
                   <>
                     <Avatar agentId={agent.id} name={agent.name} size="md" />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{agent.name}{leadAgentId === agent.id ? " · Lead" : ""}</span>
+                      <span className="block truncate font-medium">{agent.name}{leadAgentId === agent.id ? " · Lider" : ""}</span>
                       {agent.title ? <span className="block truncate text-xs text-muted">{agent.title}</span> : null}
                     </span>
                     <StatusDot status={status} />
@@ -157,11 +157,11 @@ export function Sidebar({
                         {body}
                       </button>
                     )}
-                    {onEditAgent && <IconButton label={`Settings for ${agent.name}`} onClick={() => onEditAgent(agent)} className="size-8 text-muted touch:size-10"><Settings size={14} aria-hidden="true" /></IconButton>}
-                    {onChangeLead && <IconButton label={leadAgentId === agent.id ? `Remove lead role from ${agent.name}` : `Make ${agent.name} lead`} onClick={() => void onChangeLead(agent, leadAgentId === agent.id)} className="size-8 text-muted touch:size-10"><Crown size={14} aria-hidden="true" /></IconButton>}
+                    {onEditAgent && <IconButton label={`${agent.name} ayarları`} onClick={() => onEditAgent(agent)} className="size-8 text-muted touch:size-10"><Settings size={14} aria-hidden="true" /></IconButton>}
+                    {onChangeLead && <IconButton label={leadAgentId === agent.id ? `${agent.name} ajanının liderliğini kaldır` : `${agent.name} ajanını lider yap`} onClick={() => void onChangeLead(agent, leadAgentId === agent.id)} className="size-8 text-muted touch:size-10"><Crown size={14} aria-hidden="true" /></IconButton>}
                     {onDeleteAgent && (
                       <IconButton
-                        label={`Delete ${agent.name}`}
+                        label={`${agent.name} ajanını sil`}
                         onClick={() => onDeleteAgent(agent)}
                         className="size-8 text-muted hover:text-danger touch:size-10"
                       >
@@ -217,7 +217,7 @@ export function Sidebar({
         {onOpenPlanner && (
           <button type="button" onClick={() => { onOpenPlanner(); onNavigate?.(); }} className={cn(ROW, "hover:bg-hover/60")}>
             <Columns3 size={16} aria-hidden="true" />
-            <span className="font-medium">Tasks & calendar</span>
+            <span className="font-medium">Görevler ve takvim</span>
           </button>
         )}
         {onOpenRoutines && (

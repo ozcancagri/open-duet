@@ -99,7 +99,7 @@ async def _ensure_box_running(box_id: str) -> None:
         result = await run_in_threadpool(ascii_box_service.get_box, box_id)
     except ApiException as exc:
         raise BoxCommandError(
-            f"Could not reach box {box_id}: {exc.status} {exc.reason}"
+            f"{box_id} korumalı alanına ulaşılamadı: {exc.status} {exc.reason}"
         ) from exc
 
     if result.sandbox.state not in RUNNABLE_BOX_STATES:
@@ -107,7 +107,7 @@ async def _ensure_box_running(box_id: str) -> None:
             await run_in_threadpool(ascii_box_service.resume_box, box_id)
         except ApiException as exc:
             raise BoxCommandError(
-                f"Could not resume box {box_id}: {exc.status} {exc.reason}"
+                f"{box_id} korumalı alanı sürdürülemedi: {exc.status} {exc.reason}"
             ) from exc
 
 
@@ -232,14 +232,14 @@ async def create_task(
         await begin_write(db)
         parent = await get_task(db, parent_task_id)
         if parent is None or parent.user_id != user_id:
-            raise TaskNotFoundError(f"Parent task {parent_task_id} not found")
+            raise TaskNotFoundError(f"Üst görev {parent_task_id} bulunamadı")
         if not parent.session_id:
             raise TaskNotFoundError(
-                f"Task {parent_task_id} predates conversation replies and can't be resumed"
+                f"{parent_task_id} numaralı görev sohbet yanıtlarından önceye ait, sürdürülemez"
             )
         if parent.status in ACTIVE_STATUSES:
             raise ParentTaskActiveError(
-                f"Task {parent_task_id} is still {parent.status} — wait for it to finish first"
+                f"{parent_task_id} numaralı görev hâlâ {parent.status} durumunda — önce bitmesini bekleyin"
             )
         session_id = parent.session_id
 
@@ -265,7 +265,7 @@ async def create_task(
         ).first()
         if active is not None:
             raise ParentTaskActiveError(
-                f"Task {active.id} is still {active.status} — wait for it to finish first"
+                f"{active.id} numaralı görev hâlâ {active.status} durumunda — önce bitmesini bekleyin"
             )
 
     task = Tasks(
@@ -321,7 +321,7 @@ async def start_task(db: AsyncSession, task_id: int) -> Tasks:
         await _write_permission_hook_config(task.box_id, task.user_id, task.id)
     except ApiException as exc:
         error = BoxCommandError(
-            f"Could not prepare box {task.box_id}: {exc.status} {exc.reason}"
+            f"{task.box_id} korumalı alanı hazırlanamadı: {exc.status} {exc.reason}"
         )
         task.status = "failed"
         task.error = str(error)
@@ -427,7 +427,7 @@ async def execute_local_task(
         cli = await local_claude_runner.get_status()
     if not cli.installed or cli.signed_in is not True:
         raise LocalRuntimeUnavailableError(
-            cli.error or "Claude CLI is not ready for local use."
+            cli.error or "Claude CLI yerel kullanıma hazır değil."
         )
 
     task = Tasks(
@@ -475,20 +475,20 @@ def _local_run_values(
 
     error: str | None = None
     if output.timed_out:
-        error = f"Timed out after {app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} seconds"
+        error = f"{app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} saniye sonra zaman aşımı"
     elif output.output_truncated or normalizer.over_limit:
-        error = "Claude produced more output than allowed"
+        error = "Claude izin verilenden fazla çıktı üretti"
     elif final is None:
         if stderr:
             error = stderr
         elif output.exit_code not in (0, None):
-            error = f"Claude exited with code {output.exit_code}"
+            error = f"Claude {output.exit_code} koduyla çıktı"
         else:
-            error = "Claude ended without a result"
+            error = "Claude sonuç vermeden bitti"
     elif final.is_error:
-        error = final.text or stderr or "Claude reported an error"
+        error = final.text or stderr or "Claude bir hata bildirdi"
     elif final.permission_denied and not tools:
-        error = "Claude tried to use a tool, which is turned off for local chat"
+        error = "Claude bir araç kullanmaya çalıştı; yerel sohbette araçlar kapalı"
 
     if error is not None:
         values: dict = {"status": "failed", "error": _clip_error(error)}
@@ -511,7 +511,7 @@ def terminal_event_for(task: Tasks) -> tuple[str, dict]:
         return TURN_COMPLETED, {"status": "succeeded", "result": task.result or ""}
     return TURN_FAILED, {
         "status": task.status if task.status in FINISHED_STATUSES else "failed",
-        "error": task.error or "The run ended unexpectedly",
+        "error": task.error or "Çalışma beklenmedik biçimde bitti",
         "result": task.result or "",
     }
 
@@ -599,7 +599,7 @@ async def _run_local_task_with_settings(task_id: int) -> None:
                 values = {"status": "failed", "error": str(exc)}
             except Exception:
                 logger.exception("local task crashed", task_id=task_id)
-                values = {"status": "failed", "error": "Local run failed unexpectedly"}
+                values = {"status": "failed", "error": "Yerel çalışma beklenmedik biçimde başarısız oldu"}
                 if normalizer.text:
                     values["result"] = normalizer.text
 
@@ -622,7 +622,7 @@ async def _run_local_task_with_settings(task_id: int) -> None:
                 TURN_FAILED,
                 {
                     "status": "failed",
-                    "error": "Could not record the result of this run",
+                    "error": "Bu çalışmanın sonucu kaydedilemedi",
                     "result": normalizer.text,
                 },
             )
@@ -672,9 +672,9 @@ async def sync_task_status(db: AsyncSession, task: Tasks) -> Tasks:
             values = {"status": "running"}
         elif run_status.exit_code not in (None, 0) or run_status.signal:
             termination = (
-                f"Process terminated by {run_status.signal}"
+                f"Süreç {run_status.signal} sinyaliyle sonlandırıldı"
                 if run_status.signal
-                else f"Process exited with code {run_status.exit_code}"
+                else f"Süreç {run_status.exit_code} koduyla çıktı"
             )
             values = {"status": "failed", "error": run_status.stderr or termination}
         else:
@@ -715,7 +715,7 @@ async def sync_active_tasks() -> None:
             )
             .values(
                 status="failed",
-                error="Task never finished launching (the server stopped while starting it)",
+                error="Görevin başlatılması hiç tamamlanmadı (sunucu başlatırken durdu)",
             )
         )
         await db.commit()
@@ -744,7 +744,7 @@ async def sync_active_tasks() -> None:
             .where(Tasks.id.in_(stale_ids), Tasks.status == "running")
             .values(
                 status="failed",
-                error="Local run was interrupted (the server stopped while it was running)",
+                error="Yerel çalışma yarıda kesildi (sunucu çalışırken durdu)",
             )
         )
         await db.commit()

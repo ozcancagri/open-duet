@@ -100,7 +100,7 @@ export function toggleSkill(chosen: readonly string[], name: string): string[] {
 }
 
 export function sourceLabel(source: SkillSource): string {
-  return source === "imported" ? "Imported" : (source === "learned" || source.startsWith("learned:")) ? "Learned from a run" : "Written here";
+  return source === "imported" ? "İçe aktarıldı" : (source === "learned" || source.startsWith("learned:")) ? "Bir çalıştırmadan öğrenildi" : "Burada yazıldı";
 }
 
 // The skills the backend recorded as used on a turn (`skill.used` event data).
@@ -111,8 +111,8 @@ export function usedSkills(data: Record<string, unknown>): string[] {
 
 export function skillErrorText(err: unknown): string {
   const code = (err as { code?: string | null } | null)?.code;
-  if (code === "skill_unavailable") return "A skill you picked is no longer available. Remove it and try again.";
-  return err instanceof Error && err.message ? err.message : "Could not reach the backend.";
+  if (code === "skill_unavailable") return "Seçtiğiniz bir beceri artık kullanılamıyor. Onu kaldırıp yeniden deneyin.";
+  return err instanceof Error && err.message ? err.message : "Sunucuya ulaşılamadı.";
 }
 
 // Only a completed latest person turn is offered. The server rechecks ownership,

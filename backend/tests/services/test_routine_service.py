@@ -200,7 +200,7 @@ async def test_an_occurrence_later_than_the_catch_up_window_is_missed_not_run(sc
     await scheduler.tick()
     (run,) = await runs_of(sessions, routine.id)
     assert run.state == "missed" and run.thread_id is None
-    assert "at most 60 minutes late" in run.error
+    assert "en çok 60 dakika gecikmeyle" in run.error
     refreshed = await reload(sessions, Routine, routine.id)
     assert refreshed.next_run_at == datetime(2026, 10, 18, 10, 0, tzinfo=UTC)
     assert await notes(sessions, owner) == ["routine_missed"]
@@ -212,7 +212,7 @@ async def test_a_backlog_runs_its_newest_occurrence_once_and_records_the_rest(sc
     await scheduler.tick()
     missed, ran = await runs_of(sessions, routine.id)
     assert missed.state == "missed" and missed.scheduled_for == T0 + timedelta(minutes=1)
-    assert missed.error.startswith("9 earlier occurrences")
+    assert "önceki 9 çalışma" in missed.error
     assert ran.scheduled_for == T0 + timedelta(minutes=10) and ran.state == "running"
     await settled(scheduler, sessions, ran.id)
     assert len(await runs_of(sessions, routine.id)) == 2
@@ -233,7 +233,7 @@ async def test_an_occurrence_while_the_last_run_is_still_working_is_skipped(
     await scheduler.tick()
     first, second = await runs_of(sessions, routine.id)
     assert first.state == "running"
-    assert second.state == "skipped" and "still in progress" in second.error
+    assert second.state == "skipped" and "hâlâ sürüyordu" in second.error
     gate.write_text("go")
     assert (await settled(scheduler, sessions, first.id)).state == "completed"
     clock.advance(minutes=5)
@@ -306,7 +306,7 @@ async def test_the_run_limit_stops_a_run_and_records_it(scheduler, sessions, own
     clock.advance(seconds=61)
     await scheduler.tick()
     current = await reload(sessions, RoutineRun, run.id)
-    assert current.state == "failed" and "1-minute run limit" in current.error
+    assert current.state == "failed" and "1 dakikalık çalışma sınırına" in current.error
 
     async def stopped():
         async with sessions() as db:
@@ -334,9 +334,9 @@ async def test_a_deleted_agent_fails_the_run_and_pauses_the_routine(scheduler, s
         await agent_store.delete_agent(db, agent.id)
     await scheduler.tick()
     failed = await reload(sessions, RoutineRun, run.id)
-    assert failed.state == "failed" and "no longer exists" in failed.error
+    assert failed.state == "failed" and "artık yok" in failed.error
     paused = await reload(sessions, Routine, routine.id)
-    assert paused.paused and "Choose another agent" in paused.paused_reason
+    assert paused.paused and "Başka bir ajan seçip" in paused.paused_reason
 
 
 async def test_with_local_execution_off_a_run_fails_with_the_reason(scheduler, sessions, owner, agent, clock, monkeypatch):
@@ -367,7 +367,7 @@ async def test_after_a_restart_a_run_in_progress_is_interrupted_and_never_rerun(
     restarted = service.RoutineScheduler(runtime=rt, clock=clock)
     assert await restarted.recover() == [run.id]
     current = await reload(sessions, RoutineRun, run.id)
-    assert current.state == "interrupted" and "not re-run" in current.error
+    assert current.state == "interrupted" and "yeniden çalıştırılmadı" in current.error
     await restarted.tick()
     assert [r.id for r in await runs_of(sessions, routine.id)] == [run.id]
     assert len(cli.log("start")) == 1

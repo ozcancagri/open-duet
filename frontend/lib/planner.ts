@@ -36,6 +36,6 @@ export function rescheduleDeadline(item: Pick<WorkItem, "due_date" | "due_at">, 
   if (!item.due_at) return { due_date: day, due_at: null };
   const time = localDateTime(item.due_at).slice(11);
   const date = new Date(`${day}T${time}`);
-  if (localDateTime(date.toISOString()) !== `${day}T${time}`) throw new Error("That local time does not exist on this date. Edit the deadline to choose another time.");
+  if (localDateTime(date.toISOString()) !== `${day}T${time}`) throw new Error("Bu yerel saat bu tarihte yok. Son tarihi düzenleyip başka bir saat seçin.");
   return { due_date: null, due_at: date.toISOString(), timezone };
 }

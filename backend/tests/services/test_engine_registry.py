@@ -92,7 +92,7 @@ async def test_a_hanging_probe_is_unavailable_in_bounded_time():
     started = time.monotonic()
     entries = {e["id"]: e for e in await registry.describe()}
     assert time.monotonic() - started < 3
-    assert not entries["hang"]["available"] and "did not report its status" in entries["hang"]["reason"]
+    assert not entries["hang"]["available"] and "saniye içinde bildirmedi" in entries["hang"]["reason"]
     assert entries["ok"]["available"]
 
 

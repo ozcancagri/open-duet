@@ -286,7 +286,7 @@ async def test_a_failed_resume_breaks_the_thread_and_never_starts_a_new_session(
 
     failed = await reload(sessions, Turn, turn.id)
     assert (failed.status, failed.error_code) == ("failed", "session_resume_failed")
-    assert "Start a new session" in failed.error
+    assert "yeni bir oturum başlatın" in failed.error
     assert (await reload(sessions, Thread, thread.id)).session_state == "broken"
     assert await types_of(sessions, thread.id) == ["turn.started", "turn.failed"]
     assert cli.launches() == [("resume", thread.provider_session_id)]  # no fresh session was tried

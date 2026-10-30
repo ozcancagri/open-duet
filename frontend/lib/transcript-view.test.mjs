@@ -31,12 +31,12 @@ test("the run summary counts running and failed calls", () => {
 test("a pending approval is announced before older news", () => {
   const a = announcement([other("assistant", "a1", { text: "Done." }), other("approval", "p1", { status: "pending" })]);
   assert.equal(a.key, "p1");
-  assert.match(a.text, /approval/);
+  assert.match(a.text, /onay/);
 });
 
 test("a settled answer is announced with its start; a stopped or streaming one is not", () => {
   const a = announcement([other("assistant", "a1", { text: "Here is\n  the result." })]);
-  assert.deepEqual(a, { key: "a1", text: "Agent replied: Here is the result." });
+  assert.deepEqual(a, { key: "a1", text: "Ajan yanıtladı: Here is the result." });
   assert.equal(announcement([other("assistant", "a1", { text: "partial", incomplete: true })]), null);
   const long = announcement([other("assistant", "a2", { text: "x".repeat(500) })]);
   assert.ok(long.text.endsWith("…") && long.text.length < 270);
@@ -44,12 +44,12 @@ test("a settled answer is announced with its start; a stopped or streaming one i
 
 test("a resolved approval and a completed run say nothing; a failed run does", () => {
   assert.equal(announcement([other("approval", "p1", { status: "allowed" }), other("turn_end", "e1", { status: "completed" })]), null);
-  assert.equal(announcement([other("turn_end", "e2", { status: "failed" })]).text, "The run failed.");
+  assert.equal(announcement([other("turn_end", "e2", { status: "failed" })]).text, "Çalıştırma başarısız oldu.");
   assert.equal(announcement([]), null);
 });
 
 test("spoken text drops Markdown marks and code but keeps link words", () => {
   const nl = String.fromCharCode(10);
   assert.equal(spokenText(["## Plan", "", "A **bold** step with `code` and [a link](https://x.test).", "", "- one", "- two"].join(nl)), "Plan A bold step with code and a link. one two");
-  assert.equal(spokenText(["Run:", "```bash", "rm -rf /", "```", "done"].join(nl)), "Run: code block done");
+  assert.equal(spokenText(["Run:", "```bash", "rm -rf /", "```", "done"].join(nl)), "Run: kod bloğu done");
 });

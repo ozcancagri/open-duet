@@ -65,34 +65,34 @@ test('computer creation is gated by the selected engine capability', () => {
 
   const unsupported = computerCreationGate(false, 'Codex');
   assert.equal(unsupported.enabled, false);
-  assert.match(unsupported.reason, /Codex can't run its tools in an agent computer/);
-  assert.match(unsupported.reason, /engine that supports computers/);
+  assert.match(unsupported.reason, /Codex araçlarını bir ajan bilgisayarında çalıştıramıyor/);
+  assert.match(unsupported.reason, /bilgisayarları destekleyen bir motor/);
 
   const unknown = computerCreationGate(undefined, 'Codex');
   assert.equal(unknown.enabled, false);
-  assert.match(unknown.reason, /support for Codex could not be confirmed/);
+  assert.match(unknown.reason, /Codex için bilgisayar desteği doğrulanamadı/);
 });
 
 test('labels for state, image, limits and the chip', () => {
-  assert.equal(computerStateLabel('missing'), 'Not made yet');
-  assert.equal(computerStateLabel(null), 'Unknown');
+  assert.equal(computerStateLabel('missing'), 'Henüz oluşturulmadı');
+  assert.equal(computerStateLabel(null), 'Bilinmiyor');
   assert.equal(computerStateLabel('weird'), 'weird');
   assert.equal(effectiveState(computer({ state: 'running', live_state: 'stopped' })), 'stopped');
   assert.equal(effectiveState(computer({ state: 'stopped' })), 'stopped');
   assert.equal(imageLabel('docker.io/library/python:3.12-slim-bookworm@sha256:abc'), 'python:3.12-slim-bookworm');
-  assert.equal(limitsText(computer({ cpus: 1.5, memory_mb: 2048 })), '1.5 CPU · 2 GB · 256 processes');
-  assert.equal(limitsText(computer({ memory_mb: 512 })), '1 CPU · 512 MB · 256 processes');
+  assert.equal(limitsText(computer({ cpus: 1.5, memory_mb: 2048 })), '1.5 CPU · 2 GB · 256 süreç');
+  assert.equal(limitsText(computer({ memory_mb: 512 })), '1 CPU · 512 MB · 256 süreç');
   assert.equal(computerChip(null), null);
-  assert.equal(computerChip(computer()), 'Computer · running');
-  assert.equal(computerChip(computer(), 'stopped'), 'Computer · stopped');
+  assert.equal(computerChip(computer()), 'Bilgisayar · çalışıyor');
+  assert.equal(computerChip(computer(), 'stopped'), 'Bilgisayar · durduruldu');
 });
 
 test('computer tools are recognised and described', () => {
   assert.ok(isComputerTool('mcp__computer__exec'));
   assert.ok(!isComputerTool('Bash'));
   assert.ok(!isComputerTool(undefined));
-  assert.equal(toolLabel('mcp__computer__exec'), 'run a command in its computer');
-  assert.equal(toolLabel('mcp__computer__write_file'), 'write a file in its computer');
+  assert.equal(toolLabel('mcp__computer__exec'), 'kendi bilgisayarında bir komut çalıştırmak');
+  assert.equal(toolLabel('mcp__computer__write_file'), 'kendi bilgisayarında bir dosya yazmak');
   assert.equal(toolLabel('Write'), 'Write');
 });
 
@@ -108,17 +108,17 @@ test('the next actions follow the state', () => {
 test('the last command reads as one line', () => {
   assert.equal(lastCommandText(computer()), null);
   const last = { tool: 'exec', subject: 'make test', exit_code: 2, timed_out: false, output: '', at: null };
-  assert.equal(lastCommandText(computer({ last_command: last })), 'make test (exit 2)');
-  assert.equal(lastCommandText(computer({ last_command: { ...last, tool: 'read_file', subject: 'a.txt', exit_code: 0 } })), 'read_file a.txt (exit 0)');
-  assert.equal(lastCommandText(computer({ last_command: { ...last, timed_out: true } })), 'make test (timed out)');
+  assert.equal(lastCommandText(computer({ last_command: last })), 'make test (çıkış 2)');
+  assert.equal(lastCommandText(computer({ last_command: { ...last, tool: 'read_file', subject: 'a.txt', exit_code: 0 } })), 'read_file a.txt (çıkış 0)');
+  assert.equal(lastCommandText(computer({ last_command: { ...last, timed_out: true } })), 'make test (zaman aşımı)');
 });
 
 test('a computer command can be always allowed, and automatic answers say why', () => {
   assert.ok(canAlwaysAllow('mcp__computer__exec', { command: 'ls' }));
   assert.ok(!canAlwaysAllow('mcp__computer__write_file', { path: 'a', content: 'b' }));
   const base = { id: '1', at: '', thread_id: 1, turn_id: 1, approval_id: 'a', tool: 'mcp__computer__read_file', kind: 'file_read', summary: 'computer: read_file a.txt', rule: null, remembered: false, mode: 'ask' };
-  assert.match(decisionText({ ...base, event: 'auto_allowed', source: 'computer_read' }), /reading inside the agent's computer/);
-  assert.match(decisionText({ ...base, event: 'auto_allowed', source: 'saved_rule' }), /a saved rule allowed it/);
-  assert.match(decisionText({ ...base, event: 'denied', source: 'plan_mode' }), /plan only changes nothing/);
-  assert.match(decisionText({ ...base, event: 'denied', source: 'user' }), /^You denied/);
+  assert.match(decisionText({ ...base, event: 'auto_allowed', source: 'computer_read' }), /ajanın bilgisayarında okuma/);
+  assert.match(decisionText({ ...base, event: 'auto_allowed', source: 'saved_rule' }), /kayıtlı bir kural izin verdi/);
+  assert.match(decisionText({ ...base, event: 'denied', source: 'plan_mode' }), /yalnız plan modunda hiçbir şey değişmez/);
+  assert.match(decisionText({ ...base, event: 'denied', source: 'user' }), /^Reddettiniz/);
 });

@@ -59,22 +59,22 @@ export function WorkItemEditor({ item, board, agents, threads, team, seedDate, s
     event.preventDefault();
     if (busy || stale) return;
     setError(null);
-    if (!draft.title.trim()) { setError("Give the task a title."); return; }
+    if (!draft.title.trim()) { setError("Göreve bir başlık verin."); return; }
     let dueAt: string | null = null;
     let dueDate: string | null = null;
     let savedZone = timezone;
     if (draft.deadlineKind === "date") {
-      if (!draft.date) { setError("Choose a deadline date."); return; }
+      if (!draft.date) { setError("Bir son tarih seçin."); return; }
       dueDate = draft.date;
     } else if (draft.deadlineKind === "time") {
-      if (!draft.time) { setError("Choose a deadline date and time."); return; }
+      if (!draft.time) { setError("Son tarih için tarih ve saat seçin."); return; }
       if (item?.due_at && localDateTime(item.due_at) === draft.time) {
         dueAt = item.due_at;
         savedZone = item.timezone;
       } else {
         const date = new Date(draft.time);
         if (!Number.isFinite(date.getTime()) || localDateTime(date.toISOString()) !== draft.time) {
-          setError("That local time does not exist on this date. Choose another time.");
+          setError("Bu yerel saat bu tarihte yok. Başka bir saat seçin.");
           return;
         }
         dueAt = date.toISOString();
@@ -90,86 +90,86 @@ export function WorkItemEditor({ item, board, agents, threads, team, seedDate, s
     };
     setBusy(true);
     try { await onSave(data); }
-    catch (err) { setError(err instanceof Error ? err.message : "Could not save this task. Try again."); }
+    catch (err) { setError(err instanceof Error ? err.message : "Bu görev kaydedilemedi. Yeniden deneyin."); }
     finally { setBusy(false); }
   }
 
   return (
-    <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }} title={item ? "Edit task" : "New task"} size="wide"
-      description="Plan work, set a deadline, and link a conversation.">
+    <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }} title={item ? "Görevi düzenle" : "Yeni görev"} size="wide"
+      description="İşi planlayın, son tarih belirleyin ve bir sohbet bağlayın.">
       <form onSubmit={save} className="space-y-4">
         {stale && <div role="alert" className="space-y-2 rounded-field border border-warning/50 bg-warning/10 p-3 text-sm">
-          <p>This task changed in another window. Load the latest version before saving. This replaces your unsaved edits.</p>
-          {onReload && <Button size="sm" onClick={() => { setDraft(draftOf(latestItem!, board)); setError(null); onReload(latestItem!); }}>Load latest version</Button>}
+          <p>Bu görev başka bir pencerede değişti. Kaydetmeden önce en son sürümü yükleyin. Bu işlem kaydedilmemiş düzenlemelerinizin yerine geçer.</p>
+          {onReload && <Button size="sm" onClick={() => { setDraft(draftOf(latestItem!, board)); setError(null); onReload(latestItem!); }}>En son sürümü yükle</Button>}
         </div>}
         <fieldset disabled={busy} className="space-y-4">
           <div>
-            <label htmlFor={`${id}-title`} className="mb-1 block text-sm font-medium">Title</label>
-            <input id={`${id}-title`} value={draft.title} onChange={event => change("title", event.target.value)} required maxLength={240} className={input} placeholder="What needs to happen?" />
+            <label htmlFor={`${id}-title`} className="mb-1 block text-sm font-medium">Başlık</label>
+            <input id={`${id}-title`} value={draft.title} onChange={event => change("title", event.target.value)} required maxLength={240} className={input} placeholder="Ne yapılması gerekiyor?" />
           </div>
           <div>
-            <label htmlFor={`${id}-description`} className="mb-1 block text-sm font-medium">Description</label>
-            <textarea id={`${id}-description`} value={draft.description} onChange={event => change("description", event.target.value)} maxLength={50000} rows={4} className={input} placeholder="Add context, a checklist, or the expected result…" />
+            <label htmlFor={`${id}-description`} className="mb-1 block text-sm font-medium">Açıklama</label>
+            <textarea id={`${id}-description`} value={draft.description} onChange={event => change("description", event.target.value)} maxLength={50000} rows={4} className={input} placeholder="Bağlam, bir kontrol listesi ya da beklenen sonucu ekleyin…" />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor={`${id}-status`} className="mb-1 block text-sm font-medium">Status</label>
+              <label htmlFor={`${id}-status`} className="mb-1 block text-sm font-medium">Durum</label>
               <select id={`${id}-status`} value={draft.columnId} onChange={event => change("columnId", Number(event.target.value))} className={input}>
                 {board.columns.map(column => <option key={column.id} value={column.id}>{column.name}</option>)}
               </select>
             </div>
             <div>
-              <label htmlFor={`${id}-priority`} className="mb-1 block text-sm font-medium">Priority</label>
+              <label htmlFor={`${id}-priority`} className="mb-1 block text-sm font-medium">Öncelik</label>
               <select id={`${id}-priority`} value={draft.priority} onChange={event => change("priority", event.target.value as WorkItem["priority"])} className={input}>
-                <option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option>
+                <option value="low">Düşük</option><option value="normal">Normal</option><option value="high">Yüksek</option><option value="urgent">Acil</option>
               </select>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor={`${id}-deadline-kind`} className="mb-1 block text-sm font-medium">Deadline</label>
+              <label htmlFor={`${id}-deadline-kind`} className="mb-1 block text-sm font-medium">Son tarih</label>
               <select id={`${id}-deadline-kind`} value={draft.deadlineKind} onChange={event => change("deadlineKind", event.target.value as DeadlineKind)} className={input}>
-                <option value="none">No deadline</option><option value="date">Date only</option><option value="time">Date and time</option>
+                <option value="none">Son tarih yok</option><option value="date">Yalnız tarih</option><option value="time">Tarih ve saat</option>
               </select>
             </div>
             {draft.deadlineKind === "date" && <div>
-              <label htmlFor={`${id}-date`} className="mb-1 block text-sm font-medium">Due date</label>
+              <label htmlFor={`${id}-date`} className="mb-1 block text-sm font-medium">Son tarih</label>
               <input id={`${id}-date`} type="date" required value={draft.date} onChange={event => change("date", event.target.value)} className={input} />
             </div>}
             {draft.deadlineKind === "time" && <div>
-              <label htmlFor={`${id}-time`} className="mb-1 block text-sm font-medium">Due at · {timezone}</label>
+              <label htmlFor={`${id}-time`} className="mb-1 block text-sm font-medium">Son tarih ve saat · {timezone}</label>
               <input id={`${id}-time`} type="datetime-local" required value={draft.time} onChange={event => change("time", event.target.value)} className={input} />
             </div>}
           </div>
-          <p className="text-xs text-muted">Deadlines and status changes do not start an agent. Save your changes, then use Run & history to start or schedule work.</p>
+          <p className="text-xs text-muted">Son tarihler ve durum değişiklikleri bir ajanı başlatmaz. Değişikliklerinizi kaydedin, ardından işi başlatmak ya da zamanlamak için Çalıştır ve geçmiş düğmesini kullanın.</p>
           <div>
-            <label htmlFor={`${id}-assignee`} className="mb-1 block text-sm font-medium">Assigned to</label>
+            <label htmlFor={`${id}-assignee`} className="mb-1 block text-sm font-medium">Atanan</label>
             <select id={`${id}-assignee`} value={draft.assignee} onChange={event => change("assignee", event.target.value)} className={input}>
-              <option value="">Unassigned</option>
-              {team && <option value={`team:${team.id}`}>Team · {team.name}</option>}
+              <option value="">Atanmamış</option>
+              {team && <option value={`team:${team.id}`}>Takım · {team.name}</option>}
               {agents.map(agent => <option key={agent.id} value={`agent:${agent.id}`}>{agent.name}</option>)}
-              {unavailableAgent && <option value={`agent:${item!.agent_id}`}>Unavailable agent · #{item!.agent_id}</option>}
-              {unavailableTeam && <option value={`team:${item!.team_id}`}>Unavailable team · #{item!.team_id}</option>}
+              {unavailableAgent && <option value={`agent:${item!.agent_id}`}>Kullanılamayan ajan · #{item!.agent_id}</option>}
+              {unavailableTeam && <option value={`team:${item!.team_id}`}>Kullanılamayan takım · #{item!.team_id}</option>}
             </select>
           </div>
           <div>
-            <label htmlFor={`${id}-thread`} className="mb-1 block text-sm font-medium">Linked conversation</label>
+            <label htmlFor={`${id}-thread`} className="mb-1 block text-sm font-medium">Bağlı sohbet</label>
             <select id={`${id}-thread`} value={draft.threadId ?? ""} onChange={event => change("threadId", event.target.value ? Number(event.target.value) : null)} className={input}>
-              <option value="">No linked conversation</option>
-              {threads.map(thread => <option key={thread.id} value={thread.id}>{thread.title || `Conversation #${thread.id}`}</option>)}
-              {unavailableThread && <option value={item!.thread_id!}>Unavailable conversation · #{item!.thread_id}</option>}
+              <option value="">Bağlı sohbet yok</option>
+              {threads.map(thread => <option key={thread.id} value={thread.id}>{thread.title || `Sohbet #${thread.id}`}</option>)}
+              {unavailableThread && <option value={item!.thread_id!}>Kullanılamayan sohbet · #{item!.thread_id}</option>}
             </select>
             {draft.threadId !== null && threads.some(thread => thread.id === draft.threadId) && <Link href={`/chat?thread=${draft.threadId}`} className="mt-2 inline-block text-xs text-accent underline" onClick={event => {
               if (busy) { event.preventDefault(); return; }
               (onOpenThread ?? onClose)();
-            }}>Open linked conversation</Link>}
+            }}>Bağlı sohbeti aç</Link>}
           </div>
         </fieldset>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
-          {item && onRun && <Button disabled={busy || stale || dirty} onClick={() => onRun(item)}>Run & history</Button>}
-          <Button disabled={busy} onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" loading={busy} disabled={stale || !draft.title.trim()}>{item ? "Save changes" : "Create task"}</Button>
+          {item && onRun && <Button disabled={busy || stale || dirty} onClick={() => onRun(item)}>Çalıştır ve geçmiş</Button>}
+          <Button disabled={busy} onClick={onClose}>İptal</Button>
+          <Button type="submit" variant="primary" loading={busy} disabled={stale || !draft.title.trim()}>{item ? "Değişiklikleri kaydet" : "Görev oluştur"}</Button>
         </div>
       </form>
     </Dialog>

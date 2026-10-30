@@ -47,7 +47,7 @@ test('calendar dates and rescheduling retain wall time across daylight saving tr
     assert.equal(moved.due_at, '2026-03-08T13:30:00.000Z');
     assert.equal(moved.timezone, 'America/New_York');
     assert.equal(deadlineDay({ due_date: null, due_at: '2026-03-08T02:00:00Z' }), '2026-03-07');
-    assert.throws(() => rescheduleDeadline({ due_date: null, due_at: '2026-03-07T07:30:00Z' }, '2026-03-08', 'America/New_York'), /does not exist/);
+    assert.throws(() => rescheduleDeadline({ due_date: null, due_at: '2026-03-07T07:30:00Z' }, '2026-03-08', 'America/New_York'), /bu tarihte yok/);
   } finally {
     if (original === undefined) delete process.env.TZ;
     else process.env.TZ = original;

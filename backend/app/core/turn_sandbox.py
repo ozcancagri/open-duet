@@ -49,7 +49,7 @@ def _check_grant(path: Path, *, resolver_file: bool = False) -> None:
     trusted_resolver = resolver_file and path in _RESOLVER_FILES and path.is_file()
     unsafe_tree = any(_contains(Path(root), path) for root in ('/proc', '/sys', '/dev', '/run')) and not trusted_resolver
     if path in (Path('/'), Path('/tmp')) or unsafe_tree or any(_contains(path, item) for item in protected):
-        raise SandboxUnavailable('A sandbox mount would expose the home or application data. Use a narrower folder.')
+        raise SandboxUnavailable('Korumalı alan bağlaması ana klasörü ya da uygulama verilerini açığa çıkarır. Daha dar bir klasör kullanın.')
 
 
 def mailbox_mounts(launches: Iterable) -> list[Path]:
@@ -64,17 +64,17 @@ def mailbox_mounts(launches: Iterable) -> list[Path]:
         if '--mailbox' in args:
             index = args.index('--mailbox')
             if index + 1 >= len(args):
-                raise SandboxUnavailable('Invalid sandbox mailbox descriptor.')
+                raise SandboxUnavailable('Geçersiz korumalı alan posta kutusu tanımı.')
             result.append(_path(args[index + 1]))
     return result
 
 
 def _base() -> list[str]:
     if not sys.platform.startswith('linux') or profile.active():
-        raise SandboxUnavailable('The turn sandbox requires Linux server mode; no engine was started.')
+        raise SandboxUnavailable('Yanıt korumalı alanı Linux sunucu modu gerektirir; motor başlatılmadı.')
     exe = shutil.which('bwrap')
     if exe is None:
-        raise SandboxUnavailable('The turn sandbox requires bubblewrap; no engine was started.')
+        raise SandboxUnavailable('Yanıt korumalı alanı bubblewrap gerektirir; motor başlatılmadı.')
     result = [exe, '--die-with-parent', '--new-session', '--unshare-user', '--unshare-pid',
               '--unshare-ipc', '--unshare-uts', '--cap-drop', 'ALL', '--proc', '/proc',
               '--dev', '/dev', '--tmpfs', '/tmp', '--tmpfs', '/run',
@@ -106,18 +106,18 @@ def command(args: list[str], *, cwd: str | Path, env: Mapping[str, str],
     broader directory. Custom runtimes outside /usr need an explicit grant.
     """
     if settings.TURN_SANDBOX_NETWORK_ENABLED and not settings.TURN_SANDBOX_ENABLED:
-        raise SandboxUnavailable('Network isolation requires the Linux turn sandbox; no engine was started.')
+        raise SandboxUnavailable('Ağ yalıtımı Linux yanıt korumalı alanını gerektirir; motor başlatılmadı.')
     if not settings.TURN_SANDBOX_ENABLED:
         return args
     result = _base()
     work = _path(cwd)
     if not work.is_dir():
-        raise SandboxUnavailable('The sandbox workspace must be a directory.')
+        raise SandboxUnavailable('Korumalı alan çalışma klasörü bir dizin olmalı.')
     # The legacy default workspace holds every agent. Per-agent workspaces are
     # fine; a shared root would reveal other agents even inside a mount box.
     from app.services.local_claude_runner import workspace_dir
     if work == workspace_dir():
-        raise SandboxUnavailable('Choose an agent workspace before using the turn sandbox.')
+        raise SandboxUnavailable('Yanıt korumalı alanını kullanmadan önce bir ajan çalışma klasörü seçin.')
     _check_grant(work)
     read_paths = [Path(__file__).resolve().parents[1], Path(sys.prefix), *readonly]
     read_paths += [Path(x.strip()) for x in settings.TURN_SANDBOX_READONLY_PATHS.split(',') if x.strip()]
@@ -165,7 +165,7 @@ def self_check() -> dict:
     falls through to an unboxed launch. No provider key is passed to the probe.
     """
     if settings.TURN_SANDBOX_NETWORK_ENABLED and not settings.TURN_SANDBOX_ENABLED:
-        raise SandboxUnavailable('Network isolation requires the Linux turn sandbox; no engine was started.')
+        raise SandboxUnavailable('Ağ yalıtımı Linux yanıt korumalı alanını gerektirir; motor başlatılmadı.')
     if not settings.TURN_SANDBOX_ENABLED:
         return {'status': 'off', 'reason': 'Not enabled', 'network': 'unrestricted'}
     args = _base()
@@ -184,13 +184,13 @@ def self_check() -> dict:
             done = subprocess.run([*args, '--', '/bin/sh', '-c', script, 'check', str(canary)],
                                   env={'PATH': '/usr/bin:/bin'}, capture_output=True, text=True, timeout=10)
         except (OSError, subprocess.SubprocessError) as exc:
-            raise SandboxUnavailable('The Linux sandbox self-check failed; no engine was started.') from exc
+            raise SandboxUnavailable('Linux korumalı alan öz denetimi başarısız oldu; motor başlatılmadı.') from exc
     lines = done.stdout.strip().splitlines()
     if done.returncode or not lines or lines[0] == os.readlink('/proc/self/ns/pid') or not lines[0].startswith('pid:['):
-        raise SandboxUnavailable('The Linux sandbox self-check failed; no engine was started.')
+        raise SandboxUnavailable('Linux korumalı alan öz denetimi başarısız oldu; motor başlatılmadı.')
     if settings.TURN_SANDBOX_NETWORK_ENABLED and (len(lines) != 2 or not lines[1].startswith('net:[')
                                                   or lines[1] == os.readlink('/proc/self/ns/net')):
-        raise SandboxUnavailable('The Linux network namespace self-check failed; no engine was started.')
+        raise SandboxUnavailable('Linux ağ ad alanı öz denetimi başarısız oldu; motor başlatılmadı.')
     return {'status': 'available', 'filesystem': 'explicit mounts', 'processes': 'private PID namespace',
             'network': 'public HTTP(S) gate' if settings.TURN_SANDBOX_NETWORK_ENABLED else 'unrestricted'}
 

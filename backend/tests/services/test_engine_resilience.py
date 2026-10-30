@@ -43,7 +43,7 @@ async def test_an_engine_whose_status_hangs_is_refused_in_bounded_time(rt, sessi
     thread = await new_thread(sessions, owner, provider="hanging", provider_session_id=None)
     with pytest.raises(ProviderUnavailable) as refused:
         await asyncio.wait_for(rt.send_turn(thread.id, "hi"), 5)
-    assert "did not report its status" in str(refused.value)
+    assert "saniye içinde bildirmedi" in str(refused.value)
     assert rt._runs == {}
 
 
@@ -78,5 +78,5 @@ async def test_a_registry_listing_survives_a_hanging_and_a_raising_engine(rt, mo
     rt.engines.probe_timeout = 0.3
     listed = {e["id"]: e for e in await asyncio.wait_for(rt.engines.describe(refresh=True), 5)}
     assert listed["claude"]["available"] is True
-    assert listed["hanging"]["available"] is False and "did not report" in listed["hanging"]["reason"]
+    assert listed["hanging"]["available"] is False and "içinde bildirmedi" in listed["hanging"]["reason"]
     assert listed["raising"]["available"] is False and "secret" not in listed["raising"]["reason"]

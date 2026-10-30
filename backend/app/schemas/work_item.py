@@ -23,7 +23,7 @@ class WorkFields(BaseModel):
     @classmethod
     def clean_title(cls, value):
         if not value.strip():
-            raise ValueError("Give the task a title")
+            raise ValueError("Göreve bir başlık verin")
         return value.strip()
 
     @field_validator("timezone")
@@ -32,7 +32,7 @@ class WorkFields(BaseModel):
         try:
             ZoneInfo(value)
         except (ZoneInfoNotFoundError, ValueError):
-            raise ValueError("Choose a valid IANA timezone") from None
+            raise ValueError("Geçerli bir IANA saat dilimi seçin") from None
         return value
 
 

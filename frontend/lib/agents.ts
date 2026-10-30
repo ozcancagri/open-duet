@@ -6,18 +6,18 @@ export const MODEL_SUGGESTIONS = ["default", "sonnet", "opus", "haiku"] as const
 export const APPROVAL_MODES: { value: ApprovalMode; label: string; description: string }[] = [
   {
     value: "ask",
-    label: "Ask first",
-    description: "Your agent asks before it writes a file or runs a command. Reading is allowed.",
+    label: "Önce sor",
+    description: "Ajanınız bir dosya yazmadan ya da komut çalıştırmadan önce sorar. Okumaya izin verilir.",
   },
   {
     value: "accept_edits",
-    label: "Accept edits",
-    description: "File edits go ahead without asking. Commands still ask first.",
+    label: "Düzenlemeleri kabul et",
+    description: "Dosya düzenlemeleri sormadan yapılır. Komutlar için yine önce sorulur.",
   },
   {
     value: "plan",
-    label: "Plan only",
-    description: "Your agent looks around and writes a plan, but changes nothing.",
+    label: "Yalnız plan",
+    description: "Ajanınız etrafı inceler ve bir plan yazar, ama hiçbir şeyi değiştirmez.",
   },
 ];
 
@@ -28,11 +28,12 @@ export function approvalModeLabel(mode: string): string {
 // "default" in the box means the provider's own default, which is stored as no model.
 export function modelFromInput(text: string): string | null {
   const model = text.trim();
-  return model === "" || model.toLowerCase() === "default" ? null : model;
+  const lower = model.toLocaleLowerCase("tr");
+  return model === "" || model.toLowerCase() === "default" || lower === "varsayılan" ? null : model;
 }
 
 export function modelLabel(model: string | null): string {
-  return model ?? "default";
+  return model ?? "varsayılan";
 }
 
 // Names by id, for lists that show which agent a conversation uses.
@@ -53,10 +54,10 @@ export function memoryGauge(memory: Pick<AgentMemory, "lines" | "bytes" | "max_l
   const share = Math.max(memory.lines / memory.max_lines, memory.bytes / memory.max_bytes);
   const percent = Math.min(100, Math.round(share * 100));
   const level = memory.truncated ? "over" : share >= 0.8 ? "near" : "ok";
-  const size = `${memory.lines} of ${memory.max_lines} lines · ${formatKB(memory.bytes)} of ${formatKB(memory.max_bytes)}`;
+  const size = `${memory.lines} / ${memory.max_lines} satır · ${formatKB(memory.bytes)} / ${formatKB(memory.max_bytes)}`;
   const past = Math.max(0, memory.lines - (memory.expired_lines ?? 0) - memory.loaded_lines);
-  const cut = memory.truncated ? ` · ${past} lines past the limit do not load` : "";
-  const expired = memory.expired ? ` · ${memory.expired} expired ${memory.expired === 1 ? "note is" : "notes are"} not loaded` : "";
+  const cut = memory.truncated ? ` · sınırı aşan ${past} satır yüklenmez` : "";
+  const expired = memory.expired ? ` · süresi dolmuş ${memory.expired} not yüklenmez` : "";
   return { percent, level, text: size + cut + expired };
 }
 
@@ -67,12 +68,12 @@ function formatKB(bytes: number): string {
 // One line for what a tidy-up did.
 export function tidyLine(r: { organized: number; expired: number; duplicates: number; superseded: number; note: string | null }): string {
   const parts = [
-    r.organized ? `${r.organized} filed into topic notes` : "",
-    r.expired ? `${r.expired} expired moved to the archive` : "",
-    r.duplicates ? `${r.duplicates} repeat${r.duplicates === 1 ? "" : "s"} removed` : "",
-    r.superseded ? `${r.superseded} contradicted note${r.superseded === 1 ? "" : "s"} struck through` : "",
+    r.organized ? `${r.organized} not konu notlarına taşındı` : "",
+    r.expired ? `süresi dolmuş ${r.expired} not arşive taşındı` : "",
+    r.duplicates ? `${r.duplicates} tekrar kaldırıldı` : "",
+    r.superseded ? `çelişen ${r.superseded} notun üstü çizildi` : "",
   ].filter(Boolean);
-  return (parts.length ? `Tidied: ${parts.join(", ")}.` : "Nothing to tidy.") + (r.note ? ` ${r.note}` : "");
+  return (parts.length ? `Toparlandı: ${parts.join(", ")}.` : "Toparlanacak bir şey yok.") + (r.note ? ` ${r.note}` : "");
 }
 
 // The text of an agent file as saved to disk.
@@ -87,10 +88,10 @@ export function parseAgentFile(text: string): Record<string, unknown> {
   try {
     value = JSON.parse(text);
   } catch {
-    throw new Error("That file is not an agent file (it is not JSON).");
+    throw new Error("Bu dosya bir ajan dosyası değil (JSON değil).");
   }
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("That file is not an agent file.");
+    throw new Error("Bu dosya bir ajan dosyası değil.");
   }
   return value as Record<string, unknown>;
 }
@@ -108,5 +109,5 @@ export function agentFileHasNotes(document: Record<string, unknown>): boolean {
 // After an export: which parts had something that looked like a secret replaced.
 export function redactionNotice(parts: string[]): string | null {
   if (parts.length === 0) return null;
-  return `Something that looked like a secret was replaced in: ${parts.join(", ")}.`;
+  return `Gizli bilgiye benzeyen bir şey şu bölümlerde değiştirildi: ${parts.join(", ")}.`;
 }

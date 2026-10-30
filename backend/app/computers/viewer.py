@@ -28,7 +28,7 @@ class Viewers:
         self.tickets = {k: v for k, v in self.tickets.items() if v.until > now}
         # A signed-in client cannot fill unbounded memory by minting tickets.
         if len(self.tickets) >= 256:
-            raise ValueError("Too many pending viewers. Wait 30 seconds.")
+            raise ValueError("Bekleyen görüntüleyici sayısı çok fazla. 30 saniye bekleyin.")
         token = secrets.token_hex(32)
         self.tickets[token] = Ticket(computer_id, lease, identity, now+30)
         return token
@@ -57,7 +57,7 @@ async def bridge(websocket, spec, docker, valid):
     """Bounded binary messages, backpressure, first-byte timeout and revalidation."""
     # No browser credentials or engine API keys reach the child process.
     env = {k: v for k, v in os.environ.items() if k in {"PATH", "HOME", "SYSTEMROOT", "DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG", "SSH_AUTH_SOCK"}}
-    host_exec.ensure_allowed("a Docker command")
+    host_exec.ensure_allowed("Docker komutu")
     proc = await asyncio.create_subprocess_exec(
         docker or docker_cli.docker_executable() or "docker", *docker_cli.rfb_args(spec.name, spec.run_as),
         stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,

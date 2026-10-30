@@ -42,7 +42,7 @@ def test_weekdays_kind_matches_its_days_and_time():
     assert [local(d, ny) for d in dates] == [
         datetime(2026, 10, 18, 7, 15), datetime(2026, 10, 24, 7, 15), datetime(2026, 10, 25, 7, 15)
     ]
-    assert s.summary("weekdays", spec, "America/New_York") == "Weekends at 07:15 (America/New_York)"
+    assert s.summary("weekdays", spec, "America/New_York") == "Hafta sonları, saat 07:15 (America/New_York)"
 
 
 def test_interval_counts_elapsed_minutes_from_its_anchor():
@@ -52,7 +52,7 @@ def test_interval_counts_elapsed_minutes_from_its_anchor():
         datetime(2026, 10, 17, 14, 0, tzinfo=UTC),
         datetime(2026, 10, 17, 15, 30, tzinfo=UTC),
     ]
-    assert s.summary("interval", spec, "UTC") == "Every 90 minutes"
+    assert s.summary("interval", spec, "UTC") == "Her 90 dakikada bir"
 
 
 def test_interval_without_anchor_starts_from_now():
@@ -68,20 +68,20 @@ def test_once_reads_a_naive_time_in_the_routine_zone():
 
 def test_manual_never_runs_on_its_own():
     assert s.next_after("manual", {}, "UTC", NOW) is None
-    assert s.summary("manual", {}, "UTC").startswith("Only when run")
+    assert s.summary("manual", {}, "UTC").startswith("Yalnız elle")
 
 
 @pytest.mark.parametrize(
     "kind, spec, message",
     [
-        ("cron", {"expression": "0 9 * *"}, "five fields"),
-        ("cron", {"expression": "61 9 * * *"}, "Invalid cron"),
-        ("weekdays", {"days": [], "time": "09:00"}, "at least one day"),
-        ("weekdays", {"days": [7], "time": "09:00"}, "from 0"),
-        ("weekdays", {"days": [1], "time": "9am"}, "HH:MM"),
-        ("interval", {"every_minutes": 1}, "from 5"),
+        ("cron", {"expression": "0 9 * *"}, "beş alanı"),
+        ("cron", {"expression": "61 9 * * *"}, "Geçersiz cron"),
+        ("weekdays", {"days": [], "time": "09:00"}, "En az bir gün"),
+        ("weekdays", {"days": [7], "time": "09:00"}, r"0 \(Pazar\)"),
+        ("weekdays", {"days": [1], "time": "9am"}, "SS:DD"),
+        ("interval", {"every_minutes": 1}, "5 ile"),
         ("once", {"at": "tomorrow"}, "ISO"),
-        ("hourly", {}, "kind must be"),
+        ("hourly", {}, "türü şunlardan biri"),
     ],
 )
 def test_invalid_specs_say_what_is_wrong(kind, spec, message):
@@ -90,7 +90,7 @@ def test_invalid_specs_say_what_is_wrong(kind, spec, message):
 
 
 def test_unknown_timezone_is_refused():
-    with pytest.raises(s.InvalidSchedule, match="Unknown timezone"):
+    with pytest.raises(s.InvalidSchedule, match="Bilinmeyen saat dilimi"):
         s.normalize("cron", {"expression": "0 9 * * *"}, "Mars/Olympus", now=NOW)
 
 
@@ -135,13 +135,13 @@ def test_latest_due_collapses_a_backlog():
 @pytest.mark.parametrize(
     "expression, text",
     [
-        ("* * * * *", "Every minute (UTC)"),
-        ("*/15 * * * *", "Every 15 minutes (UTC)"),
-        ("5 * * * *", "Every hour at :05 (UTC)"),
-        ("0 9 * * *", "Every day at 09:00 (UTC)"),
-        ("0 9 * * 1-5", "Mon–Fri at 09:00 (UTC)"),
-        ("0 18 * * 0,6", "Weekends at 18:00 (UTC)"),
-        ("0 9 1 * *", "Monthly on day 1 at 09:00 (UTC)"),
+        ("* * * * *", "Her dakika (UTC)"),
+        ("*/15 * * * *", "Her 15 dakikada bir (UTC)"),
+        ("5 * * * *", "Her saat başı :05 geçe (UTC)"),
+        ("0 9 * * *", "Her gün, saat 09:00 (UTC)"),
+        ("0 9 * * 1-5", "Pzt–Cum, saat 09:00 (UTC)"),
+        ("0 18 * * 0,6", "Hafta sonları, saat 18:00 (UTC)"),
+        ("0 9 1 * *", "Her ayın 1. günü, saat 09:00 (UTC)"),
         ("0 9 1 1 *", "Cron 0 9 1 1 * (UTC)"),
     ],
 )

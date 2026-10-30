@@ -54,17 +54,17 @@ class ClaudeLogin:
 
     async def start(self, owner: str, executable: Path):
         if self.task and not self.task.done():
-            raise LoginError("A Claude sign-in is already running.")
+            raise LoginError("Zaten süren bir Claude girişi var.")
         env = child_env()
         home = Path(env.get("CLAUDE_CONFIG_DIR") or str(Path.home() / ".claude"))
         if not home.is_absolute():
-            raise LoginError("Use an absolute CLAUDE_CONFIG_DIR before signing in.")
+            raise LoginError("Giriş yapmadan önce tam (mutlak) bir CLAUDE_CONFIG_DIR kullanın.")
         home = home.resolve()
         home.mkdir(parents=True, exist_ok=True)
         fd = os.open(home / ".open-dots-login.lock", os.O_RDWR | os.O_CREAT, 0o600)
         if not data_lease._try_lock(fd):
             os.close(fd)
-            raise LoginError("Another Claude sign-in is running for this account.")
+            raise LoginError("Bu hesap için başka bir Claude girişi sürüyor.")
         flow = {"id": uuid4().hex, "owner": owner, "phase": "running"}
         self.flow = flow
         self.task = asyncio.create_task(self._run(flow, executable.resolve(), env))
@@ -80,17 +80,17 @@ class ClaudeLogin:
 
     def view(self, owner: str, flow_id: str):
         if not self.flow or self.flow["owner"] != owner or self.flow["id"] != flow_id:
-            raise KeyError("Sign-in not found")
+            raise KeyError("Giriş bulunamadı")
         return {key: value for key, value in self.flow.items() if key != "owner"}
 
     async def complete(self, owner: str, flow_id: str, code: str):
         self.view(owner, flow_id)
         if not isinstance(code, str) or not re.fullmatch(r"[A-Za-z0-9_#.:\-]{8,1024}", code):
-            raise LoginError("Paste the full code from the Claude sign-in page.")
+            raise LoginError("Claude giriş sayfasındaki kodun tamamını yapıştırın.")
         flow, proc = self.flow, self._process
         if (flow["phase"] != "running" or not flow.get("authorization_url")
                 or flow.get("code_sent") or proc is None or proc.returncode is not None):
-            raise LoginError("This sign-in cannot accept a code. Start again if needed.")
+            raise LoginError("Bu giriş kod kabul edemiyor. Gerekirse yeniden başlatın.")
         # Reserve before the first await; concurrent requests cannot send twice.
         flow["code_sent"] = True
         try:
@@ -98,7 +98,7 @@ class ClaudeLogin:
             await asyncio.wait_for(proc.stdin.drain(), 3)
         except (OSError, RuntimeError, TimeoutError):
             await self.close()
-            raise LoginError("Could not hand the code to Claude. Start sign-in again.") from None
+            raise LoginError("Kod Claude'a iletilemedi. Girişi yeniden başlatın.") from None
 
     async def cancel(self, owner: str, flow_id: str):
         self.view(owner, flow_id)
@@ -120,7 +120,7 @@ class ClaudeLogin:
             return True
         if not status.timed_out and not status.failed_to_start and status.exit_code == 1 and value is False:
             return False
-        raise LoginError("Claude could not confirm its account status. Check the CLI installation on the server.")
+        raise LoginError("Claude hesap durumunu doğrulayamadı. Sunucudaki CLI kurulumunu kontrol edin.")
 
     async def _run(self, flow, executable, env):
         proc = None
@@ -133,7 +133,7 @@ class ClaudeLogin:
                 # Prevent the server from opening a local browser; the owner
                 # opens the validated URL in their own browser instead.
                 env = {**env, "NO_COLOR": "1", "BROWSER": "true"}
-                host_exec.ensure_allowed("an engine sign-in")
+                host_exec.ensure_allowed("motor girişi")
                 starting = asyncio.create_task(asyncio.create_subprocess_exec(
                     str(executable), "auth", "login", stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
@@ -151,10 +151,10 @@ class ClaudeLogin:
                     while "authorization_url" not in flow:
                         chunk = await proc.stdout.read(1024)
                         if not chunk:
-                            raise LoginError("Claude did not provide a supported sign-in link. Update the CLI or sign in from the server terminal.")
+                            raise LoginError("Claude desteklenen bir giriş bağlantısı vermedi. CLI'ı güncelleyin ya da sunucu terminalinden giriş yapın.")
                         output += chunk
                         if len(output) > 16384:
-                            raise LoginError("Claude returned too much sign-in output.")
+                            raise LoginError("Claude çok fazla giriş çıktısı döndürdü.")
                         url = authorization_url(output.decode("utf-8", "replace"))
                         if url:
                             flow["authorization_url"] = url
@@ -163,20 +163,20 @@ class ClaudeLogin:
                 while chunk := await proc.stdout.read(1024):
                     total += len(chunk)
                     if total > 32768:
-                        raise LoginError("Claude returned too much sign-in output.")
+                        raise LoginError("Claude çok fazla giriş çıktısı döndürdü.")
                 if await proc.wait() != 0:
-                    raise LoginError("Claude sign-in did not finish. Start again with a new code.")
+                    raise LoginError("Claude girişi tamamlanmadı. Yeni bir kodla yeniden başlatın.")
                 if not await self._signed_in(executable, env):
-                    raise LoginError("Claude did not confirm the new account. Start sign-in again.")
+                    raise LoginError("Claude yeni hesabı doğrulamadı. Girişi yeniden başlatın.")
                 result = {"phase": "succeeded"}
         except asyncio.CancelledError:
             result = {"phase": "cancelled"}
         except TimeoutError:
-            result = {"phase": "expired", "error": "Claude sign-in timed out. Start again for a new link."}
+            result = {"phase": "expired", "error": "Claude girişi zaman aşımına uğradı. Yeni bir bağlantı için yeniden başlatın."}
         except LoginError as exc:
             result = {"phase": "failed", "error": str(exc)}
         except Exception:
-            result = {"phase": "failed", "error": "Could not start Claude sign-in. Check the CLI installation on the server."}
+            result = {"phase": "failed", "error": "Claude girişi başlatılamadı. Sunucudaki CLI kurulumunu kontrol edin."}
         finally:
             if proc:
                 cli_probe.kill_group(proc)

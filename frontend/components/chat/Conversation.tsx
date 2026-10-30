@@ -109,15 +109,15 @@ export function Conversation({
     <div className="relative min-h-0 flex-1">
       <Announcer items={transcript.items} />
       <div ref={scroller} onScroll={onScroll} className="h-full overflow-y-auto">
-        <div role="log" aria-live="off" aria-label="Conversation" className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-6">
+        <div role="log" aria-live="off" aria-label="Sohbet" className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-6">
           {empty && (
             <div className="flex flex-col items-center gap-3 py-16 text-center">
               <Avatar agentId={agent?.id ?? null} name={agent?.name} size="lg" />
-              <p className="text-lg font-semibold">{agent ? `Ask ${agent.name} something` : "Ask your agent something"}</p>
+              <p className="text-lg font-semibold">{agent ? `${agent.name} ajanına bir şey sorun` : "Ajanınıza bir şey sorun"}</p>
               {emptyHint && <p className="max-w-md text-sm text-muted">{emptyHint}</p>}
               {emptyAction && <Button variant="primary" onClick={emptyAction.onClick}>{emptyAction.label}</Button>}
               <p className="max-w-md text-xs text-faint">
-                History stays on this computer. Attach images or text files with the paperclip, paste, or drop them on the message box.
+                Geçmiş bu bilgisayarda kalır. Görsel ya da metin dosyalarını ataş simgesiyle ekleyebilir, yapıştırabilir ya da mesaj kutusuna bırakabilirsiniz.
               </p>
             </div>
           )}
@@ -173,13 +173,13 @@ export function Conversation({
           {transcript.typing !== null && transcript.typing !== "" && <AssistantMessage text={transcript.typing} live />}
 
           {working && !waitingOnYou && (
-            <p className="flex items-center gap-1.5 text-xs text-muted" aria-label="Working">
+            <p className="flex items-center gap-1.5 text-xs text-muted" aria-label="Çalışıyor">
               <span className="inline-flex gap-1" aria-hidden="true">
                 <span className="size-1.5 animate-pulse rounded-full bg-faint" />
                 <span className="size-1.5 animate-pulse rounded-full bg-faint [animation-delay:150ms]" />
                 <span className="size-1.5 animate-pulse rounded-full bg-faint [animation-delay:300ms]" />
               </span>
-              Working…
+              Çalışıyor…
             </p>
           )}
         </div>
@@ -188,8 +188,8 @@ export function Conversation({
         <button
           type="button"
           onClick={jumpToLatest}
-          aria-label="Jump to latest"
-          title="Jump to latest"
+          aria-label="En sona git"
+          title="En sona git"
           className="absolute bottom-3 left-1/2 inline-flex size-9 -translate-x-1/2 cursor-pointer animate-pop-in items-center justify-center rounded-full border border-line bg-raised text-ink shadow-lg hover:bg-hover touch:size-11"
         >
           <ArrowDown size={16} aria-hidden="true" />

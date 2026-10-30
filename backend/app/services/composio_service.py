@@ -88,7 +88,7 @@ async def set_key(db: AsyncSession, owner_id: str, key: str, make_client) -> Non
     """Check the key with Composio, then save it. A different key means a
     different project, so the saved session is dropped; the user id stays."""
     if not valid_key(key):
-        raise UserError(422, "invalid_composio_key", "A Composio project key starts with ak_ and has no spaces.")
+        raise UserError(422, "invalid_composio_key", "Composio proje anahtarı ak_ ile başlar ve boşluk içermez.")
     async with lock:
         previous = await load(db, owner_id)
         user_id = previous["user_id"] if previous else "opendots_" + uuid.uuid4().hex
@@ -113,26 +113,26 @@ async def remove_key(db: AsyncSession, owner_id: str) -> None:
 async def _needed(db: AsyncSession, owner_id: str) -> dict:
     record = await load(db, owner_id)
     if record is None:
-        raise UserError(409, "composio_not_configured", "Add your Composio key in Settings first.")
+        raise UserError(409, "composio_not_configured", "Önce Composio anahtarınızı Ayarlar'a ekleyin.")
     return record
 
 
 def _user_error(exc: ComposioError, *, saving: bool = False) -> UserError:
     if exc.kind == "key_rejected":
         message = (
-            "Composio did not accept this key. Check that it is a project key. A scoped key may also be missing "
-            "Connected accounts → Read; create a new key after changing scopes."
+            "Composio bu anahtarı kabul etmedi. Bunun bir proje anahtarı olduğunu kontrol edin. Kapsamlı bir anahtarda "
+            "Connected accounts → Read izni de eksik olabilir; kapsamları değiştirdikten sonra yeni bir anahtar oluşturun."
         ) if saving else (
-            "Composio rejected this key. It may be invalid or a scoped permission may be missing. Check Connected "
-            "accounts → Read, Session management → Write, and Session tool execution → Write; Connected accounts "
-            "→ Write is needed to disconnect accounts. Create and save a new key after changing scopes."
+            "Composio bu anahtarı reddetti. Anahtar geçersiz olabilir ya da kapsamlı bir izin eksik olabilir. Connected "
+            "accounts → Read, Session management → Write ve Session tool execution → Write izinlerini kontrol edin; hesapların bağlantısını kesmek için Connected accounts "
+            "→ Write gerekir. Kapsamları değiştirdikten sonra yeni bir anahtar oluşturup kaydedin."
         )
         return UserError(422 if saving else 409, "composio_key_rejected", message)
     if exc.kind == "permission_denied":
         message = (
-            "Composio denied this key's permissions. For a scoped project key, enable Connected accounts → Read, "
-            "Session management → Write, and Session tool execution → Write. Connected accounts → Write is also "
-            "needed to disconnect accounts. Create a new key after changing scopes; permissions are set when the key is created."
+            "Composio bu anahtarın izinlerini reddetti. Kapsamlı bir proje anahtarı için Connected accounts → Read, "
+            "Session management → Write ve Session tool execution → Write izinlerini açın. Hesapların bağlantısını kesmek için "
+            "Connected accounts → Write de gerekir. Kapsamları değiştirdikten sonra yeni bir anahtar oluşturun; izinler anahtar oluşturulurken belirlenir."
         )
         return UserError(403, "composio_permission_denied", message)
     if exc.kind == "rate_limited":
@@ -156,19 +156,19 @@ async def accounts(db: AsyncSession, owner_id: str, make_client) -> list[Account
 
 async def connect(db: AsyncSession, owner_id: str, make_client, toolkit: str, alias: str | None) -> Link:
     if toolkit not in dict(SUPPORTED_APPS):
-        raise UserError(422, "unsupported_app", "That app is not available yet.")
+        raise UserError(422, "unsupported_app", "Bu uygulama henüz kullanılamıyor.")
     if alias is not None and not valid_alias(alias):
-        raise UserError(422, "invalid_alias", "Use up to 40 letters, numbers, spaces, dots, dashes or underscores.")
+        raise UserError(422, "invalid_alias", "En çok 40 harf, rakam, boşluk, nokta, tire ya da alt çizgi kullanın.")
     async with lock:
         record = await _needed(db, owner_id)
         client = make_client(record["api_key"])
         try:
             existing = [a for a in await client.accounts(record["user_id"], toolkit) if a.status != "FAILED"]
             if len(existing) >= MAX_ACCOUNTS_PER_APP:
-                raise UserError(409, "too_many_accounts", f"Disconnect an account first; {MAX_ACCOUNTS_PER_APP} is the most per app.")
+                raise UserError(409, "too_many_accounts", f"Önce bir hesabın bağlantısını kesin; uygulama başına en çok {MAX_ACCOUNTS_PER_APP} hesap olabilir.")
             alias = alias or "od-" + uuid.uuid4().hex[:6]
             if any((a.alias or "").lower() == alias.lower() for a in existing):
-                raise UserError(409, "alias_in_use", "You already have an account with that name for this app.")
+                raise UserError(409, "alias_in_use", "Bu uygulama için bu adda bir hesabınız zaten var.")
             for attempt in range(2):
                 session_id = record.get("session_id")
                 if not session_id:
@@ -182,7 +182,7 @@ async def connect(db: AsyncSession, owner_id: str, make_client, toolkit: str, al
                     if exc.kind != "not_found" or attempt:
                         raise
                     record = {**record, "session_id": None}
-            raise ComposioError("bad_response", "Composio did not give a connect link.")
+            raise ComposioError("bad_response", "Composio bir bağlantı adresi vermedi.")
         except ComposioError as exc:
             raise _user_error(exc) from None
 
@@ -310,10 +310,10 @@ async def disconnect(db: AsyncSession, owner_id: str, make_client, account_id: s
     try:
         mine = {a.id for a in await client.accounts(record["user_id"])}
         if account_id not in mine:
-            raise UserError(404, "account_not_found", "That account is not connected here.")
+            raise UserError(404, "account_not_found", "Bu hesap burada bağlı değil.")
         await client.delete_account(account_id)
     except ComposioError as exc:
         error = _user_error(exc)
         if error.code in {"composio_unavailable", "composio_rate_limited"}:
-            error.message = "The account was not removed from Composio. Try again; it may still be connected there."
+            error.message = "Hesap Composio'dan kaldırılmadı. Yeniden deneyin; orada hâlâ bağlı olabilir."
         raise error from None

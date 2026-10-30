@@ -25,7 +25,7 @@ test('category and search combine; empty search keeps everything', () => {
 });
 
 test('category labels', () => {
-  assert.equal(categoryLabel('sales'), 'Sales');
+  assert.equal(categoryLabel('sales'), 'Satış');
   assert.equal(categoryLabel('misc'), 'Misc');
 });
 
@@ -53,7 +53,7 @@ test('a 404 from an older backend is a non-fatal notice', async () => {
   const result = await installTemplateSkills(7, 'x', skills, async () => { throw new ApiError(404, 'Not Found'); });
   assert.equal(result.unsupported, true);
   assert.deepEqual(result.failed, ['a-skill', 'b-skill']);
-  assert.match(skillInstallNotice(result), /no skills library/);
+  assert.match(skillInstallNotice(result), /beceri kitaplığı olmadığı/);
 });
 
 test('another failure skips that skill and keeps going', async () => {

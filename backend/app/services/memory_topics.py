@@ -73,8 +73,8 @@ class TopicDoc:
 def check_name(name: str) -> str:
     if not isinstance(name, str) or not _NAME.fullmatch(name) or name.lower() == agent_memory.MEMORY_FILE.lower():
         raise InvalidTopicName(
-            "A topic is one file name ending in .md: letters, digits, dashes and underscores, "
-            "at most 63 characters, for example travel.md."
+            "Konu, .md ile biten tek bir dosya adıdır: harf, rakam, tire ve alt çizgi; "
+            "en çok 63 karakter, örneğin travel.md."
         )
     return name
 
@@ -215,15 +215,15 @@ def write_topic(
     TooManyTopics."""
     check_name(name)
     if len(text.encode("utf-8")) > TOPIC_MAX_BYTES:
-        raise MemoryTooLarge(f"A topic note must be at most {TOPIC_MAX_BYTES // 1024} KB.")
+        raise MemoryTooLarge(f"Bir konu notu en çok {TOPIC_MAX_BYTES // 1024} KB olmalı.")
     folder = topics_dir(agent_id)
     if folder.is_symlink():
-        raise InvalidTopicName("The agent's memory folder is a link; replace it with a folder first.")
+        raise InvalidTopicName("Ajanın bellek klasörü bir bağlantı (link); önce onu bir klasörle değiştirin.")
     current = read_topic(agent_id, name)
     if expected_hash is not None and current.hash != expected_hash:
         raise MemoryConflict(current)
     if not current.exists and len(list_topics(agent_id)) >= MAX_TOPICS:
-        raise TooManyTopics(f"An agent keeps at most {MAX_TOPICS} topic notes; delete one first.")
+        raise TooManyTopics(f"Bir ajan en çok {MAX_TOPICS} konu notu tutar; önce birini silin.")
     clean, redacted = redact_secrets(text.replace("\r\n", "\n"))
     folder.mkdir(parents=True, exist_ok=True, mode=0o700)
     agent_memory.write_atomic(folder / name, clean)

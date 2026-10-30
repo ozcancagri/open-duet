@@ -280,7 +280,7 @@ async def test_calendar_global_projection_limit_is_visible(client, sessions, mon
     response = await client.get("/planner/routine-calendar", params={"start": start.isoformat(), "end": end.isoformat()})
     assert response.status_code == 200, response.text
     assert len(response.json()["events"]) == 3
-    assert any("first 3 scheduled occurrences" in warning for warning in response.json()["warnings"])
+    assert any("İlk 3 zamanlanmış tekrar" in warning for warning in response.json()["warnings"])
 
 
 async def test_calendar_high_frequency_routine_has_its_own_cap(client, sessions):
@@ -293,4 +293,4 @@ async def test_calendar_high_frequency_routine_has_its_own_cap(client, sessions)
     response = await client.get("/planner/routine-calendar", params={"start": start.isoformat(), "end": end.isoformat()})
     assert response.status_code == 200
     assert len(response.json()["events"]) == 500
-    assert any("first 500 occurrences" in warning for warning in response.json()["warnings"])
+    assert any("ilk 500 tekrar" in warning for warning in response.json()["warnings"])

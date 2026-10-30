@@ -24,7 +24,7 @@ export function NeedsYouCard({ item }: { item: Extract<TranscriptItem, { kind: "
                   <div className="min-w-0">
                     <p className="break-words">{row.title}</p>
                     {row.detail && <p className="break-words text-xs text-muted">{row.detail}</p>}
-                    {row.source && <p className="text-xs text-muted">{row.source}{row.at && <> · <time dateTime={row.at}>{new Date(row.at).toLocaleString(undefined, { timeZone: item.timeZone || "UTC" })}</time></>}</p>}
+                    {row.source && <p className="text-xs text-muted">{row.source}{row.at && <> · <time dateTime={row.at}>{new Date(row.at).toLocaleString("tr-TR", { timeZone: item.timeZone || "UTC" })}</time></>}</p>}
                   </div>
                   {action.href && (
                     <Link href={action.href} className="shrink-0 text-xs underline">
@@ -35,11 +35,11 @@ export function NeedsYouCard({ item }: { item: Extract<TranscriptItem, { kind: "
               );
             })}
           </ul>
-          {item.more > 0 && <p className="text-xs text-muted">and {item.more} more</p>}
+          {item.more > 0 && <p className="text-xs text-muted">ve {item.more} tane daha</p>}
         </>
       )}
-      {item.checkedAt && <p className="text-xs text-muted">Updated <time dateTime={item.checkedAt}>{new Date(item.checkedAt).toLocaleString(undefined, { timeZone: item.timeZone || "UTC" })}</time>{item.timeZone && ` (${item.timeZone})`}</p>}
-      {(item.sources?.calendar === "unavailable" || item.sources?.gmail === "unavailable") && <p className="text-xs text-muted">Calendar and Gmail are unavailable. This brief uses local records.</p>}
+      {item.checkedAt && <p className="text-xs text-muted">Güncellendi: <time dateTime={item.checkedAt}>{new Date(item.checkedAt).toLocaleString("tr-TR", { timeZone: item.timeZone || "UTC" })}</time>{item.timeZone && ` (${item.timeZone})`}</p>}
+      {(item.sources?.calendar === "unavailable" || item.sources?.gmail === "unavailable") && <p className="text-xs text-muted">Takvim ve Gmail kullanılamıyor. Bu özet yerel kayıtları kullanıyor.</p>}
     </section>
   );
 }

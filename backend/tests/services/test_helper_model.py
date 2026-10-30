@@ -265,7 +265,7 @@ async def test_the_usage_report_lists_helper_calls(rt, sessions, owner, seen, mo
     assert (helper["calls"], helper["input_tokens"], helper["output_tokens"]) == (2, 22, 10)
     assert helper["groups"][0]["agent"] == "Scout" and helper["groups"][0]["engine"] == "openai_compat"
     rows = [line for line in csv_text.splitlines() if ",helper," in line]
-    assert len(rows) == 2 and "Helper model: memory upkeep for Scout" in rows[0] and "tiny-model" in rows[0]
+    assert len(rows) == 2 and "Yardımcı model: bellek bakımı (Scout)" in rows[0] and "tiny-model" in rows[0]
 
 
 async def test_noticed_facts_are_filed_from_a_conversation_on_an_engine_without_a_call_via_the_helper(rt, sessions, owner, seen, monkeypatch):
@@ -300,7 +300,7 @@ async def test_the_tidy_up_asks_the_helper_for_an_engine_without_a_call(rt, sess
         "- 2026-10-05 · from chat \"E\" (noticed) · Has a dog\n",
     )
     without = await rt.capture.tidy(agent.id)
-    assert "cannot make the quick call" in without["note"] and seen.helper == []
+    assert "kısa çağrıyı yapamıyor" in without["note"] and seen.helper == []
     helper_on(monkeypatch)
     seen.helper_answer = '{"pairs": []}'
     with_helper = await rt.capture.tidy(agent.id)

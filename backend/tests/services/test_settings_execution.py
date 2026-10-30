@@ -73,7 +73,7 @@ async def test_saved_timeout_really_ends_the_child(execution, configured):
     await wait_until(lambda: _done(configured, request.id), timeout=40)
     result = await turn(configured, request.id)
     assert result.error_code == "timeout"
-    assert "30 seconds" in result.error
+    assert "30 saniye" in result.error
 
 
 async def _done(sessions, id):

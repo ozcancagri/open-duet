@@ -302,7 +302,7 @@ async def test_a_failed_turn_reports_codex_error(crt, sessions, owner, codex):
     failed = data_of(await events_of(sessions, thread.id), "turn.failed")[0]
     # A limit the engine reports is classified for every engine (engine_errors.py).
     assert failed["error_code"] == "engine_limited"
-    assert failed["error"].startswith("Codex has reached its usage limit (Codex says: \"usage limit reached\")")
+    assert failed["error"].startswith("Codex kullanım sınırına ulaştı (Codex diyor ki: \"usage limit reached\")")
 
 
 async def test_a_crash_mid_turn_fails_with_the_cli_error(crt, sessions, owner, codex):
@@ -346,7 +346,7 @@ async def test_probe_with_a_hanging_login_check_gives_up(codex):
 async def test_probe_without_codex(monkeypatch):
     monkeypatch.setattr(codex_adapter, "resolve_codex_executable", lambda: None)
     probe = await CodexAdapter().probe()
-    assert not probe.installed and not probe.ready and "not found" in probe.reason
+    assert not probe.installed and not probe.ready and "bulunamadı" in probe.reason
 
 
 async def test_team_mcp_create_uses_one_use_gate_with_host_tools_off(crt, sessions, owner, codex, monkeypatch):

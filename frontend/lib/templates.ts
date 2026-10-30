@@ -19,12 +19,12 @@ export type AgentTemplate = {
 export type TemplateCatalog = { version: number; categories: string[]; templates: AgentTemplate[] };
 
 export const CATEGORY_LABELS: Record<string, string> = {
-  everyday: "Everyday",
-  work: "Work",
-  writing: "Writing",
-  design: "Design",
-  sales: "Sales",
-  personal: "Personal",
+  everyday: "Gündelik",
+  work: "İş",
+  writing: "Yazı",
+  design: "Tasarım",
+  sales: "Satış",
+  personal: "Kişisel",
 };
 
 export function categoryLabel(category: string): string {
@@ -55,8 +55,10 @@ export function uniqueAgentName(name: string, taken: Iterable<string>, max = 80)
   }
 }
 
+const REQUIREMENT_LABELS: Record<string, string> = { email: "E-posta", community: "Topluluk" };
+
 export function requirementLabel(requirement: string): string {
-  return requirement.charAt(0).toUpperCase() + requirement.slice(1);
+  return REQUIREMENT_LABELS[requirement] ?? requirement.charAt(0).toUpperCase() + requirement.slice(1);
 }
 
 export type SkillInstallResult = { installed: string[]; failed: string[]; unsupported: boolean };
@@ -89,6 +91,6 @@ export async function installTemplateSkills(
 
 export function skillInstallNotice(result: SkillInstallResult): string | null {
   if (result.failed.length === 0) return null;
-  if (result.unsupported) return "The agent was created, but this version has no skills library, so the suggested skills were not added.";
-  return `The agent was created, but these skills were not added: ${result.failed.join(", ")}.`;
+  if (result.unsupported) return "Ajan oluşturuldu, ancak bu sürümde beceri kitaplığı olmadığı için önerilen beceriler eklenmedi.";
+  return `Ajan oluşturuldu, ancak şu beceriler eklenmedi: ${result.failed.join(", ")}.`;
 }

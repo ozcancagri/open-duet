@@ -132,12 +132,12 @@ async def test_routine_leaves_when_a_later_run_completes(sessions, rt, owner, le
     await routine_with_runs(sessions, owner, lead, "completed", "failed")
     async with sessions() as db:
         items = await needs_you.collect(db, owner, now=T0, engines=[], issues=[])
-    assert [i.title for i in items] == ["Digest failed"] and items[0].detail == "boom"
+    assert [i.title for i in items] == ["Digest başarısız oldu"] and items[0].detail == "boom"
     await routine_with_runs(sessions, owner, lead, "failed", "completed", name="Fixed")
     await routine_with_runs(sessions, owner, lead, "missed", name="Late")
     async with sessions() as db:
         titles = {i.title for i in await needs_you.collect(db, owner, now=T0, engines=[], issues=[])}
-    assert titles == {"Digest failed", "Late missed its time"}
+    assert titles == {"Digest başarısız oldu", "Late zamanını kaçırdı"}
 
 
 async def test_engines_and_repeats_ordered_most_blocking_first(sessions, rt, owner, lead):
@@ -324,9 +324,9 @@ async def test_local_completions_use_owner_day_and_refresh_quietly(sessions, rt,
     thread_id = opened["open"]["thread_id"]
     card = (await events(sessions, thread_id))[-1].data
     assert card["title"] == "Today" and card["day"] == "2026-10-25"
-    assert len(card["items"]) == 1 and "2 completed today" in card["items"][0]["title"]
+    assert len(card["items"]) == 1 and "bugün 2 kez tamamlandı" in card["items"][0]["title"]
     assert card["items"][0]["routine_id"] == routine.id
-    assert card["items"][0]["source"] == "Routine runs"
+    assert card["items"][0]["source"] == "Rutin çalışmaları"
     assert card["sources"] == {"local": "available", "calendar": "unavailable", "gmail": "unavailable"}
     clock.advance(minutes=1)
     await ny.tick()

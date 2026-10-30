@@ -41,7 +41,7 @@ def test_off_is_exact_argv_and_does_not_probe(monkeypatch):
 def test_unsupported_enabled_refuses(monkeypatch, enabled, desktop, platform):
     monkeypatch.setattr(box.sys, 'platform', platform)
     monkeypatch.setattr(box.profile, 'active', lambda: desktop)
-    with pytest.raises(box.SandboxUnavailable, match='Linux server'):
+    with pytest.raises(box.SandboxUnavailable, match='Linux sunucu'):
         box.command(['codex'], cwd=enabled, env={})
 
 
@@ -82,7 +82,7 @@ def test_shared_legacy_workspace_refuses_other_agent_exposure(monkeypatch, fake_
     monkeypatch.setattr(local_claude_runner, 'workspace_dir', lambda: fake_linux / 'local' / 'workspace')
     workspace = fake_linux / 'local' / 'workspace'
     (workspace / 'agents' / '1').mkdir(parents=True)
-    with pytest.raises(box.SandboxUnavailable, match='agent workspace'):
+    with pytest.raises(box.SandboxUnavailable, match='ajan çalışma klasörü'):
         box.command(['codex'], cwd=workspace, env={})
     args = box.command(['codex'], cwd=workspace / 'agents' / '1', env={})
     assert str(workspace) not in args
@@ -104,7 +104,7 @@ def test_only_named_engine_login_is_exposed(fake_linux):
 def test_self_check_rejects_failed_or_host_namespace(monkeypatch, fake_linux, returncode, stdout):
     monkeypatch.setattr(box.subprocess, 'run', lambda *a, **k: SimpleNamespace(returncode=returncode, stdout=stdout))
     monkeypatch.setattr(box.os, 'readlink', lambda path: 'pid:[host]')
-    with pytest.raises(box.SandboxUnavailable, match='self-check failed'):
+    with pytest.raises(box.SandboxUnavailable, match='öz denetimi başarısız'):
         box.self_check()
 
 

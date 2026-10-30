@@ -130,10 +130,10 @@ def _text(container: dict, field: str, *, required: bool = False) -> str | None:
     value = container.get(field)
     if value is None or (isinstance(value, str) and not value.strip() and not required):
         if required:
-            raise PackageError(f"agent.{field} is required")
+            raise PackageError(f"agent.{field} zorunlu")
         return None
     if not isinstance(value, str):
-        raise PackageError(f"agent.{field} must be text")
+        raise PackageError(f"agent.{field} metin olmalı")
     return value
 
 
@@ -141,28 +141,28 @@ def _parse_skills(raw: Any) -> list[dict]:
     if raw is None:
         return []
     if not isinstance(raw, list) or len(raw) > agent_skills.MAX_SKILLS:
-        raise PackageError(f"skills must be a list of at most {agent_skills.MAX_SKILLS} skills")
+        raise PackageError(f"skills en çok {agent_skills.MAX_SKILLS} beceriden oluşan bir liste olmalı")
     out, seen, total = [], set(), 0
     for item in raw:
         if not isinstance(item, dict):
-            raise PackageError("each skill must be an object")
+            raise PackageError("her beceri bir nesne olmalı")
         name, description, body = item.get("name"), item.get("description"), item.get("body")
         try:
             agent_skills.check_name(name)
         except agent_skills.SkillError:
-            raise PackageError(f"{name!r} is not a skill name") from None
+            raise PackageError(f"{name!r} bir beceri adı değil") from None
         if name in seen:
-            raise PackageError(f"skill {name} appears twice")
+            raise PackageError(f"{name} becerisi iki kez geçiyor")
         seen.add(name)
         if not isinstance(description, str) or not isinstance(body, str):
-            raise PackageError(f"skill {name} needs a description and instructions as text")
+            raise PackageError(f"{name} becerisinin metin olarak açıklaması ve talimatları olmalı")
         try:
             description, body, _, _ = agent_skills._clean(description, body, "imported")
         except agent_skills.SkillError as exc:
             raise PackageError(f"skill {name}: {exc.message}") from None
         total += len(body.encode("utf-8"))
         if total > SKILLS_MAX_BYTES:
-            raise PackageError("The skills are larger than 300 KB together.")
+            raise PackageError("Beceriler toplamda 300 KB'tan büyük.")
         out.append({"name": name, "description": description, "body": body})
     return out
 
@@ -171,59 +171,59 @@ def parse_package(document: Any) -> dict:
     """What an import may use from `document`:
     `{name, title, description, instructions, notes, topics, skills}`. Raises PackageError."""
     if not isinstance(document, dict):
-        raise PackageError("This is not an agent file.")
+        raise PackageError("Bu bir ajan dosyası değil.")
     if document.get("format") != FORMAT:
-        raise PackageError("This is not an agent file.")
+        raise PackageError("Bu bir ajan dosyası değil.")
     if document.get("version") != VERSION:
-        raise PackageError(f"This agent file is version {document.get('version')!r}; this app reads version {VERSION}.")
+        raise PackageError(f"Bu ajan dosyasının sürümü {document.get('version')!r}; bu uygulama {VERSION} sürümünü okur.")
     if len(json.dumps(document, ensure_ascii=False).encode("utf-8")) > PACKAGE_MAX_BYTES:
-        raise PackageError("The agent file is larger than 1 MB.")
+        raise PackageError("Ajan dosyası 1 MB'tan büyük.")
     body = document.get("agent")
     if not isinstance(body, dict):
-        raise PackageError("The agent file has no agent in it.")
+        raise PackageError("Ajan dosyasında ajan yok.")
 
     name = _text(body, "name", required=True).strip()
     if not name:
-        raise PackageError("agent.name is required")
+        raise PackageError("agent.name zorunlu")
     if "\n" in name or "\r" in name:
-        raise PackageError("agent.name must fit on one line")
+        raise PackageError("agent.name tek satıra sığmalı")
     title = _text(body, "title")
     if title is not None:
         title = title.strip()
         if "\n" in title or "\r" in title:
-            raise PackageError("agent.title must fit on one line")
+            raise PackageError("agent.title tek satıra sığmalı")
     description = _text(body, "description")
     instructions = _text(body, "instructions") or ""
     for field, value in (("name", name), ("title", title), ("description", description)):
         if value is not None and len(value) > _LIMITS[field]:
-            raise PackageError(f"agent.{field} must be at most {_LIMITS[field]} characters")
+            raise PackageError(f"agent.{field} en çok {_LIMITS[field]} karakter olmalı")
     if len(instructions.encode("utf-8")) > INSTRUCTIONS_MAX_BYTES:
-        raise PackageError(f"agent.instructions must be at most {INSTRUCTIONS_MAX_BYTES} bytes")
+        raise PackageError(f"agent.instructions en çok {INSTRUCTIONS_MAX_BYTES} bayt olmalı")
 
     notes = None
     topics: dict[str, str] = {}
     raw_notes = document.get("notes")
     if raw_notes is not None:
         if not isinstance(raw_notes, dict) or not isinstance(raw_notes.get("MEMORY.md", ""), str):
-            raise PackageError("notes must be {\"MEMORY.md\": text}")
+            raise PackageError("notes {\"MEMORY.md\": metin} biçiminde olmalı")
         notes = raw_notes.get("MEMORY.md") or None
         if notes is not None and len(notes.encode("utf-8")) > FILE_MAX_BYTES:
-            raise PackageError(f"The notes must be at most {FILE_MAX_BYTES // 1024} KB.")
+            raise PackageError(f"Notlar en çok {FILE_MAX_BYTES // 1024} KB olmalı.")
         raw_topics = raw_notes.get("topics")
         if raw_topics is not None:
             if not isinstance(raw_topics, dict) or len(raw_topics) > memory_topics.MAX_TOPICS:
-                raise PackageError(f"notes.topics must be at most {memory_topics.MAX_TOPICS} topic notes")
+                raise PackageError(f"notes.topics en çok {memory_topics.MAX_TOPICS} konu notu içermeli")
             for name, value in raw_topics.items():
                 try:
                     memory_topics.check_name(name)
                 except memory_topics.InvalidTopicName:
-                    raise PackageError(f"{name!r} is not a topic note name") from None
+                    raise PackageError(f"{name!r} bir konu notu adı değil") from None
                 if name == memory_topics.ARCHIVE_NAME or not isinstance(value, str):
-                    raise PackageError(f"topic note {name} must be text")
+                    raise PackageError(f"{name} konu notu metin olmalı")
                 if len(value.encode("utf-8")) > memory_topics.TOPIC_MAX_BYTES:
-                    raise PackageError(f"topic note {name} must be at most {memory_topics.TOPIC_MAX_BYTES // 1024} KB")
+                    raise PackageError(f"{name} konu notu en çok {memory_topics.TOPIC_MAX_BYTES // 1024} KB olmalı")
             if sum(len(v.encode("utf-8")) for v in raw_topics.values()) > TOPICS_MAX_BYTES:
-                raise PackageError("The topic notes are larger than 600 KB together.")
+                raise PackageError("Konu notları toplamda 600 KB'tan büyük.")
             topics = {n: _clean(v)[0] for n, v in raw_topics.items() if v.strip()}
 
     skills = _parse_skills(document.get("skills"))

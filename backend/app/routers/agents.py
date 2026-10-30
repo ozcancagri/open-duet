@@ -76,12 +76,12 @@ def _check_workspace(path: str | None) -> str | None:
         return None
     folder = Path(path.strip()).expanduser()
     if not folder.is_absolute():
-        raise _error(422, "workspace_unavailable", "The workspace must be an absolute path.")
+        raise _error(422, "workspace_unavailable", "Çalışma klasörü tam (mutlak) bir yol olmalı.")
     try:
         return str(require_workspace(folder.resolve()))
     except OSError:
         raise _error(
-            422, "workspace_unavailable", "The workspace folder does not exist or cannot be used."
+            422, "workspace_unavailable", "Çalışma klasörü yok ya da kullanılamıyor."
         ) from None
 
 
@@ -131,7 +131,7 @@ def _check_engine(rt: ThreadRuntime, provider: str, model: str | None) -> None:
     try:
         rt.check_engine_model(provider, model)
     except UnknownProvider:
-        raise _error(422, "unknown_provider", f"Unknown engine: {provider}") from None
+        raise _error(422, "unknown_provider", f"Bilinmeyen motor: {provider}") from None
     except EngineModelInvalid as exc:
         raise _error(422, "unknown_model", str(exc)) from None
 
@@ -140,7 +140,7 @@ async def _agent_or_404(rt: ThreadRuntime, agent_id: int) -> store.Agent:
     async with rt.session() as db:
         agent = await store.get_agent(db, agent_id)
     if agent is None or agent.owner_id != rt.owner_id:
-        raise HTTPException(status_code=404, detail="Agent not found")
+        raise HTTPException(status_code=404, detail="Ajan bulunamadı")
     return agent
 
 
@@ -150,10 +150,10 @@ def _check_fallback(rt: ThreadRuntime, provider: str, fallback: str | None, mode
     (thread_runtime.py), since that depends on the turn."""
     if fallback is None:
         if model is not None:
-            raise _error(422, "invalid_fallback", "A fallback model needs a fallback engine.")
+            raise _error(422, "invalid_fallback", "Yedek model için bir yedek motor gerekir.")
         return
     if fallback == provider:
-        raise _error(422, "invalid_fallback", "The fallback engine must be another engine than the agent's own.")
+        raise _error(422, "invalid_fallback", "Yedek motor, ajanın kendi motorundan farklı olmalı.")
     _check_engine(rt, fallback, model)
 
 
@@ -169,13 +169,13 @@ def _check_connector_scopes(rt: ThreadRuntime, scopes: dict | None, provider: st
         level not in composio_tools.LEVELS or (level == "write" and not composio_tools.has_write_tools(app))
         for app, level in scopes.items()
     ):
-        raise _error(422, "invalid_connector_scopes", "Connected apps can be allowed for reading, or for reading and changing, and only for apps this version supports.")
+        raise _error(422, "invalid_connector_scopes", "Bağlı uygulamalara yalnız okuma ya da okuma ve değiştirme izni verilebilir; bu da yalnız bu sürümün desteklediği uygulamalar için geçerli.")
     try:
         mounts = rt.engines.capabilities(provider).connected_apps
     except Exception:  # noqa: BLE001  (an unknown engine is reported by its own check)
         mounts = False
     if not mounts:
-        raise _error(409, "engine_without_connected_apps", "This engine cannot use connected apps yet.")
+        raise _error(409, "engine_without_connected_apps", "Bu motor henüz bağlı uygulamaları kullanamıyor.")
     return dict(sorted(scopes.items()))
 
 
@@ -213,7 +213,7 @@ async def create_agent(payload: AgentCreateRequest, rt: ThreadRuntime = Depends(
                 make_lead=payload.make_lead,
             )
     except store.AgentNameTaken:
-        raise _error(409, "agent_name_taken", "An agent with this name already exists.") from None
+        raise _error(409, "agent_name_taken", "Bu adda bir ajan zaten var.") from None
     _start_notes(agent.id, payload.starter_notes)
     return agent
 
@@ -286,8 +286,8 @@ async def update_agent(
             raise _error(
                 409,
                 "engine_without_computers",
-                "This agent has a computer, and that engine cannot run its tools in one. "
-                "Remove the computer first, or keep an engine that supports computers.",
+                "Bu ajanın bir bilgisayarı var ve o motor araçlarını bilgisayarda çalıştıramıyor. "
+                "Önce bilgisayarı kaldırın ya da bilgisayarları destekleyen bir motorda kalın.",
             )
     from app.team.service import team_for
     async with rt.session() as db:
@@ -313,9 +313,9 @@ async def update_agent(
             )
         return (await _with_computers(rt, [agent]))[0]
     except store.AgentNotFound:
-        raise HTTPException(status_code=404, detail="Agent not found") from None
+        raise HTTPException(status_code=404, detail="Ajan bulunamadı") from None
     except store.AgentNameTaken:
-        raise _error(409, "agent_name_taken", "An agent with this name already exists.") from None
+        raise _error(409, "agent_name_taken", "Bu adda bir ajan zaten var.") from None
 
 
 @router.post("/{agent_id}/duplicate", response_model=AgentResponse, status_code=201)
@@ -326,9 +326,9 @@ async def duplicate_agent(agent_id: int, rt: ThreadRuntime = Depends(get_runtime
         async with rt.session() as db:
             return await store.duplicate_agent(db, agent_id)
     except store.AgentNotFound:
-        raise HTTPException(status_code=404, detail="Agent not found") from None
+        raise HTTPException(status_code=404, detail="Ajan bulunamadı") from None
     except store.AgentNameTaken:
-        raise _error(409, "agent_name_taken", "Try again: that name was just taken.") from None
+        raise _error(409, "agent_name_taken", "Yeniden deneyin: bu ad az önce alındı.") from None
 
 
 @router.delete("/{agent_id}", status_code=204)
@@ -340,7 +340,7 @@ async def delete_agent(agent_id: int, rt: ThreadRuntime = Depends(get_runtime)):
     try:
         await remove_agent(rt, agent_id)
     except store.AgentNotFound:
-        raise HTTPException(status_code=404, detail="Agent not found") from None
+        raise HTTPException(status_code=404, detail="Ajan bulunamadı") from None
 
 
 # --- notes (MEMORY.md) ---------------------------------------------------------------
@@ -391,7 +391,7 @@ async def write_memory(
             status_code=409,
             detail={
                 "error_code": "memory_changed",
-                "message": "The notes changed since you opened them.",
+                "message": "Notlar siz açtıktan sonra değişti.",
                 "current": conflict.current.text,
                 "current_hash": conflict.current.hash,
             },
@@ -472,7 +472,7 @@ async def write_topic(
             agent.id, name, payload.text, expected_hash=payload.expected_hash
         )
     except agent_memory.MemoryConflict as conflict:
-        raise _conflict(conflict, "The note changed since you opened it.") from None
+        raise _conflict(conflict, "Not siz açtıktan sonra değişti.") from None
     except agent_memory.MemoryTooLarge as exc:
         raise _error(413, "memory_too_large", str(exc)) from None
     except memory_topics.TooManyTopics as exc:
@@ -493,9 +493,9 @@ async def delete_topic(
     try:
         before = memory_topics.delete_topic(agent.id, name, expected_hash=expected_hash)
     except agent_memory.MemoryConflict as conflict:
-        raise _conflict(conflict, "The note changed since you opened it.") from None
+        raise _conflict(conflict, "Not siz açtıktan sonra değişti.") from None
     if before is None:
-        raise HTTPException(status_code=404, detail="Topic note not found")
+        raise HTTPException(status_code=404, detail="Konu notu bulunamadı")
     memory_journal.record(agent.id, memory_journal.note_path(name), actor="person", before=before, after=None)
 
 
@@ -515,7 +515,7 @@ async def read_log(agent_id: int, day: str, rt: ThreadRuntime = Depends(get_runt
     agent = await _agent_or_404(rt, agent_id)
     text = memory_log.read_log(agent.id, day)
     if text is None:
-        raise HTTPException(status_code=404, detail="No log for that day")
+        raise HTTPException(status_code=404, detail="O gün için kayıt yok")
     return {"day": day, "text": text}
 
 
@@ -523,7 +523,7 @@ async def read_log(agent_id: int, day: str, rt: ThreadRuntime = Depends(get_runt
 async def delete_log(agent_id: int, day: str, rt: ThreadRuntime = Depends(get_runtime)):
     agent = await _agent_or_404(rt, agent_id)
     if not memory_log.delete_log(agent.id, day):
-        raise HTTPException(status_code=404, detail="No log for that day")
+        raise HTTPException(status_code=404, detail="O gün için kayıt yok")
 
 
 # --- the journal ---------------------------------------------------------------------
@@ -562,7 +562,7 @@ async def undo_journal(agent_id: int, entry_id: str, rt: ThreadRuntime = Depends
     try:
         row = memory_journal.undo(agent.id, entry_id)
     except memory_journal.JournalEntryNotFound:
-        raise HTTPException(status_code=404, detail="No such change") from None
+        raise HTTPException(status_code=404, detail="Böyle bir değişiklik yok") from None
     except memory_journal.CannotUndo as exc:
         raise _error(409, "cannot_undo", str(exc)) from None
     except memory_topics.TooManyTopics as exc:
@@ -624,9 +624,9 @@ async def tidy_now(agent_id: int, rt: ThreadRuntime = Depends(get_runtime)):
     contradictions). 409 while the agent is working or upkeep is off."""
     agent = await _agent_or_404(rt, agent_id)
     if not (agent.memory_enabled and agent.memory_upkeep):
-        raise _error(409, "upkeep_off", "Memory upkeep is off for this agent.")
+        raise _error(409, "upkeep_off", "Bu ajan için bellek bakımı kapalı.")
     if rt.capture.busy(agent.id):
-        raise _error(409, "agent_busy", "The agent is working; try again when it is done.")
+        raise _error(409, "agent_busy", "Ajan çalışıyor; işi bitince yeniden deneyin.")
     return await rt.capture.tidy(agent.id)
 
 
@@ -658,7 +658,7 @@ async def accept_proposal(
     try:
         return memory_proposals.accept(agent.id, proposal_id, line=payload.line, target=payload.target)
     except memory_proposals.ProposalNotFound:
-        raise HTTPException(status_code=404, detail="No such proposal") from None
+        raise HTTPException(status_code=404, detail="Böyle bir öneri yok") from None
     except agent_memory.MemoryTooLarge as exc:
         raise _error(413, "memory_too_large", str(exc)) from None
     except memory_entries.EntryTooLarge as exc:
@@ -674,7 +674,7 @@ async def reject_proposal(agent_id: int, proposal_id: str, rt: ThreadRuntime = D
     try:
         memory_proposals.reject(agent.id, proposal_id)
     except memory_proposals.ProposalNotFound:
-        raise HTTPException(status_code=404, detail="No such proposal") from None
+        raise HTTPException(status_code=404, detail="Böyle bir öneri yok") from None
 
 
 # --- one agent as a portable file ------------------------------------------------------
@@ -732,7 +732,7 @@ async def import_agent(payload: AgentImportRequest, rt: ThreadRuntime = Depends(
                 approval_mode="ask",
             )
     except store.AgentNameTaken:
-        raise _error(409, "agent_name_taken", "Try again: that name was just taken.") from None
+        raise _error(409, "agent_name_taken", "Yeniden deneyin: bu ad az önce alındı.") from None
     _start_imported_notes(agent.id, parsed if payload.include_notes else None)
     _start_imported_skills(agent.id, parsed["skills"] if payload.include_skills else [])
     return agent

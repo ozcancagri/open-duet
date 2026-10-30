@@ -70,7 +70,7 @@ async def test_lead_idempotence_and_existing_agents_untouched(harness, sessions,
         assert await db.scalar(select(func.count()).select_from(TeamEvent).where(TeamEvent.kind == 'lead_set', TeamEvent.team_id == first.id)) == 1
         unrelated = await agent_store.create_agent(db, owner_id=owner, name='Unrelated')
         assert unrelated.team_id is None
-        with pytest.raises(service.TeamError, match='another lead'):
+        with pytest.raises(service.TeamError, match='başka bir lider'):
             await service.change_member(db, owner, lead.id, remove=True)
 
 
@@ -247,7 +247,7 @@ async def test_room_member_threads_refuse_direct_send_and_hide_search(harness, s
     await rt.rooms.post(room['id'], 'Unique keyword')
     await rt.rooms.work(room['id'])
     room = await rt.rooms.detail(room['id'])
-    with pytest.raises(Exception, match='in the room'):
+    with pytest.raises(Exception, match='odada konuşun'):
         await rt.send_turn(room['members'][0]['member_thread_id'], 'bypass')
     async with sessions() as db:
         hits = await search(db, rt.owner_id, 'Unique keyword')

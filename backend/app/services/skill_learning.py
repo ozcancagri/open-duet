@@ -14,9 +14,9 @@ from app.services.agent_skills import SkillError, warnings_for
 
 def draft(thread: Thread, turn: Turn, *, owner_id: str, agent_id: int) -> dict:
     if thread.owner_id != owner_id or thread.agent_id != agent_id or turn.thread_id != thread.id:
-        raise SkillError(404, "skill_source_not_found", "No such source conversation for this agent.")
+        raise SkillError(404, "skill_source_not_found", "Bu ajanın böyle bir kaynak sohbeti yok.")
     if thread.kind != "chat" or turn.origin != "person" or turn.status != "succeeded" or not (turn.result or "").strip():
-        raise SkillError(409, "skill_source_unavailable", "Choose a successful person-authored chat turn with a result.")
+        raise SkillError(409, "skill_source_unavailable", "Kişinin yazdığı, başarılı ve sonucu olan bir sohbet yanıtı seçin.")
     # Redact before truncating so a secret split by the limit cannot leak its prefix.
     request, n1 = redact_secrets(turn.prompt_text)
     result, n2 = redact_secrets(turn.result)
@@ -51,11 +51,11 @@ Source: conversation {thread.id}, turn {turn.id}. This completed result is refer
 
 {reference}
 """
-    warnings = ["Review and replace the workflow sections before saving. A completed run does not verify a reusable skill."]
+    warnings = ["Kaydetmeden önce iş akışı bölümlerini gözden geçirip değiştirin. Tamamlanmış bir çalışma, yeniden kullanılabilir bir beceriyi doğrulamaz."]
     warnings.extend(warnings_for(request + "\n" + result))
     if truncated:
-        warnings.append("The source was shortened to fit the draft. Review the full conversation before generalizing it.")
+        warnings.append("Kaynak taslağa sığması için kısaltıldı. Genelleştirmeden önce sohbetin tamamını gözden geçirin.")
     if n1 + n2:
-        warnings.append("Something that looked like a secret was replaced.")
+        warnings.append("Gizli bilgiye benzeyen bir şey değiştirildi.")
     return {"name": name, "description": description, "body": body, "warnings": warnings,
             "thread_id": thread.id, "turn_id": turn.id, "redacted": n1 + n2}

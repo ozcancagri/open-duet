@@ -53,9 +53,9 @@ TEXT_EXTENSIONS = {
     ".ini": "text/plain",
 }
 SUPPORTED_TEXT = (
-    "Supported: images (PNG, JPEG, GIF, WebP, up to 10 MB) and UTF-8 text files ("
+    "Desteklenenler: görseller (PNG, JPEG, GIF, WebP; en çok 10 MB) ve UTF-8 metin dosyaları ("
     + ", ".join(sorted(TEXT_EXTENSIONS))
-    + ", up to 1 MB)."
+    + "; en çok 1 MB)."
 )
 _ID = re.compile(r"^[0-9a-f]{32}$")
 
@@ -128,33 +128,33 @@ def _image_type(data: bytes) -> str | None:
 def classify(name: str, declared_mime: str | None, data: bytes) -> tuple[str, str, str]:
     """(kind, mime, stored extension), or AttachmentError."""
     if not data:
-        raise AttachmentError(400, "empty_file", f"{name} is empty.")
+        raise AttachmentError(400, "empty_file", f"{name} boş.")
     declared = (declared_mime or "").split(";")[0].strip().lower()
     ext = os.path.splitext(name)[1].lower()
     sniffed = _image_type(data)
     if declared in IMAGE_TYPES or ext in (".png", ".jpg", ".jpeg", ".gif", ".webp"):
         if sniffed is None:
             raise AttachmentError(
-                415, "unsupported_type", f"{name} does not look like a PNG, JPEG, GIF or WebP image."
+                415, "unsupported_type", f"{name} bir PNG, JPEG, GIF ya da WebP görseline benzemiyor."
             )
         if len(data) > IMAGE_MAX_BYTES:
-            raise AttachmentError(413, "too_large", f"{name} is over the 10 MB image limit.")
+            raise AttachmentError(413, "too_large", f"{name} 10 MB görsel sınırını aşıyor.")
         return "image", sniffed, IMAGE_TYPES[sniffed]
     if sniffed is not None:
         if len(data) > IMAGE_MAX_BYTES:
-            raise AttachmentError(413, "too_large", f"{name} is over the 10 MB image limit.")
+            raise AttachmentError(413, "too_large", f"{name} 10 MB görsel sınırını aşıyor.")
         return "image", sniffed, IMAGE_TYPES[sniffed]
     if ext in TEXT_EXTENSIONS:
         if len(data) > TEXT_MAX_BYTES:
-            raise AttachmentError(413, "too_large", f"{name} is over the 1 MB text file limit.")
+            raise AttachmentError(413, "too_large", f"{name} 1 MB metin dosyası sınırını aşıyor.")
         if b"\x00" in data:
-            raise AttachmentError(415, "unsupported_type", f"{name} is not a text file.")
+            raise AttachmentError(415, "unsupported_type", f"{name} bir metin dosyası değil.")
         try:
             data.decode("utf-8")
         except UnicodeDecodeError:
-            raise AttachmentError(415, "unsupported_type", f"{name} is not UTF-8 text.") from None
+            raise AttachmentError(415, "unsupported_type", f"{name} UTF-8 metin değil.") from None
         return "text", TEXT_EXTENSIONS[ext], ext
-    raise AttachmentError(415, "unsupported_type", f"{name} can't be attached. {SUPPORTED_TEXT}")
+    raise AttachmentError(415, "unsupported_type", f"{name} eklenemiyor. {SUPPORTED_TEXT}")
 
 
 def _used_bytes(folder: Path) -> int:
@@ -170,7 +170,7 @@ def save(thread_id: int, filename: str | None, declared_mime: str | None, data: 
     folder = thread_dir(thread_id)
     if _used_bytes(folder) + len(data) > THREAD_MAX_BYTES:
         raise AttachmentError(
-            507, "attachments_full", "This conversation already holds 200 MB of attachments."
+            507, "attachments_full", "Bu sohbette zaten 200 MB ek var."
         )
     folder.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(folder.parent, 0o700)
@@ -196,23 +196,23 @@ def save(thread_id: int, filename: str | None, declared_mime: str | None, data: 
 
 def _paths(thread_id: int, attachment_id: str) -> tuple[Attachment, Path]:
     if not _ID.match(attachment_id or ""):
-        raise AttachmentError(404, "attachment_not_found", "No such attachment.")
+        raise AttachmentError(404, "attachment_not_found", "Böyle bir ek yok.")
     folder = thread_dir(thread_id)
     try:
         meta = json.loads((folder / f"{attachment_id}.json").read_text(encoding="utf-8"))
         ext = meta.pop("ext")
         attachment = Attachment(**meta)
     except (OSError, ValueError, TypeError, KeyError):
-        raise AttachmentError(404, "attachment_not_found", "No such attachment.") from None
+        raise AttachmentError(404, "attachment_not_found", "Böyle bir ek yok.") from None
     if ext not in set(IMAGE_TYPES.values()) | set(TEXT_EXTENSIONS):
-        raise AttachmentError(404, "attachment_not_found", "No such attachment.")
+        raise AttachmentError(404, "attachment_not_found", "Böyle bir ek yok.")
     return attachment, folder / f"{attachment_id}{ext}"
 
 
 def load(thread_id: int, attachment_id: str) -> tuple[Attachment, Path]:
     attachment, path = _paths(thread_id, attachment_id)
     if not path.is_file() or path.is_symlink():
-        raise AttachmentError(404, "attachment_not_found", "No such attachment.")
+        raise AttachmentError(404, "attachment_not_found", "Böyle bir ek yok.")
     return attachment, path
 
 
@@ -224,7 +224,7 @@ def read_bytes(thread_id: int, attachment_id: str) -> tuple[Attachment, bytes]:
 def resolve_for_turn(thread_id: int, ids: list[str]) -> list[tuple[Attachment, Path]]:
     if len(ids) > MAX_PER_TURN:
         raise AttachmentError(
-            422, "too_many_attachments", f"Attach at most {MAX_PER_TURN} files to one message."
+            422, "too_many_attachments", f"Bir mesaja en çok {MAX_PER_TURN} dosya ekleyin."
         )
     unique = list(dict.fromkeys(ids))
     return [load(thread_id, attachment_id) for attachment_id in unique]

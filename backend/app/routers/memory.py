@@ -38,8 +38,8 @@ async def change_settings(change: SettingsChange, rt: ThreadRuntime = Depends(ge
                 status_code=422,
                 detail={
                     "error_code": "invalid_setting",
-                    "message": "That engine is not connected here or cannot write a quick text call. "
-                    "Use Claude, an OpenAI-compatible endpoint or OpenRouter.",
+                    "message": "Bu motor burada bağlı değil ya da kısa bir metin çağrısı yazamıyor. "
+                    "Claude, OpenAI uyumlu bir uç nokta ya da OpenRouter kullanın.",
                 },
             )
     try:
@@ -79,7 +79,7 @@ async def write_about_me(body: AboutMeWrite):
             status_code=409,
             detail={
                 "error_code": "memory_changed",
-                "message": "About me changed since it was opened.",
+                "message": "Hakkımda bölümü açıldıktan sonra değişti.",
                 "current": exc.current.text,
                 "current_hash": exc.current.hash,
             },
@@ -95,4 +95,4 @@ async def remove_learned_fact(fact_id: str):
     try:
         return _about(about_me.remove_learned(fact_id))
     except about_me.NoSuchFact:
-        raise HTTPException(status_code=404, detail={"error_code": "no_such_fact", "message": "No such fact."}) from None
+        raise HTTPException(status_code=404, detail={"error_code": "no_such_fact", "message": "Böyle bir bilgi yok."}) from None

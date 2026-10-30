@@ -133,10 +133,10 @@ class DockerProvider:
     def _must(self, args: list[str], what: str, timeout: float = LIFECYCLE_TIMEOUT, **kw) -> docker_cli.Completed:
         done = self._run(args, timeout, **kw)
         if done.timed_out:
-            raise ComputerError(f"Docker did not answer in time while trying to {what}.", "docker_timeout")
+            raise ComputerError(f"Docker şu işlem sırasında zamanında yanıt vermedi: {what}.", "docker_timeout")
         if done.code != 0:
-            detail = done.stderr.strip()[-500:] or f"exit code {done.code}"
-            raise ComputerError(f"Docker could not {what}: {detail}", "docker_failed")
+            detail = done.stderr.strip()[-500:] or f"çıkış kodu {done.code}"
+            raise ComputerError(f"Docker şu işlemi yapamadı: {what}. Ayrıntı: {detail}", "docker_failed")
         return done
 
     # -- health ------------------------------------------------------------------------
@@ -149,16 +149,16 @@ class DockerProvider:
         except docker_cli.DockerMissing as exc:
             return Health("docker", False, error=str(exc))
         if done.timed_out:
-            return Health("docker", False, error="Docker is not responding. Start Docker (or restart it) and try again.")
+            return Health("docker", False, error="Docker yanıt vermiyor. Docker'ı başlatın (ya da yeniden başlatın) ve tekrar deneyin.")
         if done.code != 0:
-            detail = done.stderr.strip().splitlines()[-1:] or ["unknown error"]
-            return Health("docker", False, error=f"Docker is not running: {detail[0][:300]}")
+            detail = done.stderr.strip().splitlines()[-1:] or ["bilinmeyen hata"]
+            return Health("docker", False, error=f"Docker çalışmıyor: {detail[0][:300]}")
         try:
             version = json.loads(done.stdout.strip() or "null")
         except json.JSONDecodeError:
             version = None
         if not version:
-            return Health("docker", False, error="Docker answered without a server version.")
+            return Health("docker", False, error="Docker sunucu sürümü bildirmeden yanıt verdi.")
         return Health("docker", True, version=str(version))
 
     # -- inspection --------------------------------------------------------------------
@@ -174,15 +174,15 @@ class DockerProvider:
     def _inspect(self, name: str) -> dict | None:
         done = self._run(["container", "inspect", docker_cli.check_name(name)], 30)
         if done.timed_out:
-            raise ComputerError("Docker did not answer in time.", "docker_timeout")
+            raise ComputerError("Docker zamanında yanıt vermedi.", "docker_timeout")
         if done.code != 0:
             if "no such" in done.stderr.lower():
                 return None
-            raise ComputerError(f"Docker could not inspect the computer: {done.stderr.strip()[-300:]}", "docker_failed")
+            raise ComputerError(f"Docker bilgisayarı inceleyemedi: {done.stderr.strip()[-300:]}", "docker_failed")
         try:
             parsed = json.loads(done.stdout)
         except json.JSONDecodeError:
-            raise ComputerError("Docker returned unreadable container details.", "docker_failed") from None
+            raise ComputerError("Docker okunamayan kapsayıcı ayrıntıları döndürdü.", "docker_failed") from None
         return parsed[0] if isinstance(parsed, list) and parsed else None
 
     def status(self, spec: Spec) -> Status:
@@ -201,64 +201,64 @@ class DockerProvider:
     def screenshot(self, spec: Spec) -> bytes:
         status = self.status(spec)
         if status.state != "running":
-            raise ComputerError("Start the computer to see its screen.", "computer_not_running")
+            raise ComputerError("Ekranını görmek için bilgisayarı başlatın.", "computer_not_running")
         if not status.desktop_ready:
-            raise ComputerError("The desktop is starting.", "desktop_not_ready")
-        done = self._must(docker_cli.desktop_args(spec.name, spec.run_as, "od-shot", "--jpeg"), "capture the screen", 15)
+            raise ComputerError("Masaüstü başlatılıyor.", "desktop_not_ready")
+        done = self._must(docker_cli.desktop_args(spec.name, spec.run_as, "od-shot", "--jpeg"), "ekran görüntüsü alma", 15)
         if not done.raw.startswith(b"\xff\xd8"):
-            raise ComputerError("The desktop returned an invalid picture.", "desktop_not_ready")
+            raise ComputerError("Masaüstü geçersiz bir görüntü döndürdü.", "desktop_not_ready")
         return done.raw
 
     # -- lifecycle ---------------------------------------------------------------------
 
     def pull(self, image: str) -> None:
-        self._must(["pull", docker_cli.check_image(image)], "download the image", self.PULL_TIMEOUT)
+        self._must(["pull", docker_cli.check_image(image)], "imajı indirme", self.PULL_TIMEOUT)
 
     def create(self, spec: Spec) -> Status:
         try:
             docker_cli.validate(spec)
         except docker_cli.InvalidSpec as exc:
-            raise ComputerError(f"The computer cannot be made: {exc}.", "invalid_computer") from None
+            raise ComputerError(f"Bilgisayar oluşturulamıyor: {exc}.", "invalid_computer") from None
         current = self.status(spec)
         if current.state in ("foreign", "unsafe"):
-            raise ComputerError(current.problem or "The computer cannot be used.", "computer_" + current.state)
+            raise ComputerError(current.problem or "Bilgisayar kullanılamıyor.", "computer_" + current.state)
         if current.state == "stopped":
             return self.start(spec)
         if current.state == "running":
             return current
         if not self.image_present(spec.image):
             raise ComputerError(
-                f"The image {spec.image} is not on this machine yet. Download it first (Prepare image), "
-                "or choose an image that is already here.",
+                f"{spec.image} imajı henüz bu makinede yok. Önce indirin (İmajı hazırla) "
+                "ya da burada zaten bulunan bir imaj seçin.",
                 "image_missing",
             )
         if not Path(spec.workspace).is_dir():
-            raise ComputerError("The agent's workspace folder does not exist.", "workspace_missing")
+            raise ComputerError("Ajanın çalışma klasörü yok.", "workspace_missing")
         done = self._run(docker_cli.run_args(spec))
         if done.code != 0 or done.timed_out:
             # A second create racing this one made it first: that one counts.
             again = self.status(spec)
             if again.state in ("running", "stopped"):
                 return again if again.state == "running" else self.start(spec)
-            detail = "Docker did not answer in time" if done.timed_out else done.stderr.strip()[-500:]
-            raise ComputerError(f"Docker could not create the computer: {detail}", "docker_failed")
+            detail = "Docker zamanında yanıt vermedi" if done.timed_out else done.stderr.strip()[-500:]
+            raise ComputerError(f"Docker bilgisayarı oluşturamadı: {detail}", "docker_failed")
         return self.status(spec)
 
     def start(self, spec: Spec) -> Status:
         current = self.status(spec)
         if current.state == "missing":
-            raise ComputerError("The computer does not exist yet; create it first.", "computer_missing")
+            raise ComputerError("Bilgisayar henüz yok; önce oluşturun.", "computer_missing")
         if current.state in ("foreign", "unsafe"):
-            raise ComputerError(current.problem or "The computer cannot be used.", "computer_" + current.state)
+            raise ComputerError(current.problem or "Bilgisayar kullanılamıyor.", "computer_" + current.state)
         if current.state == "stopped":
-            self._must(["start", spec.name], "start the computer")
+            self._must(["start", spec.name], "bilgisayarı başlatma")
             current = self.status(spec)
         return current
 
     def stop(self, spec: Spec) -> Status:
         current = self.status(spec)
         if current.state == "running":
-            self._must(["stop", "-t", "10", spec.name], "stop the computer")
+            self._must(["stop", "-t", "10", spec.name], "bilgisayarı durdurma")
             current = self.status(spec)
         return current
 
@@ -267,12 +267,12 @@ class DockerProvider:
         if current.state == "missing":
             return
         if current.state == "foreign":
-            raise ComputerError(current.problem or "That container was not made by open-dots.", "computer_foreign")
-        self._must(["rm", "-f", spec.name], "remove the computer")
+            raise ComputerError(current.problem or "Bu kapsayıcı open-dots tarafından oluşturulmadı.", "computer_foreign")
+        self._must(["rm", "-f", spec.name], "bilgisayarı kaldırma")
 
     def update_limits(self, spec: Spec) -> None:
         if self.status(spec).state in ("running", "stopped"):
-            self._must(docker_cli.update_args(spec.name, spec.cpus, spec.memory_mb, spec.pids_limit), "change the limits")
+            self._must(docker_cli.update_args(spec.name, spec.cpus, spec.memory_mb, spec.pids_limit), "sınırları değiştirme")
 
     def list_managed(self, instance: str) -> list[tuple[str, int | None]]:
         done = self._must(
@@ -282,7 +282,7 @@ class DockerProvider:
                 "--filter", f"label={docker_cli.LABEL_INSTANCE}={instance}",
                 "--format", "{{.Names}}\t{{.Label \"" + docker_cli.LABEL_ID + "\"}}",
             ],
-            "list computers",
+            "bilgisayarları listeleme",
             30,
         )
         found: list[tuple[str, int | None]] = []
@@ -299,8 +299,8 @@ class DockerProvider:
             return
         labels = (detail.get("Config") or {}).get("Labels") or {}
         if labels.get(docker_cli.LABEL_MANAGED) != "1" or labels.get(docker_cli.LABEL_INSTANCE) != instance:
-            raise ComputerError("That container was not made by this installation.", "computer_foreign")
-        self._must(["rm", "-f", name], "remove the computer")
+            raise ComputerError("Bu kapsayıcı bu kurulum tarafından oluşturulmadı.", "computer_foreign")
+        self._must(["rm", "-f", name], "bilgisayarı kaldırma")
 
     def mcp_launch(self, spec: Spec, grants_dir: Path, state_dir: Path) -> McpLaunch:
         return mcp_launch_for(spec.name, spec.run_as, grants_dir, state_dir, self._docker or docker_cli.docker_executable(), spec.kind)
@@ -325,13 +325,13 @@ def _status_of(detail: dict, spec: Spec) -> Status:
     ):
         return Status(
             "foreign",
-            problem=f"A container named {spec.name} exists but was not made by open-dots for this agent. "
-            "Remove or rename it in Docker.",
+            problem=f"{spec.name} adlı bir kapsayıcı var ama open-dots tarafından bu ajan için oluşturulmadı. "
+            "Docker'da kaldırın ya da yeniden adlandırın.",
             **common,
         )
     problem = _hardening_problem(config, host, detail.get("Mounts") or [], spec)
     if problem:
-        return Status("unsafe", problem=problem + " Recreate the computer.", needs_recreate=True, **common)
+        return Status("unsafe", problem=problem + " Bilgisayarı yeniden oluşturun.", needs_recreate=True, **common)
     return Status(
         "running" if state.get("Running") else "stopped",
         needs_recreate=labels.get(docker_cli.LABEL_CONFIG) != docker_cli.fingerprint(spec),
@@ -344,24 +344,24 @@ def _hardening_problem(config: dict, host: dict, mounts: list, spec: Spec) -> st
     hand afterwards is refused rather than trusted."""
     caps = [c.lower() for c in (host.get("CapDrop") or [])]
     if "all" not in caps and "cap_all" not in caps:
-        return "The computer keeps Linux capabilities."
+        return "Bilgisayar Linux yeteneklerini koruyor."
     if host.get("CapAdd"):
-        return "The computer was given extra Linux capabilities."
+        return "Bilgisayara ek Linux yetenekleri verilmiş."
     if host.get("Privileged"):
-        return "The computer is privileged."
+        return "Bilgisayar ayrıcalıklı (privileged) çalışıyor."
     if host.get("PublishAllPorts") or any(v for v in (host.get("PortBindings") or {}).values()):
-        return "The computer publishes network ports."
+        return "Bilgisayar ağ bağlantı noktalarını dışarı açıyor."
     if host.get("PidMode") or (host.get("NetworkMode") or "") == "host":
-        return "The computer shares the host's processes or network."
+        return "Bilgisayar ana makinenin süreçlerini ya da ağını paylaşıyor."
     user = (config.get("User") or "").split(":")[0]
     if user in ("", "0", "root"):
-        return "The computer runs as root."
+        return "Bilgisayar root olarak çalışıyor."
     binds = [m for m in mounts if m.get("Type") != "tmpfs"]
     if len(binds) > 1:
-        return "The computer has extra folders mounted."
+        return "Bilgisayara ek klasörler bağlanmış."
     for mount in binds:
         if mount.get("Destination") != docker_cli.GUEST_WORKSPACE:
-            return "The computer has a folder mounted somewhere unexpected."
+            return "Bilgisayarda beklenmedik bir yere bağlanmış bir klasör var."
     return None
 
 

@@ -13,13 +13,15 @@ import { browserTimezone } from "@/lib/routines";
 import { addDays, calendarDays, dateKey, deadlineDay, isOverdue, rescheduleDeadline } from "@/lib/planner";
 import { planner, type CalendarEvent, type RoutineCalendar, type WorkBoard, type WorkChanges, type WorkInput, type WorkItem } from "@/lib/planner-api";
 import { cn } from "@/lib/cn";
+import { TipsGuide } from "@/components/TipsGuide";
 
 type View = "board" | "month" | "week" | "list";
 type Editor = { item: WorkItem | null; seedDate?: string; seedColumn?: number };
 const control = "rounded-field border border-line bg-surface px-2 py-1.5 text-sm disabled:opacity-50";
 const dragType = "application/x-open-dots-work-item";
 const priorities = ["low", "normal", "high", "urgent"] as const;
-const errorMessage = (error: unknown) => error instanceof Error ? error.message : "Could not load the planner.";
+const priorityLabels: Record<string, string> = { low: "düşük", normal: "normal", high: "yüksek", urgent: "acil" };
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : "Planlayıcı yüklenemedi.";
 
 export function PlannerPanel({ agents, threads, onClose, onOpenRoutines, taskId = null }: {
   agents: Agent[]; threads: Thread[]; onClose: () => void; onOpenRoutines: () => void; taskId?: number | null;
@@ -124,7 +126,7 @@ export function PlannerPanel({ agents, threads, onClose, onOpenRoutines, taskId 
   };
 
   const save = async (data: WorkInput) => {
-    if (saving.current) throw new Error("Another task is saving. Try again in a moment.");
+    if (saving.current) throw new Error("Başka bir görev kaydediliyor. Birazdan yeniden deneyin.");
     saving.current = true; mutationVersion.current += 1;
     setBusy(true);
     try {
@@ -154,28 +156,28 @@ export function PlannerPanel({ agents, threads, onClose, onOpenRoutines, taskId 
     catch (error) { setError(errorMessage(error)); }
   };
   const acceptDrop = (event: React.DragEvent) => { if (!busy && !archived && event.dataTransfer.types.includes(dragType)) event.preventDefault(); };
-  const assigneeLabel = (item: WorkItem) => item.agent_id ? agents.find(agent => agent.id === item.agent_id)?.name ?? "Agent unavailable"
-    : item.team_id ? (team?.id === item.team_id ? team.name : "Team unavailable") : "Unassigned";
-  const deadlineLabel = (item: WorkItem) => item.due_at ? new Date(item.due_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
-    : item.due_date ? new Date(`${item.due_date}T12:00`).toLocaleDateString([], { month: "short", day: "numeric" }) : "No due date";
+  const assigneeLabel = (item: WorkItem) => item.agent_id ? agents.find(agent => agent.id === item.agent_id)?.name ?? "Ajan kullanılamıyor"
+    : item.team_id ? (team?.id === item.team_id ? team.name : "Takım kullanılamıyor") : "Atanmamış";
+  const deadlineLabel = (item: WorkItem) => item.due_at ? new Date(item.due_at).toLocaleString("tr-TR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+    : item.due_date ? new Date(`${item.due_date}T12:00`).toLocaleDateString("tr-TR", { month: "short", day: "numeric" }) : "Son tarih yok";
 
   const taskCard = (item: WorkItem, compact = false) => (
     <article key={item.id} draggable={!busy && !archived} onDragStart={event => { event.dataTransfer.setData(dragType, String(item.id)); event.dataTransfer.effectAllowed = "move"; }}
       className={cn("rounded-field border border-line bg-raised p-2.5 text-sm shadow-sm", isOverdue(item) && "border-danger/60", compact && "p-1.5 text-xs")}>
       <button type="button" onClick={() => setEditor({ item })} className="w-full break-words text-left font-medium hover:underline">{item.title}</button>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-        <span className={cn(item.priority === "urgent" ? "text-danger" : item.priority === "high" ? "text-warning" : "")}>{item.priority}</span>
-        <span className={isOverdue(item) ? "text-danger" : ""}>{isOverdue(item) ? "Overdue · " : ""}{deadlineLabel(item)}</span>
+        <span className={cn(item.priority === "urgent" ? "text-danger" : item.priority === "high" ? "text-warning" : "")}>{priorityLabels[item.priority] ?? item.priority}</span>
+        <span className={isOverdue(item) ? "text-danger" : ""}>{isOverdue(item) ? "Gecikmiş · " : ""}{deadlineLabel(item)}</span>
       </div>
-      <button type="button" className="mt-2 text-xs text-accent hover:underline" onClick={() => setExecutionItem(item)}>Run & history</button>
-      {item.execution_state && <p className="mt-1 text-xs text-muted">Attempt {item.execution_attempt} · {item.execution_state === "needs_input" ? "Waiting for approval" : item.execution_state}</p>}
+      <button type="button" className="mt-2 text-xs text-accent hover:underline" onClick={() => setExecutionItem(item)}>Çalıştır ve geçmiş</button>
+      {item.execution_state && <p className="mt-1 text-xs text-muted">Deneme {item.execution_attempt} · {item.execution_state === "needs_input" ? "Onay bekleniyor" : item.execution_state}</p>}
       {!compact && <>
         <p className="mt-2 truncate text-xs text-muted">{assigneeLabel(item)}</p>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <select aria-label={`Move ${item.title}`} className={`${control} min-w-0 max-w-full text-xs`} value={item.column_id} disabled={busy || archived} onChange={event => void update(item, { column_id: Number(event.target.value) })}>
+          <select aria-label={`${item.title} görevini taşı`} className={`${control} min-w-0 max-w-full text-xs`} value={item.column_id} disabled={busy || archived} onChange={event => void update(item, { column_id: Number(event.target.value) })}>
             {board?.columns.map(column => <option key={column.id} value={column.id}>{column.name}</option>)}
           </select>
-          <button type="button" className="text-xs text-muted hover:underline disabled:opacity-50" disabled={busy} onClick={() => void update(item, { archived: !item.archived })}>{archived ? "Restore" : "Archive"}</button>
+          <button type="button" className="text-xs text-muted hover:underline disabled:opacity-50" disabled={busy} onClick={() => void update(item, { archived: !item.archived })}>{archived ? "Arşivden çıkar" : "Arşivle"}</button>
         </div>
       </>}
     </article>
@@ -187,41 +189,42 @@ export function PlannerPanel({ agents, threads, onClose, onOpenRoutines, taskId 
         void planner.item(event.work_item_id!).then(setExecutionItem).catch(error => setError(errorMessage(error)));
       }}>▶ {event.title}</button> : event.thread_id ? <Link className="block truncate hover:underline" href={`/chat?thread=${event.thread_id}`} onClick={onClose}>↻ {event.title}</Link>
         : <button className="block w-full truncate text-left hover:underline" onClick={onOpenRoutines}>↻ {event.title}</button>}
-      <p className="text-muted">{new Date(event.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {event.state}</p>
+      <p className="text-muted">{new Date(event.at).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })} · {event.state}</p>
     </div>
   );
 
   const calendarMode = view === "month" || view === "week";
   return <>
-    <Dialog open onOpenChange={open => { if (!open) onClose(); }} title="Tasks & calendar" description="Plan your work, track deadlines, and see scheduled routines." size="xl" flush>
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }} title="Görevler ve takvim" description="İşinizi planlayın, son tarihleri izleyin ve zamanlanmış rutinleri görün." size="xl" flush>
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="space-y-3 border-b border-line p-4">
+          <TipsGuide page="tasks" inline />
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-field border border-line p-0.5" aria-label="Planner views">
-              {([["board", "Board", Columns3], ["month", "Month", CalendarDays], ["week", "Week", CalendarDays], ["list", "Upcoming", List]] as const).map(([value, label, Icon]) =>
+            <div className="flex rounded-field border border-line p-0.5" aria-label="Planlayıcı görünümleri">
+              {([["board", "Pano", Columns3], ["month", "Ay", CalendarDays], ["week", "Hafta", CalendarDays], ["list", "Yaklaşanlar", List]] as const).map(([value, label, Icon]) =>
                 <button key={value} type="button" aria-pressed={view === value} onClick={() => setView(value)} className={cn("flex items-center gap-1.5 rounded px-2 py-1.5 text-sm", view === value ? "bg-accent text-accent-fg" : "text-muted hover:bg-hover")}><Icon size={14} aria-hidden="true" />{label}</button>)}
             </div>
-            <span className="mr-auto text-xs text-muted">{filtered.length} task{filtered.length === 1 ? "" : "s"} · {timezone}</span>
-            <Button disabled={busy} onClick={() => { setTick(value => value + 1); }} icon={<RefreshCw size={14} aria-hidden="true" />}>Refresh</Button>
-            <Button variant="primary" disabled={!board || busy} onClick={() => setEditor({ item: null })} icon={<Plus size={14} aria-hidden="true" />}>New task</Button>
+            <span className="mr-auto text-xs text-muted">{filtered.length} görev · {timezone}</span>
+            <Button disabled={busy} onClick={() => { setTick(value => value + 1); }} icon={<RefreshCw size={14} aria-hidden="true" />}>Yenile</Button>
+            <Button variant="primary" disabled={!board || busy} onClick={() => setEditor({ item: null })} icon={<Plus size={14} aria-hidden="true" />}>Yeni görev</Button>
           </div>
           <div className="flex flex-wrap gap-2">
-            <input aria-label="Search tasks" type="search" placeholder="Search tasks…" value={query} onChange={event => setQuery(event.target.value)} className={`${control} min-w-32 flex-1`} />
-            <select aria-label="Filter by assignment" className={control} value={assignee} onChange={event => setAssignee(event.target.value)}>
-              <option value="">All assignments</option><option value="unassigned">Unassigned</option>
+            <input aria-label="Görevlerde ara" type="search" placeholder="Görevlerde ara…" value={query} onChange={event => setQuery(event.target.value)} className={`${control} min-w-32 flex-1`} />
+            <select aria-label="Atamaya göre süz" className={control} value={assignee} onChange={event => setAssignee(event.target.value)}>
+              <option value="">Tüm atamalar</option><option value="unassigned">Atanmamış</option>
               {agents.map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
-              {team && <option value={`team:${team.id}`}>{team.name} (team)</option>}
+              {team && <option value={`team:${team.id}`}>{team.name} (takım)</option>}
             </select>
-            <select aria-label="Filter by priority" className={control} value={priority} onChange={event => setPriority(event.target.value)}>
-              <option value="">All priorities</option>{priorities.map(value => <option key={value} value={value}>{value}</option>)}
+            <select aria-label="Önceliğe göre süz" className={control} value={priority} onChange={event => setPriority(event.target.value)}>
+              <option value="">Tüm öncelikler</option>{priorities.map(value => <option key={value} value={value}>{priorityLabels[value]}</option>)}
             </select>
-            <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={onlyOverdue} onChange={event => setOnlyOverdue(event.target.checked)} />Overdue</label>
-            <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={archived} disabled={busy} onChange={event => { setItems(null); setArchived(event.target.checked); }} />Archived</label>
+            <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={onlyOverdue} onChange={event => setOnlyOverdue(event.target.checked)} />Gecikmiş</label>
+            <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={archived} disabled={busy} onChange={event => { setItems(null); setArchived(event.target.checked); }} />Arşivlenmiş</label>
           </div>
         </div>
         <div aria-live="polite" className="px-4 text-sm">
           {error && <p role="alert" className="py-2 text-danger">{error}</p>}
-          {!items && !error && <p className="py-4 text-muted">Loading tasks…</p>}
+          {!items && !error && <p className="py-4 text-muted">Görevler yükleniyor…</p>}
         </div>
         <div className="min-h-0 flex-1 overflow-auto p-4">
           {items && board && view === "board" && <div className="grid min-h-[45dvh] grid-cols-1 gap-3 sm:grid-cols-[repeat(6,minmax(210px,1fr))]">
@@ -229,49 +232,49 @@ export function PlannerPanel({ agents, threads, onClose, onOpenRoutines, taskId 
               const cards = filtered.filter(item => item.column_id === column.id).sort((a, b) => a.position - b.position || a.id - b.id);
               return <section key={column.id} aria-label={column.name} onDragOver={acceptDrop} onDrop={event => drop(event, () => ({ column_id: column.id }))} className="min-w-0 rounded-card border border-line bg-inset p-2">
                 <div className="mb-3 flex items-center gap-2 px-1"><h3 className="text-sm font-semibold">{column.name}</h3><span className="text-xs text-muted">{cards.length}</span>
-                  <button type="button" aria-label={`Add task to ${column.name}`} disabled={busy} onClick={() => setEditor({ item: null, seedColumn: column.id })} className="ml-auto rounded p-1 hover:bg-hover"><Plus size={15} aria-hidden="true" /></button></div>
-                <div className="space-y-2">{cards.map(item => taskCard(item))}{cards.length === 0 && <p className="p-3 text-xs text-muted">No tasks here.</p>}</div>
+                  <button type="button" aria-label={`${column.name} sütununa görev ekle`} disabled={busy} onClick={() => setEditor({ item: null, seedColumn: column.id })} className="ml-auto rounded p-1 hover:bg-hover"><Plus size={15} aria-hidden="true" /></button></div>
+                <div className="space-y-2">{cards.map(item => taskCard(item))}{cards.length === 0 && <p className="p-3 text-xs text-muted">Burada görev yok.</p>}</div>
               </section>;
             })}
           </div>}
           {items && view === "list" && <div className="space-y-3">
-            <p className="text-xs text-muted">Deadlines first, followed by tasks without a due date. Completed tasks keep their workflow state.</p>
-            {upcoming.length === 0 ? <p className="py-10 text-center text-sm text-muted">No matching tasks. Create a task or adjust your filters.</p>
+            <p className="text-xs text-muted">Önce son tarihi olan görevler, ardından son tarihi olmayanlar. Tamamlanan görevler iş akışı durumlarını korur.</p>
+            {upcoming.length === 0 ? <p className="py-10 text-center text-sm text-muted">Eşleşen görev yok. Bir görev oluşturun ya da süzgeçleri değiştirin.</p>
               : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{upcoming.map(item => taskCard(item))}</div>}
           </div>}
           {calendarMode && <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <button className={control} aria-label="Previous period" onClick={() => setAnchor(value => view === "week" ? addDays(value, -7) : new Date(value.getFullYear(), value.getMonth() - 1, 1))}><ChevronLeft size={16} aria-hidden="true" /></button>
-              <button className={control} onClick={() => setAnchor(new Date())}>Today</button>
-              <button className={control} aria-label="Next period" onClick={() => setAnchor(value => view === "week" ? addDays(value, 7) : new Date(value.getFullYear(), value.getMonth() + 1, 1))}><ChevronRight size={16} aria-hidden="true" /></button>
-              <h3 className="mr-auto text-sm font-semibold">{view === "month" ? anchor.toLocaleDateString([], { month: "long", year: "numeric" }) : `${days[0].toLocaleDateString([], { month: "short", day: "numeric" })} – ${days[6].toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}`}</h3>
-              <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={showRoutines} onChange={event => setShowRoutines(event.target.checked)} />Routines & runs</label>
-              <button className={`${control} text-xs`} onClick={onOpenRoutines}>Manage routines</button>
+              <button className={control} aria-label="Önceki dönem" onClick={() => setAnchor(value => view === "week" ? addDays(value, -7) : new Date(value.getFullYear(), value.getMonth() - 1, 1))}><ChevronLeft size={16} aria-hidden="true" /></button>
+              <button className={control} onClick={() => setAnchor(new Date())}>Bugün</button>
+              <button className={control} aria-label="Sonraki dönem" onClick={() => setAnchor(value => view === "week" ? addDays(value, 7) : new Date(value.getFullYear(), value.getMonth() + 1, 1))}><ChevronRight size={16} aria-hidden="true" /></button>
+              <h3 className="mr-auto text-sm font-semibold">{view === "month" ? anchor.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : `${days[0].toLocaleDateString("tr-TR", { month: "short", day: "numeric" })} – ${days[6].toLocaleDateString("tr-TR", { month: "short", day: "numeric", year: "numeric" })}`}</h3>
+              <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={showRoutines} onChange={event => setShowRoutines(event.target.checked)} />Rutinler ve çalıştırmalar</label>
+              <button className={`${control} text-xs`} onClick={onOpenRoutines}>Rutinleri yönet</button>
             </div>
-            {showRoutines && calendarError && <p role="alert" className="text-sm text-danger">Routine calendar: {calendarError}</p>}
+            {showRoutines && calendarError && <p role="alert" className="text-sm text-danger">Rutin takvimi: {calendarError}</p>}
             {showRoutines && calendar?.warnings.map(warning => <p key={warning} className="text-xs text-warning">{warning}</p>)}
-            <p className="text-xs text-muted">Task deadlines · <span className="text-accent">↻ Routines and run history</span>. All times are in {timezone}. Use + on a date to add a task.</p>
+            <p className="text-xs text-muted">Görev son tarihleri · <span className="text-accent">↻ Rutinler ve çalıştırma geçmişi</span>. Tüm saatler {timezone} saat dilimindedir. Görev eklemek için bir tarihteki + düğmesini kullanın.</p>
             <div className="overflow-x-auto rounded-field border border-line">
               <div className="min-w-[700px]">
-                <div className="grid grid-cols-7 border-b border-line bg-inset">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => <div key={day} className="p-2 text-center text-xs font-semibold text-muted">{day}</div>)}</div>
+                <div className="grid grid-cols-7 border-b border-line bg-inset">{["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map(day => <div key={day} className="p-2 text-center text-xs font-semibold text-muted">{day}</div>)}</div>
                 <div className="grid grid-cols-7">
                   {days.map(day => {
                     const key = dateKey(day);
                     const cards = filtered.filter(item => deadlineDay(item) === key);
                     const events = showRoutines ? (calendar?.events ?? []).filter(event => dateKey(new Date(event.at)) === key) : [];
-                    return <section key={key} aria-label={day.toLocaleDateString([], { dateStyle: "full" })} onDragOver={acceptDrop} onDrop={event => drop(event, item => rescheduleDeadline(item, key, timezone))}
+                    return <section key={key} aria-label={day.toLocaleDateString("tr-TR", { dateStyle: "full" })} onDragOver={acceptDrop} onDrop={event => drop(event, item => rescheduleDeadline(item, key, timezone))}
                       className={cn("min-h-28 border-b border-r border-line p-1.5", view === "week" && "min-h-[40dvh]", view === "month" && day.getMonth() !== anchor.getMonth() && "bg-inset/50")}>
                       <div className="mb-1 flex items-center justify-between gap-1"><span className={cn("inline-flex size-6 items-center justify-center rounded-full text-xs", key === dateKey(new Date()) && "bg-accent font-semibold text-accent-fg")}>{day.getDate()}</span>
-                        <button type="button" aria-label={`Add task on ${key}`} disabled={!board || busy} className="rounded p-1 text-muted hover:bg-hover" onClick={() => setEditor({ item: null, seedDate: key })}><Plus size={13} aria-hidden="true" /></button></div>
+                        <button type="button" aria-label={`${key} tarihine görev ekle`} disabled={!board || busy} className="rounded p-1 text-muted hover:bg-hover" onClick={() => setEditor({ item: null, seedDate: key })}><Plus size={13} aria-hidden="true" /></button></div>
                       <div className="space-y-1">{cards.slice(0, 3).map(item => taskCard(item, true))}{events.slice(0, 2).map(routineEntry)}
-                        {(cards.length > 3 || events.length > 2) && <details><summary className="cursor-pointer py-1 text-xs text-muted">{Math.max(0, cards.length - 3) + Math.max(0, events.length - 2)} more</summary><div className="space-y-1">{cards.slice(3).map(item => taskCard(item, true))}{events.slice(2).map(routineEntry)}</div></details>}
+                        {(cards.length > 3 || events.length > 2) && <details><summary className="cursor-pointer py-1 text-xs text-muted">{Math.max(0, cards.length - 3) + Math.max(0, events.length - 2)} tane daha</summary><div className="space-y-1">{cards.slice(3).map(item => taskCard(item, true))}{events.slice(2).map(routineEntry)}</div></details>}
                       </div>
                     </section>;
                   })}
                 </div>
               </div>
             </div>
-            {filtered.some(item => !deadlineDay(item)) && <details><summary className="cursor-pointer text-sm text-muted">Tasks without a due date ({filtered.filter(item => !deadlineDay(item)).length})</summary><div className="mt-2 grid gap-2 sm:grid-cols-3">{filtered.filter(item => !deadlineDay(item)).map(item => taskCard(item))}</div></details>}
+            {filtered.some(item => !deadlineDay(item)) && <details><summary className="cursor-pointer text-sm text-muted">Son tarihi olmayan görevler ({filtered.filter(item => !deadlineDay(item)).length})</summary><div className="mt-2 grid gap-2 sm:grid-cols-3">{filtered.filter(item => !deadlineDay(item)).map(item => taskCard(item))}</div></details>}
           </div>}
         </div>
       </div>
@@ -283,7 +286,7 @@ export function PlannerPanel({ agents, threads, onClose, onOpenRoutines, taskId 
       onClose={() => { setExecutionItem(null); setTick(value => value + 1); }} onReview={async () => {
         const current = await planner.item(executionItem.id);
         const review = board?.columns.find(column => column.key === "review");
-        if (!review) throw new Error("Review column is unavailable.");
+        if (!review) throw new Error("İnceleme sütunu kullanılamıyor.");
         const saved = await planner.update(current, { column_id: review.id });
         setExecutionItem(saved); await refreshItems();
       }} />}

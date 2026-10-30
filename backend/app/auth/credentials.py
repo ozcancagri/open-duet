@@ -48,9 +48,9 @@ class WeakPassphrase(ValueError):
 
 def check_passphrase_strength(passphrase: str) -> None:
     if len(passphrase) < MIN_PASSPHRASE_LENGTH:
-        raise WeakPassphrase(f"Use at least {MIN_PASSPHRASE_LENGTH} characters.")
+        raise WeakPassphrase(f"En az {MIN_PASSPHRASE_LENGTH} karakter kullanın.")
     if len(passphrase) > MAX_PASSPHRASE_LENGTH:
-        raise WeakPassphrase(f"Use at most {MAX_PASSPHRASE_LENGTH} characters.")
+        raise WeakPassphrase(f"En çok {MAX_PASSPHRASE_LENGTH} karakter kullanın.")
 
 
 def hash_passphrase(passphrase: str) -> str:

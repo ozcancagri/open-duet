@@ -63,7 +63,7 @@ async def delete_rule(
     async with rt.session() as db:
         rule = await allowlist.delete_rule(db, rt.owner_id, rule_id)
     if rule is None:
-        raise HTTPException(status_code=404, detail="Rule not found")
+        raise HTTPException(status_code=404, detail="Kural bulunamadı")
     decision_log.record(
         "undone", thread_id=thread_id, tool=allowlist.BASH_TOOL, source="user", rule=allowlist.rule_label(rule)
     )

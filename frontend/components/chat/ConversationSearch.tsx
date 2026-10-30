@@ -7,11 +7,11 @@ import { snippetSegments } from "@/lib/everyday";
 
 const MIN_CHARS = 2;
 const WAIT_MS = 250;
-const KIND_LABEL: Record<SearchHit["kind"], string> = { title: "Title", user: "You", assistant: "Agent" };
+const KIND_LABEL: Record<SearchHit["kind"], string> = { title: "Başlık", user: "Siz", assistant: "Ajan" };
 
 function when(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString([], { month: "short", day: "numeric" });
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("tr-TR", { month: "short", day: "numeric" });
 }
 
 // A search box over every conversation's title and messages. While a query is
@@ -46,7 +46,7 @@ export function ConversationSearch({
         .catch((err) => {
           if (!alive) return;
           setHits([]);
-          setError(err instanceof ApiError ? err.message : "Could not reach the backend to search.");
+          setError(err instanceof ApiError ? err.message : "Arama için sunucuya ulaşılamadı.");
         });
     }, WAIT_MS);
     return () => {
@@ -65,24 +65,24 @@ export function ConversationSearch({
           setHits(null);
         }}
         onKeyDown={(e) => e.key === "Escape" && setQuery("")}
-        placeholder="Search conversations"
-        aria-label="Search conversations"
+        placeholder="Sohbetlerde ara"
+        aria-label="Sohbetlerde ara"
         className="w-full rounded-field border border-line bg-raised px-3 py-2 text-sm placeholder:text-faint"
       />
       {active && (
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
           <label className="flex items-center gap-1">
             <input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} />
-            Include archived
+            Arşivlenenler dahil
           </label>
           {agentNames && agentNames.size > 0 && (
             <select
               value={agentId ?? ""}
               onChange={(e) => setAgentId(e.target.value === "" ? null : Number(e.target.value))}
-              aria-label="Only conversations with this agent"
+              aria-label="Yalnız bu ajanla yapılan sohbetler"
               className="max-w-36 truncate rounded border border-line bg-raised px-1 py-0.5"
             >
-              <option value="">Any agent</option>
+              <option value="">Tüm ajanlar</option>
               {[...agentNames.entries()].map(([id, name]) => (
                 <option key={id} value={id}>
                   {name}
@@ -93,12 +93,12 @@ export function ConversationSearch({
         </div>
       )}
       {active && (
-        <ul aria-label="Search results" className="mt-2 space-y-1">
-          {hits === null && <li className="px-1 py-2 text-xs text-muted">Searching…</li>}
+        <ul aria-label="Arama sonuçları" className="mt-2 space-y-1">
+          {hits === null && <li className="px-1 py-2 text-xs text-muted">Aranıyor…</li>}
           {error && <li className="px-1 py-2 text-xs text-danger">{error}</li>}
           {hits?.length === 0 && !error && (
             <li className="px-1 py-2 text-xs text-muted">
-              No conversation mentions “{q}”{archived ? "" : ". Archived ones are not searched unless you include them"}.
+              Hiçbir sohbette “{q}” geçmiyor{archived ? "" : ". Arşivlenenler, dahil etmediğiniz sürece aranmaz"}.
             </li>
           )}
           {hits?.map((hit, index) => (
@@ -110,7 +110,7 @@ export function ConversationSearch({
               >
                 <span className="flex items-baseline gap-2 text-xs text-muted">
                   <span className="min-w-0 flex-1 truncate font-medium text-ink">
-                    {hit.thread_title || `Conversation ${hit.thread_id}`}
+                    {hit.thread_title || `Sohbet ${hit.thread_id}`}
                   </span>
                   <span className="shrink-0">{when(hit.at)}</span>
                 </span>
@@ -128,7 +128,7 @@ export function ConversationSearch({
                 </span>
                 {(hit.archived || (hit.agent_id != null && agentNames?.get(hit.agent_id))) && (
                   <span className="mt-0.5 block text-[11px] text-faint">
-                    {[hit.agent_id != null ? agentNames?.get(hit.agent_id) : null, hit.archived ? "archived" : null]
+                    {[hit.agent_id != null ? agentNames?.get(hit.agent_id) : null, hit.archived ? "arşivlendi" : null]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>

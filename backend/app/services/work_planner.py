@@ -11,8 +11,8 @@ from app.db.transactions import begin_write
 from app.schemas.work_item import WorkFields
 from app.services import work_events
 
-COLUMNS = [("backlog", "Backlog"), ("ready", "Ready"), ("doing", "In progress"),
-           ("waiting", "Waiting"), ("review", "Review"), ("done", "Done")]
+COLUMNS = [("backlog", "Biriken"), ("ready", "Hazır"), ("doing", "Sürüyor"),
+           ("waiting", "Bekliyor"), ("review", "İncelemede"), ("done", "Bitti")]
 
 
 def error(status, message):
@@ -26,7 +26,7 @@ async def default_board(db, owner):
     if board is None:
         try:
             async with db.begin_nested():
-                board = WorkBoard(owner_id=owner, key="default", name="My tasks")
+                board = WorkBoard(owner_id=owner, key="default", name="Görevlerim")
                 db.add(board)
                 await db.flush()
                 db.add_all([WorkColumn(board_id=board.id, key=key, name=name, position=i)
@@ -44,14 +44,14 @@ async def default_board(db, owner):
 async def owned_board(db, owner, board_id):
     board = await db.scalar(select(WorkBoard).where(WorkBoard.id == board_id, WorkBoard.owner_id == owner))
     if board is None:
-        raise error(404, "Board not found")
+        raise error(404, "Pano bulunamadı")
     return board
 
 
 async def column_for(db, board_id, column_id):
     column = await db.scalar(select(WorkColumn).where(WorkColumn.id == column_id, WorkColumn.board_id == board_id))
     if column is None:
-        raise error(422, "Choose a column from this board")
+        raise error(422, "Bu panodan bir sütun seçin")
     return column
 
 
@@ -61,15 +61,15 @@ async def validate_fields(db, owner, data, changed):
     except ValidationError as exc:
         raise error(422, str(exc)) from None
     if data.get("due_at") and data.get("due_date"):
-        raise error(422, "Choose a date-only deadline or a timed deadline")
+        raise error(422, "Ya yalnız tarihli ya da saatli bir son tarih seçin")
     if data.get("agent_id") and data.get("team_id"):
-        raise error(422, "Assign a task to an agent or a team")
+        raise error(422, "Görevi bir ajana ya da bir takıma atayın")
     for field, model in (("agent_id", Agent), ("team_id", Team), ("thread_id", Thread)):
         value = data.get(field)
         if field in changed and value is not None:
             found = await db.scalar(select(model.id).where(model.id == value, model.owner_id == owner))
             if found is None:
-                raise error(422, f"The selected {field.removesuffix('_id')} is unavailable")
+                raise error(422, f"Seçilen {({'agent': 'ajan', 'team': 'takım', 'thread': 'sohbet'})[field.removesuffix('_id')]} kullanılamıyor")
 
 
 async def next_position(db, board_id, column_id):
@@ -97,11 +97,11 @@ async def update_item(db, owner, item_id, revision, changes):
     await begin_write(db)
     item = await db.scalar(select(WorkItem).where(WorkItem.id == item_id, WorkItem.owner_id == owner))
     if item is None:
-        raise error(404, "Task not found")
+        raise error(404, "Görev bulunamadı")
     if item.revision != revision:
-        raise error(409, "This task changed in another window. Refresh it before saving again.")
+        raise error(409, "Bu görev başka bir pencerede değişti. Yeniden kaydetmeden önce yenileyin.")
     if any(changes.get(key, True) is None for key in ("title", "description", "priority", "timezone", "column_id", "archived")):
-        raise error(422, "Required task fields cannot be cleared")
+        raise error(422, "Görevin zorunlu alanları boşaltılamaz")
     fields = {key: getattr(item, key) for key in WorkFields.model_fields}
     fields.update({key: value for key, value in changes.items() if key in fields})
     # Forms may submit all visible fields. An unchanged, now-deleted link is
@@ -119,7 +119,7 @@ async def update_item(db, owner, item_id, revision, changes):
     ).values(**changes, revision=revision + 1, updated_at=datetime.now(UTC)).execution_options(synchronize_session=False))
     if result.rowcount != 1:
         await db.rollback()
-        raise error(409, "This task changed in another window. Refresh it before saving again.")
+        raise error(409, "Bu görev başka bir pencerede değişti. Yeniden kaydetmeden önce yenileyin.")
     work_events.add(db, item, "updated", detail=", ".join(sorted(changes)))
     await db.commit()
     await db.refresh(item)

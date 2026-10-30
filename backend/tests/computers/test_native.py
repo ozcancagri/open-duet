@@ -28,7 +28,7 @@ async def test_disconnected_local_service_cannot_silently_fall_back(desktop, mon
     def disconnected(*_):
         raise OSError("disconnected")
     monkeypatch.setattr(native, "request", disconnected)
-    with pytest.raises(ComputerUnavailable, match="disconnected"):
+    with pytest.raises(ComputerUnavailable, match="bağlantı yok"):
         await ComputerService().attach_for_turn(1, 2, None)
 
 

@@ -47,13 +47,13 @@ export function MemoryPanel({
   }, [loadProposed]);
 
   const tabs: [Tab, string][] = [
-    ["topics", "Topic notes"],
-    ["proposed", `Proposed${proposed && proposed.length ? ` (${proposed.length})` : ""}`],
-    ["about", "About me"],
-    ["history", "History"],
+    ["topics", "Konu notları"],
+    ["proposed", `Önerilenler${proposed && proposed.length ? ` (${proposed.length})` : ""}`],
+    ["about", "Hakkımda"],
+    ["history", "Geçmiş"],
   ];
   return (
-    <section className="space-y-3 border-t border-line pt-3" aria-label="More memory">
+    <section className="space-y-3 border-t border-line pt-3" aria-label="Diğer bellek ayarları">
       <UpkeepCard agent={agent} onAgentChange={onAgentChange} onError={setError} onNotesChanged={onNotesChanged} />
       <div role="tablist" className="flex flex-wrap gap-1">
         {tabs.map(([id, label]) => (
@@ -121,7 +121,7 @@ function Topics({ agentId, onError }: { agentId: number; onError: (e: string | n
   const create = async () => {
     const name = topicFileName(newName);
     if (!name) {
-      onError("Give the topic a name with letters or digits, for example travel.");
+      onError("Konuya harf ya da rakam içeren bir ad verin, örneğin seyahat.");
       return;
     }
     setNewName("");
@@ -134,7 +134,7 @@ function Topics({ agentId, onError }: { agentId: number; onError: (e: string | n
     onError(null);
     try {
       const doc = await api.saveTopic(agentId, open.doc.name, open.text, overwrite ? null : open.doc.hash);
-      const saved = doc.redacted > 0 ? `Saved. ${doc.redacted} thing(s) that looked like secrets were replaced.` : "Saved.";
+      const saved = doc.redacted > 0 ? `Kaydedildi. Gizli bilgiye benzeyen ${doc.redacted} öğe değiştirildi.` : "Kaydedildi.";
       setOpen({ doc, text: doc.text, conflict: false, saved });
       await refresh();
     } catch (err) {
@@ -165,27 +165,27 @@ function Topics({ agentId, onError }: { agentId: number; onError: (e: string | n
       <div className="space-y-2">
         <p className="text-xs text-muted">
           <span className="font-mono">memory/{open.doc.name}</span>
-          {open.doc.exists ? "" : " (new)"} · not loaded whole: the agent reads it when relevant, and matching passages
-          are recalled in front of a message. Start with front matter (<span className="font-mono">title:</span>,{" "}
-          <span className="font-mono">aliases:</span>) to give other words for the subject.
+          {open.doc.exists ? "" : " (yeni)"} · bütünüyle yüklenmez: ajan gerektiğinde okur, eşleşen bölümler de bir
+          mesajın önüne hatırlatılır. Konu için başka sözcükler vermek üzere ön bilgiyle (<span className="font-mono">title:</span>,{" "}
+          <span className="font-mono">aliases:</span>) başlayın.
         </p>
         <textarea
           value={open.text}
           rows={10}
           onChange={(e) => setOpen({ ...open, text: e.target.value, saved: null })}
-          aria-label={`Topic note ${open.doc.name}`}
-          placeholder={"---\ntitle: Travel\naliases: [trips, flights]\n---\n- Prefers aisle seats"}
+          aria-label={`Konu notu ${open.doc.name}`}
+          placeholder={"---\ntitle: Seyahat\naliases: [geziler, uçuşlar]\n---\n- Koridor koltuğunu tercih eder"}
           className={`${FIELD} resize-y font-mono`}
         />
         {open.conflict && (
           <div role="alert" className="rounded-md border border-warning/60 p-3 text-xs">
-            <p>The agent changed this note while you were editing. Load its version, or keep yours and overwrite it.</p>
+            <p>Siz düzenlerken ajan bu notu değiştirdi. Ajanın sürümünü yükleyin ya da kendi metninizi koruyup onun üzerine yazın.</p>
             <div className="mt-2 flex gap-2">
               <button onClick={() => openTopic(open.doc.name)} disabled={busy} className={SMALL}>
-                Load its version
+                Ajanın sürümünü yükle
               </button>
               <button onClick={() => save(true)} disabled={busy} className={SMALL}>
-                Overwrite with mine
+                Benimkiyle üzerine yaz
               </button>
             </div>
           </div>
@@ -193,14 +193,14 @@ function Topics({ agentId, onError }: { agentId: number; onError: (e: string | n
         {open.saved && <p className="text-xs text-muted">{open.saved}</p>}
         <div className="flex flex-wrap gap-2">
           <button onClick={() => save(false)} disabled={busy || !dirty} className={PRIMARY_SMALL}>
-            {busy ? "Saving…" : "Save topic"}
+            {busy ? "Kaydediliyor…" : "Konuyu kaydet"}
           </button>
           <button onClick={() => setOpen(null)} disabled={busy} className={SMALL}>
-            {dirty ? "Discard" : "Back to topics"}
+            {dirty ? "Vazgeç" : "Konulara dön"}
           </button>
           {open.doc.exists && (
             <button onClick={remove} disabled={busy} className={SMALL}>
-              Delete (History can bring it back)
+              Sil (Geçmiş&apos;ten geri getirilebilir)
             </button>
           )}
         </div>
@@ -211,14 +211,14 @@ function Topics({ agentId, onError }: { agentId: number; onError: (e: string | n
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted">
-        Longer notes about one subject each, in{" "}
-        <span className="font-mono break-all">{list?.folder ?? "memory/"}</span>. Only their names load into every
-        conversation; passages that match a message are recalled in front of it.
+        Her biri tek bir konuyu anlatan daha uzun notlar; konumu:{" "}
+        <span className="font-mono break-all">{list?.folder ?? "memory/"}</span>. Her sohbete yalnız adları yüklenir;
+        bir mesajla eşleşen bölümler o mesajın önüne hatırlatılır.
       </p>
       {list === null ? (
-        <p className="text-xs text-muted">Loading…</p>
+        <p className="text-xs text-muted">Yükleniyor…</p>
       ) : list.topics.length === 0 ? (
-        <p className="text-xs text-muted">No topic notes yet.</p>
+        <p className="text-xs text-muted">Henüz konu notu yok.</p>
       ) : (
         <ul className="space-y-1">
           {list.topics.map((t) => (
@@ -239,12 +239,12 @@ function Topics({ agentId, onError }: { agentId: number; onError: (e: string | n
           onKeyDown={(e) => {
             if (e.key === "Enter") void create();
           }}
-          placeholder="New topic, e.g. travel"
-          aria-label="New topic name"
+          placeholder="Yeni konu, ör. seyahat"
+          aria-label="Yeni konu adı"
           className={FIELD}
         />
         <button onClick={create} disabled={!newName.trim()} className={SMALL}>
-          New topic
+          Yeni konu
         </button>
       </div>
     </div>
@@ -276,29 +276,29 @@ function Proposed({
       setBusy(null);
     }
   };
-  if (items === null) return <p className="text-xs text-muted">Loading…</p>;
+  if (items === null) return <p className="text-xs text-muted">Yükleniyor…</p>;
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted">
-        Lines picked from your own messages once a conversation has been quiet for two minutes. Nothing is saved until
-        you accept it; a rejected line is not proposed again.
+        Bir sohbet iki dakika sessiz kaldıktan sonra kendi mesajlarınızdan seçilen satırlar. Siz kabul edene kadar
+        hiçbir şey kaydedilmez; reddedilen bir satır bir daha önerilmez.
       </p>
       {items.length === 0 ? (
-        <p className="text-xs text-muted">Nothing proposed right now.</p>
+        <p className="text-xs text-muted">Şu anda öneri yok.</p>
       ) : (
         <ul className="space-y-2">
           {items.map((p) => (
             <li key={p.id} className="rounded-md border border-line p-2 text-sm">
               <p className="font-mono text-xs break-words">{p.line}</p>
               <p className="mt-1 text-xs text-muted">
-                From “{p.thread_title || "a conversation"}” · would go to {p.target}
+                Kaynak: “{p.thread_title || "bir sohbet"}” · gideceği yer: {p.target}
               </p>
               <div className="mt-2 flex gap-2">
                 <button onClick={() => decide(p, true)} disabled={busy !== null} className={PRIMARY_SMALL}>
-                  Accept
+                  Kabul et
                 </button>
                 <button onClick={() => decide(p, false)} disabled={busy !== null} className={SMALL}>
-                  Reject
+                  Reddet
                 </button>
               </div>
             </li>
@@ -349,15 +349,15 @@ function History({
     }
   };
 
-  if (rows === null) return <p className="text-xs text-muted">Loading…</p>;
+  if (rows === null) return <p className="text-xs text-muted">Yükleniyor…</p>;
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted">
-        Changes made here, by accepted proposals and by undo. Undo puts a file back the way it was before that change.
-        Edits the agent makes with its own file tools are not listed.
+        Burada, kabul edilen önerilerle ve geri almayla yapılan değişiklikler. Geri al, dosyayı o değişiklikten önceki
+        hâline döndürür. Ajanın kendi dosya araçlarıyla yaptığı düzenlemeler listelenmez.
       </p>
       {rows.length === 0 ? (
-        <p className="text-xs text-muted">No changes yet.</p>
+        <p className="text-xs text-muted">Henüz değişiklik yok.</p>
       ) : (
         <ul className="space-y-1">
           {rows.map((row) => (
@@ -367,16 +367,16 @@ function History({
                 <span className="text-muted">{new Date(row.at).toLocaleString()}</span>
                 {row.diff && (
                   <button onClick={() => setShown(shown === row.id ? null : row.id)} className="underline">
-                    {shown === row.id ? "Hide" : "Diff"}
+                    {shown === row.id ? "Gizle" : "Farkı göster"}
                   </button>
                 )}
                 {row.can_undo ? (
                   <button onClick={() => undo(row)} disabled={busy !== null} className={SMALL}>
-                    {busy === row.id ? "Undoing…" : "Undo"}
+                    {busy === row.id ? "Geri alınıyor…" : "Geri al"}
                   </button>
                 ) : (
                   <span className="text-muted" title={row.reason ?? ""}>
-                    cannot be undone
+                    geri alınamaz
                   </span>
                 )}
               </div>

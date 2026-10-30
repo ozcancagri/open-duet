@@ -61,8 +61,67 @@ export const en = {
 
 export type MessageKey = keyof typeof en;
 
+// The interface is shown in Turkish; `en` stays as the key list and the fallback.
+export const tr: Record<MessageKey, string> = {
+  "theme.label": "Tema",
+  "theme.system": "Sistem",
+  "theme.light": "Açık",
+  "theme.dark": "Koyu",
+  "common.close": "Kapat",
+  "common.loading": "Yükleniyor…",
+  "common.cancel": "İptal",
+  "common.delete": "Sil",
+  "shell.newChat": "Yeni sohbet",
+  "shell.skip": "Sohbete geç",
+  "shell.openSidebar": "Sohbetleri aç",
+  "shell.conversations": "Sohbetler",
+  "sidebar.agents": "Ajanlar",
+  "sidebar.manageAgents": "Ajanları yönet",
+  "sidebar.newAgent": "Yeni ajan",
+  "sidebar.noAgents": "Henüz ajan yok. Her ajanın kendi talimatları, notları ve bilgisayarı olur.",
+  "sidebar.recent": "Son sohbetler",
+  "sidebar.search": "Sohbetlerde ara",
+  "sidebar.loading": "Yükleniyor…",
+  "sidebar.empty": "Henüz sohbet yok. Yeni sohbet ile başlayın; sohbetler bu bilgisayarda saklanır.",
+  "sidebar.emptyArchived": "Sohbet yok.",
+  "sidebar.showArchived": "Arşivlenenleri göster",
+  "sidebar.hideArchived": "Arşivlenenleri gizle",
+  "sidebar.routines": "Rutinler",
+  "sidebar.legacyTasks": "Telegram ve Boat görevleri",
+  "sidebar.settings": "Ayarlar",
+  "sidebar.rowActions": "Sohbet işlemleri",
+  "sidebar.rename": "Yeniden adlandır",
+  "sidebar.archive": "Arşivle",
+  "sidebar.unarchive": "Arşivden çıkar",
+  "sidebar.deleteAsk": "Sil…",
+  "sidebar.deleteTitle": "Bu sohbet silinsin mi?",
+  "sidebar.deleteBody": "Bu uygulamanın sakladığı mesajlar ve araç çağrıları silinir, geri getirilemez. Claude'un oturum kopyası .claude klasörünüzde kalır.",
+  "sidebar.renameLabel": "Sohbet adı",
+  "sidebar.renameHint": "Kaydetmek için Enter, iptal için Escape",
+  "sidebar.untitled": "Yeni sohbet",
+  "sidebar.archivedTag": "arşivlendi",
+  "status.working": "Çalışıyor",
+  "status.waiting": "Sizi bekliyor",
+  "status.reset": "Yeni oturum gerekli",
+  "header.more": "Diğer",
+  "header.approvals": "Onaylar",
+  "header.files": "Dosyalar",
+  "header.usage": "Kullanım",
+  "header.agentForChat": "Bu sohbetin ajanı",
+  "header.noAgent": "Ajan yok",
+  "header.engine": "Motor ve model seçin",
+  "header.reconnecting": "Yeniden bağlanıyor…",
+  "header.unavailable": "Kullanılamıyor",
+  "header.chatOnly": "yalnız sohbet",
+  "header.ready": "Hazır",
+  "notifications.title": "Bildirimler",
+  "notifications.unread": "Bildirimler, {count} okunmamış",
+  "notifications.markAll": "Tümünü okundu işaretle",
+  "notifications.empty": "Henüz bir şey yok.",
+};
+
 export function t(key: MessageKey, params?: Record<string, string | number>): string {
-  const template: string = en[key] ?? key;
+  const template: string = tr[key] ?? en[key] ?? key;
   if (!params) return template;
   return template.replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole));
 }

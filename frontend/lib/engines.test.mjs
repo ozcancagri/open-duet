@@ -23,7 +23,7 @@ const engines = [
 
 test("ready engines come first, preserving registry order within groups", () => {
   assert.deepEqual(engineGroups(engines).map(g => [g.label, g.engines.map(e => e.id)]), [
-    ["Ready", ["openrouter", "cursor"]], ["Needs setup", ["claude"]],
+    ["Hazır", ["openrouter", "cursor"]], ["Kurulum gerekli", ["claude"]],
   ]);
   assert.deepEqual(engineGroups([]), []);
 });

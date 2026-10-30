@@ -180,13 +180,13 @@ def test_a_first_launch_needs_no_env_and_serves_the_api_and_the_page_behind_the_
     status = get(port, "/api/v1/local/status").json()
     assert status["enabled"] is True and status["tools_enabled"] is True
     # The launcher's claude path does not exist: the message is the desktop's, not the .env one.
-    assert status["available"] is False and "Claude CLI not found" in status["reason"]
-    assert "Settings" in status["reason"] and "LOCAL_CLAUDE_CLI_PATH" not in status["reason"]
+    assert status["available"] is False and "Claude CLI bulunamadı" in status["reason"]
+    assert "Ayarlar" in status["reason"] and "LOCAL_CLAUDE_CLI_PATH" not in status["reason"]
     assert get(port, "/api/v1/local/status", origin="https://evil.example").json()["reason"] == (
-        "Local execution request has an untrusted Origin."
+        "Yerel çalıştırma isteğinde güvenilmeyen bir Origin var."
     )
     assert get(port, "/api/v1/local/status", origin=f"http://127.0.0.1:{port}").json()["reason"] != (
-        "Local execution request has an untrusted Origin."
+        "Yerel çalıştırma isteğinde güvenilmeyen bir Origin var."
     )
 
     # SQLite in the data folder, migrated to the newest revision, nothing elsewhere.

@@ -117,14 +117,14 @@ async def _computer_or_404(service: ComputerService, computer_id: int) -> Comput
     try:
         return await service.get(computer_id)
     except ComputerNotFound:
-        raise HTTPException(status_code=404, detail="Computer not found") from None
+        raise HTTPException(status_code=404, detail="Bilgisayar bulunamadı") from None
 
 
 async def _agent_or_404(rt: ThreadRuntime, agent_id: int) -> Agent:
     async with rt.session() as db:
         agent = await agent_store.get_agent(db, agent_id)
     if agent is None or agent.owner_id != rt.owner_id:
-        raise HTTPException(status_code=404, detail="Agent not found")
+        raise HTTPException(status_code=404, detail="Ajan bulunamadı")
     return agent
 
 
@@ -143,7 +143,7 @@ async def _live(service: ComputerService, computer: Computer) -> ComputerRespons
     try:
         computer = await service.get(computer.id)
     except ComputerNotFound:
-        raise HTTPException(status_code=404, detail="Computer not found") from None
+        raise HTTPException(status_code=404, detail="Bilgisayar bulunamadı") from None
     return respond(service, computer, health=health, status=status)
 
 
@@ -180,7 +180,7 @@ async def get_agent_computer(agent_id: int, rt: ThreadRuntime = Depends(get_runt
     service = _service(rt)
     computer = await service.for_agent(agent_id)
     if computer is None:
-        raise _error(404, "no_computer", "This agent has no computer.")
+        raise _error(404, "no_computer", "Bu ajanın bilgisayarı yok.")
     return await _live(service, computer)
 
 
@@ -202,8 +202,8 @@ async def create_agent_computer(
         raise _error(
             409,
             "engine_without_computers",
-            f"This agent's engine ({agent.provider}) cannot run its tools in a computer. "
-            "Computers work with Claude for now.",
+            f"Bu ajanın motoru ({agent.provider}) araçlarını bir bilgisayarda çalıştıramıyor. "
+            "Bilgisayarlar şimdilik Claude ile çalışıyor.",
         )
     service = _service(rt)
     settings = payload.model_dump(exclude={"start", "image"}, exclude_none=True)
@@ -238,7 +238,7 @@ async def update_computer(computer_id: int, payload: ComputerUpdateRequest, rt: 
     except ComputerError as exc:
         raise _refused(exc) from None
     except ComputerNotFound:
-        raise HTTPException(status_code=404, detail="Computer not found") from None
+        raise HTTPException(status_code=404, detail="Bilgisayar bulunamadı") from None
     return await _live(service, computer)
 
 
@@ -250,7 +250,7 @@ async def _lifecycle(rt: ThreadRuntime, computer_id: int, step) -> ComputerRespo
     except ComputerError as exc:
         raise _refused(exc) from None
     except ComputerNotFound:
-        raise HTTPException(status_code=404, detail="Computer not found") from None
+        raise HTTPException(status_code=404, detail="Bilgisayar bulunamadı") from None
     return await _live(service, computer)
 
 
@@ -296,7 +296,7 @@ async def delete_computer(computer_id: int, rt: ThreadRuntime = Depends(get_runt
     except ComputerError as exc:
         raise _refused(exc) from None
     except ComputerNotFound:
-        raise HTTPException(status_code=404, detail="Computer not found") from None
+        raise HTTPException(status_code=404, detail="Bilgisayar bulunamadı") from None
     return ComputerDeleteResponse(removed=removed)
 
 

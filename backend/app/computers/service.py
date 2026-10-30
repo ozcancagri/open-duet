@@ -163,7 +163,7 @@ class ComputerService:
 
     async def screenshot(self, computer: Computer) -> bytes:
         if computer.kind != "desktop":
-            raise ComputerError("This computer has no screen.", "not_a_desktop")
+            raise ComputerError("Bu bilgisayarın ekranı yok.", "not_a_desktop")
         cached = self._capture_cache.get(computer.id)
         if cached and time.monotonic()-cached[0] < 1:
             return cached[1]
@@ -174,7 +174,7 @@ class ComputerService:
                 self._capture_tokens = min(4, self._capture_tokens + (now-self._capture_at)*4)
                 self._capture_at = now
                 if self._capture_tokens < 1:
-                    raise ComputerError("Screen capture budget reached. Try again shortly.", "capture_busy")
+                    raise ComputerError("Ekran görüntüsü sınırına ulaşıldı. Birazdan yeniden deneyin.", "capture_busy")
                 self._capture_tokens -= 1
                 async with self._capture_slots:
                     async with self._lock(computer.id):
@@ -207,7 +207,7 @@ class ComputerService:
     def provider(self, key: str = "docker"):
         provider = self.providers.get(key)
         if provider is None:
-            raise ComputerError(f"Unknown computer provider: {key}", "unknown_provider")
+            raise ComputerError(f"Bilinmeyen bilgisayar sağlayıcısı: {key}", "unknown_provider")
         return provider
 
     def _lock(self, computer_id: int) -> asyncio.Lock:
@@ -301,13 +301,13 @@ class ComputerService:
         created). Never touches the provider. Raises ValueError for bad config."""
         kind = config.pop("kind", "shell")
         if kind not in docker_cli.COMPUTER_KINDS:
-            raise ValueError("kind must be shell or desktop")
+            raise ValueError("tür shell ya da desktop olmalı")
         image = docker_cli.check_image(image or (docker_cli.DESKTOP_IMAGE if kind == "desktop" else docker_cli.DEFAULT_IMAGE))
         if kind == "desktop":
             config = {"cpus": 2, "memory_mb": 2048, "pids_limit": 1024, **config}
         values = _checked_config(config)
         if values.get("browser_enabled") and kind != "desktop":
-            raise ValueError("Browser tools require a desktop computer")
+            raise ValueError("Tarayıcı araçları masaüstü olan bir bilgisayar gerektirir")
         async with self.session() as db:
             await begin_write(db)
             existing = (
@@ -317,7 +317,7 @@ class ComputerService:
                 db.expunge(existing)  # a rollback would expire it
                 await db.rollback()
                 if existing.state == "deleting":
-                    raise ComputerError("This agent's previous computer is still being removed. Try again shortly.", "computer_deleting")
+                    raise ComputerError("Bu ajanın önceki bilgisayarı hâlâ kaldırılıyor. Birazdan yeniden deneyin.", "computer_deleting")
                 return existing, False
             computer = Computer(
                 owner_id=self.owner_id,
@@ -342,9 +342,9 @@ class ComputerService:
             values = _checked_config({k: v for k, v in changes.items() if k != "image"}, partial=True)
             if "browser_enabled" in values:
                 if values["browser_enabled"] and computer.kind != "desktop":
-                    raise ValueError("Browser tools require a desktop computer")
+                    raise ValueError("Tarayıcı araçları masaüstü olan bir bilgisayar gerektirir")
                 if self.busy(computer_id):
-                    raise ComputerError("Stop the active turn before changing browser tools", "computer_busy")
+                    raise ComputerError("Tarayıcı araçlarını değiştirmeden önce süren yanıtı durdurun", "computer_busy")
             if "image" in changes and changes["image"] is not None:
                 values["image"] = docker_cli.check_image(changes["image"])
             computer = await self._save(computer_id, **values)
@@ -360,7 +360,7 @@ class ComputerService:
     async def _require_docker(self) -> None:
         health = await self.health(fresh=True)
         if not health.available:
-            raise ComputerError(health.error or "Docker is not available.", "docker_unavailable")
+            raise ComputerError(health.error or "Docker kullanılamıyor.", "docker_unavailable")
 
     async def prepare_image(self, computer_id: int) -> Computer:
         """Download the computer's image (the only step that does)."""
@@ -369,7 +369,7 @@ class ComputerService:
             await self._require_docker()
             provider = self.provider(computer.provider)
             if computer.kind == "desktop" and computer.image == docker_cli.DESKTOP_IMAGE:
-                raise ComputerError("Build the desktop image locally first: docker build -t open-dots-desktop:local desktop-image. See docs/DESKTOP-IMAGE.md.", "image_missing")
+                raise ComputerError("Önce masaüstü imajını yerelde oluşturun: docker build -t open-dots-desktop:local desktop-image. Bkz. docs/DESKTOP-IMAGE.md.", "image_missing")
             await self._call(provider.pull, computer.image)
             return await self._save(computer_id, last_error=None)
 
@@ -392,7 +392,7 @@ class ComputerService:
                     await asyncio.sleep(1)
                     status = await self._call(provider.status, self.spec(computer))
                 if not status.desktop_ready:
-                    raise ComputerError("The desktop did not come up in 60 seconds. Check the container logs.", "desktop_not_ready")
+                    raise ComputerError("Masaüstü 60 saniye içinde açılmadı. Kapsayıcı günlüklerini kontrol edin.", "desktop_not_ready")
         except ComputerError as exc:
             await self._save(computer.id, state="error", last_error=str(exc))
             raise
@@ -403,7 +403,7 @@ class ComputerService:
         async with self._lock(computer_id):
             computer = await self.get(computer_id)
             if self._leases.get(computer_id):
-                raise ComputerError("A turn is using this computer. Stop the turn first.", "computer_busy")
+                raise ComputerError("Bu bilgisayarı bir yanıt kullanıyor. Önce yanıtı durdurun.", "computer_busy")
             self.release_control(computer_id)
             if hasattr(self, "viewers"): await self.viewers.close_computer(computer_id)
             self._capture_cache.pop(computer_id, None)
@@ -417,7 +417,7 @@ class ComputerService:
         async with self._lock(computer_id):
             computer = await self.get(computer_id)
             if self._leases.get(computer_id):
-                raise ComputerError("A turn is using this computer. Stop the turn first.", "computer_busy")
+                raise ComputerError("Bu bilgisayarı bir yanıt kullanıyor. Önce yanıtı durdurun.", "computer_busy")
             await self._require_docker()
             self.release_control(computer.id)
             if hasattr(self, "viewers"): await self.viewers.close_computer(computer.id)
@@ -436,7 +436,7 @@ class ComputerService:
         async with self._lock(computer_id):
             computer = await self.get(computer_id)
             if self._leases.get(computer_id):
-                raise ComputerError("A turn is using this computer. Stop the turn first.", "computer_busy")
+                raise ComputerError("Bu bilgisayarı bir yanıt kullanıyor. Önce yanıtı durdurun.", "computer_busy")
             await self._save(computer_id, state="deleting")
             return await self._finish_delete(computer)
 
@@ -456,13 +456,13 @@ class ComputerService:
         try:
             health = await self.health(fresh=True)
             if not health.available:
-                raise ComputerError(health.error or "Docker is not available.", "docker_unavailable")
+                raise ComputerError(health.error or "Docker kullanılamıyor.", "docker_unavailable")
             self.release_control(computer.id)
             if hasattr(self, "viewers"): await self.viewers.close_computer(computer.id)
             self._capture_cache.pop(computer.id, None)
             await self._call(self.provider(computer.provider).delete, self.spec(computer))
         except ComputerError as exc:
-            await self._save(computer.id, last_error=f"Removal is waiting: {exc}")
+            await self._save(computer.id, last_error=f"Kaldırma bekliyor: {exc}")
             return False
         async with self.session() as db:
             await begin_write(db)
@@ -538,35 +538,35 @@ class ComputerService:
             computer = await self.get(computer.id)
             if thread_workspace and computer.workspace_path and Path(thread_workspace) != Path(computer.workspace_path):
                 raise ComputerUnavailable(
-                    "This conversation's folder is not the one mounted in the agent's computer "
-                    f"({computer.workspace_path}). Recreate the computer from the Agents panel, or start "
-                    "a new conversation."
+                    "Bu sohbetin klasörü ajanın bilgisayarına bağlanan klasör değil "
+                    f"({computer.workspace_path}). Bilgisayarı Ajanlar panelinden yeniden oluşturun ya da "
+                    "yeni bir sohbet başlatın."
                 )
             health = await self.health(fresh=True)
             if not health.available:
-                raise ComputerUnavailable(f"The agent's computer cannot be reached: {health.error}")
+                raise ComputerUnavailable(f"Ajanın bilgisayarına ulaşılamıyor: {health.error}")
             provider = self.provider(computer.provider)
             try:
                 status = await self._call(provider.status, self.spec(computer))
             except ComputerError as exc:
                 raise ComputerUnavailable(str(exc)) from None
             if status.state in ("foreign", "unsafe"):
-                raise ComputerUnavailable(status.problem or "The agent's computer cannot be used.")
+                raise ComputerUnavailable(status.problem or "Ajanın bilgisayarı kullanılamıyor.")
             if status.state != "running":
                 if not computer.auto_start:
                     raise ComputerUnavailable(
-                        "The agent's computer is not running and starting it automatically is off. "
-                        "Start it from the Agents panel."
+                        "Ajanın bilgisayarı çalışmıyor ve otomatik başlatma kapalı. "
+                        "Ajanlar panelinden başlatın."
                     )
                 if status.state == "missing" and not await self._call(provider.image_present, computer.image):
                     raise ComputerUnavailable(
-                        f"The agent's computer has not been made yet and its image ({computer.image}) is not "
-                        "on this machine. Prepare the image in the Agents panel first."
+                        f"Ajanın bilgisayarı henüz oluşturulmadı ve imajı ({computer.image}) "
+                        "bu makinede yok. Önce Ajanlar panelinde imajı hazırlayın."
                     )
                 try:
                     computer = await self._start_locked(computer)
                 except ComputerError as exc:
-                    raise ComputerUnavailable(f"The agent's computer could not be started: {exc}") from None
+                    raise ComputerUnavailable(f"Ajanın bilgisayarı başlatılamadı: {exc}") from None
             self._leases.setdefault(computer.id, set()).add(turn_id)
             await self._save(computer.id, last_used_at=_utcnow())
         grants_dir = self.state_dir() / "grants" / f"turn-{turn_id}-{secrets.token_hex(6)}"
@@ -692,24 +692,24 @@ def _checked_config(config: dict, *, partial: bool = False) -> dict:
             continue
         if key == "cpus":
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not (0.1 <= value <= 64):
-                raise ValueError("cpus must be between 0.1 and 64")
+                raise ValueError("cpus 0.1 ile 64 arasında olmalı")
             values["cpu_millis"] = int(round(value * 1000))
         elif key in _INT_FIELDS:
             low, high = _INT_FIELDS[key]
             if isinstance(value, bool) or not isinstance(value, int) or not (low <= value <= high):
-                raise ValueError(f"{key} must be between {low} and {high}")
+                raise ValueError(f"{key} {low} ile {high} arasında olmalı")
             values[key] = value
         elif key == "network":
             if value not in docker_cli.NETWORK_MODES:
-                raise ValueError(f"network must be one of: {', '.join(docker_cli.NETWORK_MODES)}")
+                raise ValueError(f"network şunlardan biri olmalı: {', '.join(docker_cli.NETWORK_MODES)}")
             values["network"] = value
         elif key == "auto_start":
             values["auto_start"] = bool(value)
         elif key == "browser_enabled":
             if not isinstance(value, bool):
-                raise ValueError("browser_enabled must be a boolean")
+                raise ValueError("browser_enabled true ya da false olmalı")
             values[key] = value
         else:
-            raise ValueError(f"unknown computer setting: {key}")
+            raise ValueError(f"bilinmeyen bilgisayar ayarı: {key}")
     return values
 

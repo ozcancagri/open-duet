@@ -58,7 +58,7 @@ class StdioRpc:
 
     @classmethod
     async def spawn(cls, args: list[str], *, cwd: str, max_bytes: int, env: dict | None = None, diagnostic=None, sandbox: bool = False, sandbox_writable=(), sandbox_readonly=()) -> "StdioRpc":
-        host_exec.ensure_allowed("an engine process")
+        host_exec.ensure_allowed("motor süreci")
         env = env if env is not None else child_env()
         if sandbox:
             from app.core import turn_sandbox

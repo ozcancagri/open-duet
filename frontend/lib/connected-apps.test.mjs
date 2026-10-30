@@ -16,10 +16,10 @@ test("only https links on composio.dev count as Composio links", () => {
 });
 
 test("each status has a plain label and unknown ones still read", () => {
-  assert.equal(statusLabel("ACTIVE"), "Connected");
-  assert.match(statusLabel("INITIATED"), /Waiting/);
-  assert.equal(statusLabel("FAILED"), "Connection failed");
-  assert.equal(statusLabel("EXPIRED"), "Link expired");
+  assert.equal(statusLabel("ACTIVE"), "Bağlandı");
+  assert.match(statusLabel("INITIATED"), /bekleniyor/);
+  assert.equal(statusLabel("FAILED"), "Bağlantı kurulamadı");
+  assert.equal(statusLabel("EXPIRED"), "Bağlantının süresi doldu");
   assert.equal(statusLabel("SOMETHING_NEW"), "Something_new");
 });
 
@@ -65,7 +65,7 @@ test("a link that is not Composio's closes the reserved tab and is never opened"
 });
 
 test("a blocked pop-up is reported, and cancel closes an unused tab", async () => {
-  await assert.rejects(reservePage(undefined, () => null).navigate(LINK), /blocked/);
+  await assert.rejects(reservePage(undefined, () => null).navigate(LINK), /engelledi/);
   const tab = { opener: null, closed: false, location: { href: "about:blank" }, close() { this.closed = true; } };
   reservePage(undefined, () => tab).cancel();
   assert.equal(tab.closed, true);

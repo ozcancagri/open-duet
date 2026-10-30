@@ -16,12 +16,12 @@ test('topic names are single safe file names', () => {
 });
 
 test('labels say what was recalled and what was folded', () => {
-  assert.equal(recalledLabel(1, 2), 'Recalled 1 note and 2 passages from earlier conversations');
-  assert.equal(recalledLabel(0, 1), 'Recalled 1 passage from earlier conversations');
-  assert.match(compactedLabel(12), /^Earlier messages summarized: 12 messages were folded/);
-  assert.equal(journalLabel({ actor: 'person', kind: 'edited', path: 'memory/a.md', added: 2, removed: 1 }), 'You edited memory/a.md (+2 −1)');
-  assert.equal(journalLabel({ actor: 'undo', kind: 'deleted', path: 'memory/a.md', added: 0, removed: 3 }), 'Undo deleted memory/a.md');
-  assert.equal(journalLabel({ actor: 'upkeep', kind: 'created', path: 'memory/a.md', added: 1, removed: 0 }), 'Memory upkeep created memory/a.md');
+  assert.equal(recalledLabel(1, 2), 'Hatırlandı: 1 not ve önceki sohbetlerden 2 bölüm');
+  assert.equal(recalledLabel(0, 1), 'Hatırlandı: önceki sohbetlerden 1 bölüm');
+  assert.match(compactedLabel(12), /^Önceki mesajlar özetlendi: 12 mesaj motor için bir özete katlandı/);
+  assert.equal(journalLabel({ actor: 'person', kind: 'edited', path: 'memory/a.md', added: 2, removed: 1 }), 'Siz: memory/a.md düzenlendi (+2 −1)');
+  assert.equal(journalLabel({ actor: 'undo', kind: 'deleted', path: 'memory/a.md', added: 0, removed: 3 }), 'Geri alma: memory/a.md silindi');
+  assert.equal(journalLabel({ actor: 'upkeep', kind: 'created', path: 'memory/a.md', added: 1, removed: 0 }), 'Bellek bakımı: memory/a.md oluşturuldu');
 });
 
 test('the transcript shows a Recalled chip and a summarized marker', () => {
@@ -61,20 +61,20 @@ test('topic, journal and proposal calls hit the right routes', async () => {
 });
 
 test('upkeep labels say what ran, when, and on which model', () => {
-  assert.equal(tidyHourLabel(0), '12:00 am');
-  assert.equal(tidyHourLabel(3), '3:00 am');
-  assert.equal(tidyHourLabel(12), '12:00 pm');
-  assert.equal(tidyHourLabel(23), '11:00 pm');
-  assert.equal(tidyHourLabel(24), 'never');
+  assert.equal(tidyHourLabel(0), '00:00');
+  assert.equal(tidyHourLabel(3), '03:00');
+  assert.equal(tidyHourLabel(12), '12:00');
+  assert.equal(tidyHourLabel(23), '23:00');
+  assert.equal(tidyHourLabel(24), 'hiçbir zaman');
   assert.equal(captureLine(null), '');
   assert.equal(captureLine({ at: 1, added: 0, topics: 0, note: null }), '');
-  assert.equal(captureLine({ at: 1, added: 1, topics: 2, about_me: 1, note: null }), 'Last noticed: 1 for the notes, 2 for topic notes, 1 for About me.');
+  assert.equal(captureLine({ at: 1, added: 1, topics: 2, about_me: 1, note: null }), 'Son fark edilenler: notlar için 1, konu notları için 2, Hakkımda için 1.');
   assert.equal(captureLine({ at: 1, added: 0, topics: 0, note: 'The capture call did not answer.' }), 'The capture call did not answer.');
   assert.equal(helperModelLine(null), '');
-  assert.equal(helperModelLine({ engine: 'claude', helper_model: 'haiku', engine_can_call: true }), 'Quick calls use haiku on claude.');
-  assert.match(helperModelLine({ engine: 'openai_compat', helper_model: null, engine_can_call: true }), /own model on openai_compat/);
-  assert.match(helperModelLine({ engine: 'codex', helper_model: null, engine_can_call: false }), /cannot make the quick call/);
-  assert.equal(journalLabel({ actor: 'upkeep', via: 'tidy', kind: 'edited', path: 'MEMORY.md', added: 0, removed: 1 }), 'Memory upkeep (tidy-up) edited MEMORY.md (+0 −1)');
+  assert.equal(helperModelLine({ engine: 'claude', helper_model: 'haiku', engine_can_call: true }), 'Hızlı çağrılar claude üzerinde haiku kullanır.');
+  assert.match(helperModelLine({ engine: 'openai_compat', helper_model: null, engine_can_call: true }), /openai_compat üzerinde bu ajanın kendi modelini/);
+  assert.match(helperModelLine({ engine: 'codex', helper_model: null, engine_can_call: false }), /hızlı çağrıyı yapamıyor/);
+  assert.equal(journalLabel({ actor: 'upkeep', via: 'tidy', kind: 'edited', path: 'MEMORY.md', added: 0, removed: 1 }), 'Bellek bakımı (toparlama): MEMORY.md düzenlendi (+0 −1)');
   assert.deepEqual(withHelperModel({ claude: 'haiku' }, 'openai_compat', ' llama3 '), { claude: 'haiku', openai_compat: 'llama3' });
   assert.deepEqual(withHelperModel({ claude: 'haiku' }, 'claude', '  '), {});
 });
@@ -111,11 +111,11 @@ test('upkeep, settings and About me calls hit the right routes', async () => {
 test('the helper model is described as leaving the provider, and as never used when switched off', () => {
   const helper = { engine: 'claude', label: 'Claude', model: 'haiku', source: 'settings', usable: true };
   const base = { engine: 'codex', helper_model: null, engine_can_call: false };
-  assert.match(helperModelLine({ ...base, helper }), /helper model \(Claude, haiku\) writes it.*not to this agent's provider/);
-  assert.match(helperModelLine({ ...base, helper }, false), /never uses the helper model/);
-  assert.match(helperModelLine({ ...base, helper: { ...helper, usable: false } }), /not usable/);
-  assert.match(helperModelLine({ ...base, helper: null }), /only expired notes and repeats/);
-  assert.match(helperModelLine({ engine: 'claude', helper_model: 'haiku', engine_can_call: true, helper }), /Quick calls use haiku on claude/);
+  assert.match(helperModelLine({ ...base, helper }), /yardımcı model \(Claude, haiku\) yazıyor.*sağlayıcısına değil/);
+  assert.match(helperModelLine({ ...base, helper }, false), /yardımcı modeli hiç kullanmıyor/);
+  assert.match(helperModelLine({ ...base, helper: { ...helper, usable: false } }), /kullanılamıyor/);
+  assert.match(helperModelLine({ ...base, helper: null }), /yalnız süresi dolmuş notlar ve tekrarlar/);
+  assert.match(helperModelLine({ engine: 'claude', helper_model: 'haiku', engine_can_call: true, helper }), /Hızlı çağrılar claude üzerinde haiku kullanır/);
 });
 
 test('the helper setting is built from an engine and a model, and an empty engine removes it', () => {
@@ -124,8 +124,8 @@ test('the helper setting is built from an engine and a model, and an empty engin
 });
 
 test('a summary written by the helper says so', () => {
-  assert.match(compactedLabel(3, 'claude (haiku)'), /Written by the helper model claude \(haiku\)\.$/);
-  assert.doesNotMatch(compactedLabel(3), /helper/);
+  assert.match(compactedLabel(3, 'claude (haiku)'), /Özeti yazan yardımcı model: claude \(haiku\)\.$/);
+  assert.doesNotMatch(compactedLabel(3), /yardımcı/);
   let t = emptyTranscript();
   t = applyEvent(t, { seq: 1, type: 'turn.started', turn_id: 4, data: { prompt_text: 'hi there friend' } });
   t = applyEvent(t, { seq: 2, type: 'context.compacted', turn_id: 4, data: { folded_messages: 6, summary: 'S', written_by: { via: 'helper', engine: 'claude', model: 'haiku' } } });

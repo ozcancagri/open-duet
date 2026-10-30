@@ -35,7 +35,7 @@ class MemoryConflict(Exception):
     """The file changed since the caller read it."""
 
     def __init__(self, current: "MemoryDoc"):
-        super().__init__("The notes changed since they were opened.")
+        super().__init__("Notlar açıldıktan sonra değişti.")
         self.current = current
 
 
@@ -193,7 +193,7 @@ def write_memory(agent_id: int, text: str, *, expected_hash: str | None = None) 
     file no longer has that content. Returns the saved notes and how many
     secrets were redacted. Raises MemoryTooLarge."""
     if len(text.encode("utf-8")) > FILE_MAX_BYTES:
-        raise MemoryTooLarge(f"The notes must be at most {FILE_MAX_BYTES // 1024} KB.")
+        raise MemoryTooLarge(f"Notlar en çok {FILE_MAX_BYTES // 1024} KB olmalı.")
     path = memory_path(agent_id)
     if expected_hash is not None:
         current = _doc(path, _read_raw(path))

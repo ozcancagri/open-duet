@@ -30,52 +30,52 @@ function lastReason(logFile, fsImpl = fs) {
 // `kind` is how the start failed (see startBackend): "spawn" means the backend
 // program could not be run at all, so it never started and has no exit code.
 function describeFailure({ code, logFile, reason, kind }) {
-  const where = `Details are in ${logFile}.`;
+  const where = `Ayrıntılar şu dosyada: ${logFile}`;
   const because = reason ? `\n\n${reason}` : "";
   if (kind === "spawn") {
     return {
-      title: "Open Duet could not start its backend",
-      body: `The backend program could not be run.${because}\n\n${where}`,
+      title: "Open Duet sunucusunu başlatamadı",
+      body: `Sunucu programı çalıştırılamadı.${because}\n\n${where}`,
     };
   }
   switch (code) {
     case EXIT.KEY_MISMATCH:
       return {
-        title: "Open Duet cannot read its saved credentials",
+        title: "Open Duet kayıtlı kimlik bilgilerini okuyamıyor",
         body:
-          "The encryption key does not open what is stored, so Open Duet stopped without changing anything. " +
-          `If you replaced or restored files in its data folder, restore the matching key too.${because}\n\n${where}`,
+          "Şifreleme anahtarı kayıtlı olanı açmıyor; bu yüzden Open Duet hiçbir şeyi değiştirmeden durdu. " +
+          `Veri klasöründeki dosyaları değiştirdiyseniz ya da geri yüklediyseniz, eşleşen anahtarı da geri yükleyin.${because}\n\n${where}`,
       };
     case EXIT.DATABASE:
       return {
-        title: "Open Duet could not open its database",
-        body: `The database was left as it was.${because}\n\n${where}`,
+        title: "Open Duet veritabanını açamadı",
+        body: `Veritabanı olduğu gibi bırakıldı.${because}\n\n${where}`,
       };
     case EXIT.UI_MISSING:
       return {
-        title: "Open Duet has no page to show",
-        body: `Build it with "npm run build" in the desktop folder, then start again.${because}\n\n${where}`,
+        title: "Open Duet'in gösterecek sayfası yok",
+        body: `Masaüstü klasöründe "npm run build" ile derleyin, sonra yeniden başlatın.${because}\n\n${where}`,
       };
     case EXIT.HANDSHAKE:
       return {
-        title: "Open Duet could not start its backend",
-        body: `The backend refused the launcher's start message.${because}\n\n${where}`,
+        title: "Open Duet sunucusunu başlatamadı",
+        body: `Sunucu, başlatıcının başlatma mesajını reddetti.${because}\n\n${where}`,
       };
     default:
       return {
-        title: "Open Duet could not start its backend",
-        body: `The backend stopped${code === null || code === undefined ? "" : ` (exit ${code})`} before it was ready.${because}\n\n${where}`,
+        title: "Open Duet sunucusunu başlatamadı",
+        body: `Sunucu hazır olmadan durdu${code === null || code === undefined ? "" : ` (çıkış kodu ${code})`}.${because}\n\n${where}`,
       };
   }
 }
 
 function describeUnexpectedExit({ code, logFile, reason }) {
   return {
-    title: "Open Duet's backend stopped",
+    title: "Open Duet sunucusu durdu",
     body:
-      `The backend stopped unexpectedly${code === null || code === undefined ? "" : ` (exit ${code})`}. ` +
-      `Anything Claude was answering was interrupted and will not be repeated.` +
-      `${reason ? `\n\n${reason}` : ""}\n\nDetails are in ${logFile}. Start Open Duet again to continue.`,
+      `Sunucu beklenmedik biçimde durdu${code === null || code === undefined ? "" : ` (çıkış kodu ${code})`}. ` +
+      `Claude'un o sırada yanıtladığı her şey kesildi ve yinelenmeyecek.` +
+      `${reason ? `\n\n${reason}` : ""}\n\nAyrıntılar şu dosyada: ${logFile}. Devam etmek için Open Duet'i yeniden başlatın.`,
   };
 }
 

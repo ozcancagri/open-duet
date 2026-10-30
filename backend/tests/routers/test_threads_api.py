@@ -289,7 +289,7 @@ async def test_a_lost_session_breaks_the_thread_and_a_reset_is_the_way_out(api, 
     page = await events(api, tid)
     last = page["events"][-1]
     assert last["type"] == "session.reset" and last["turn_id"] is None
-    assert last["data"]["previous_state"] == "broken" and "transcript" in last["data"]["message"]
+    assert last["data"]["previous_state"] == "broken" and "döküm" in last["data"]["message"]
     assert page["events"][0]["type"] == "turn.started"  # the stored transcript is still there
 
     cli.script({"type": "chat", "text": "fresh start"})

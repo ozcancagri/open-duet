@@ -30,7 +30,7 @@ def utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-def clean_label(raw: str | None, fallback: str = "Unnamed device") -> str:
+def clean_label(raw: str | None, fallback: str = "Adsız cihaz") -> str:
     text = "".join(ch if ch.isprintable() else " " for ch in (raw or "")).strip()
     return (text or fallback)[:LABEL_MAX]
 

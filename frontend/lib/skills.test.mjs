@@ -87,8 +87,8 @@ test('sendTurn adds skills only when chosen', async () => {
 test('small helpers', () => {
   assert.deepEqual(usedSkills({ names: ['a', 3, 'b'] }), ['a', 'b']);
   assert.deepEqual(usedSkills({}), []);
-  assert.equal(sourceLabel('imported'), 'Imported');
-  assert.match(skillErrorText({ code: 'skill_unavailable', message: 'x' }), /no longer available/);
+  assert.equal(sourceLabel('imported'), 'İçe aktarıldı');
+  assert.match(skillErrorText({ code: 'skill_unavailable', message: 'x' }), /artık kullanılamıyor/);
 });
 
 
@@ -114,5 +114,5 @@ test('learn preview, reviewed save and revision-bound undo use distinct requests
   await api.undoLearnedSkill(3, 'review', 'revision');
   assert.match(calls[0].url, /skills\/review\/undo$/);
   assert.deepEqual(JSON.parse(calls[0].options.body), { revision: 'revision' });
-  assert.equal(sourceLabel('learned:5:7'), 'Learned from a run');
+  assert.equal(sourceLabel('learned:5:7'), 'Bir çalıştırmadan öğrenildi');
 });

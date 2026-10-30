@@ -22,19 +22,19 @@ export function NativeComputer({ agent, supported }: { agent: number; supported:
       await window.openDots?.nativeControl({ method, agent });
       const value = await window.openDots?.nativeControl({ method: "status", agent });
       if (value) setStatus(value as NativeStatus);
-    } catch (e) { setError(e instanceof Error ? e.message : "Native desktop unavailable."); }
+    } catch (e) { setError(e instanceof Error ? e.message : "Yerel masaüstü kullanılamıyor."); }
     finally { setBusy(false); }
   }
-  return <section className="mb-4 space-y-2 rounded-md border border-line p-3 text-sm" aria-label="Native desktop">
-    <h3 className="font-medium">This Mac — native desktop</h3>
-    <p className="text-xs text-muted">Optional access to apps across this Mac, including outside the workspace. Each input needs approval. When enabled, this agent uses the native desktop for new turns.</p>
-    <p>{status.enabled ? (status.held ? "You have control. Agent input is stopped." : status.busy ? "A native desktop turn is active." : "Enabled for this agent.") : "Disabled for this agent. Docker computers remain available below."}</p>
+  return <section className="mb-4 space-y-2 rounded-md border border-line p-3 text-sm" aria-label="Yerel masaüstü">
+    <h3 className="font-medium">Bu Mac — yerel masaüstü</h3>
+    <p className="text-xs text-muted">Bu Mac&apos;teki uygulamalara, çalışma klasörünün dışı da dahil, isteğe bağlı erişim. Her girdi onay gerektirir. Açıldığında bu ajan yeni turlarda yerel masaüstünü kullanır.</p>
+    <p>{status.enabled ? (status.held ? "Denetim sizde. Ajan girdisi durduruldu." : status.busy ? "Yerel masaüstünde bir tur sürüyor." : "Bu ajan için açık.") : "Bu ajan için kapalı. Docker bilgisayarları aşağıda kullanılabilir durumda."}</p>
     {status.reason && <p className="text-xs text-muted">{status.reason}</p>}
-    {!supported && <p className="text-xs text-muted">Choose Claude to use native desktop tools.</p>}
+    {!supported && <p className="text-xs text-muted">Yerel masaüstü araçlarını kullanmak için Claude&apos;u seçin.</p>}
     {error && <p role="alert">{error}</p>}
     <div className="flex flex-wrap gap-2">
-      <button className="rounded border border-line px-2 py-1 disabled:opacity-50" disabled={busy || (!supported && !status.enabled)} onClick={() => void act(status.enabled ? "disable" : "enable")}>{status.enabled ? "Disable native desktop" : "Enable for this agent…"}</button>
-      {status.enabled && <button className="rounded border border-line px-2 py-1 disabled:opacity-50" disabled={busy} onClick={() => void act(status.held ? "release" : "take")}>{status.held ? "Hand control back" : "Take control"}</button>}
+      <button className="rounded border border-line px-2 py-1 disabled:opacity-50" disabled={busy || (!supported && !status.enabled)} onClick={() => void act(status.enabled ? "disable" : "enable")}>{status.enabled ? "Yerel masaüstünü kapat" : "Bu ajan için aç…"}</button>
+      {status.enabled && <button className="rounded border border-line px-2 py-1 disabled:opacity-50" disabled={busy} onClick={() => void act(status.held ? "release" : "take")}>{status.held ? "Denetimi geri ver" : "Denetimi al"}</button>}
     </div>
   </section>;
 }

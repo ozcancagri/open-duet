@@ -41,7 +41,7 @@ export function formatTokens(value: number): string {
 
 // "not reported" when the engine said nothing; never 0 for an unknown cost.
 export function formatCost(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return "not reported";
+  if (value == null || !Number.isFinite(value)) return "bildirilmedi";
   if (value === 0) return "$0.00";
   if (value < 0.01) return `$${value.toFixed(4)}`;
   return `$${value.toFixed(2)}`;
@@ -53,17 +53,17 @@ function count(value: unknown): number | null {
 
 // One line for a finished turn, from the usage its engine reported.
 export function turnUsageText(usage: Record<string, unknown> | null | undefined): string {
-  if (!usage || typeof usage !== "object") return "Usage not reported";
+  if (!usage || typeof usage !== "object") return "Kullanım bildirilmedi";
   const input = count(usage.input_tokens);
   const output = count(usage.output_tokens);
   const cached = (count(usage.cache_read_input_tokens) ?? 0) + (count(usage.cache_creation_input_tokens) ?? 0);
   const cost = typeof usage.cost_usd === "number" && Number.isFinite(usage.cost_usd) ? usage.cost_usd : null;
   const parts: string[] = [];
-  if (input !== null) parts.push(`${formatTokens(input)} in`);
-  if (output !== null) parts.push(`${formatTokens(output)} out`);
-  if (cached > 0) parts.push(`${formatTokens(cached)} cached`);
-  if (parts.length === 0 && cost === null) return "Usage not reported";
-  parts.push(cost === null ? "cost not reported" : formatCost(cost));
+  if (input !== null) parts.push(`${formatTokens(input)} giriş`);
+  if (output !== null) parts.push(`${formatTokens(output)} çıkış`);
+  if (cached > 0) parts.push(`${formatTokens(cached)} önbellek`);
+  if (parts.length === 0 && cost === null) return "Kullanım bildirilmedi";
+  parts.push(cost === null ? "maliyet bildirilmedi" : formatCost(cost));
   return parts.join(" · ");
 }
 
@@ -94,15 +94,15 @@ const TEXT_EXTENSIONS = [
 // The same rules the server applies, checked first so a refusal is instant.
 // The server checks again (and also looks at the bytes).
 export function attachmentProblem(file: { name: string; type: string; size: number }): string | null {
-  const name = file.name || "file";
+  const name = file.name || "dosya";
   const lower = name.toLowerCase();
   const isImage = IMAGE_TYPES.includes(file.type) || /\.(png|jpe?g|gif|webp)$/.test(lower);
-  if (file.size === 0) return `${name} is empty.`;
-  if (isImage) return file.size > IMAGE_MAX_BYTES ? `${name} is over the 10 MB image limit.` : null;
+  if (file.size === 0) return `${name} boş.`;
+  if (isImage) return file.size > IMAGE_MAX_BYTES ? `${name}, 10 MB görsel sınırını aşıyor.` : null;
   if (TEXT_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
-    return file.size > TEXT_MAX_BYTES ? `${name} is over the 1 MB text file limit.` : null;
+    return file.size > TEXT_MAX_BYTES ? `${name}, 1 MB metin dosyası sınırını aşıyor.` : null;
   }
-  return `${name} can't be attached. Attach images (PNG, JPEG, GIF, WebP) or text files.`;
+  return `${name} eklenemez. Görsel (PNG, JPEG, GIF, WebP) ya da metin dosyası ekleyin.`;
 }
 
 // The parent of a workspace path ("a/b/c" -> "a/b", "a" -> "").
@@ -125,19 +125,19 @@ export function shiftMonth(month: string, delta: number): string {
 // What a person can do about a failed turn, by its error code. The engine's own
 // error text is shown above this; this line only adds the next step.
 const NEXT_STEP: Record<string, string> = {
-  cli_unavailable: "Install the engine's command line tool, or set its path in Settings, then send again.",
-  engine_signed_out: "Open Settings, Engines and connect this engine, then send again.",
-  engine_not_configured: "Open Settings and finish this engine's setup, then send again.",
-  engine_unavailable: "Check the engine's status in Settings, then send again.",
-  engine_stalled: "The engine stopped responding. Send the message again; if it keeps happening, check the engine in a terminal.",
-  session_resume_failed: "Start a new session to continue this conversation.",
-  no_session: "Start a new session to continue this conversation.",
-  no_model: "Choose a model for this conversation, then send again.",
-  computer_unavailable: "Start the agent's computer from its Computer panel, then send again.",
-  engine_without_computers: "This engine can't use the agent's computer. Pick an engine that can, or remove the computer.",
-  length: "The answer hit the engine's length limit. Ask for a shorter answer or continue in a new message.",
-  runner_error: "Something went wrong starting the engine. Send again; the backend log has details.",
-  engine_limited: "Wait for the limit to reset, switch this conversation's agent to another engine, or give the agent a fallback engine in the Agents panel.",
+  cli_unavailable: "Motorun komut satırı aracını kurun ya da yolunu Ayarlar'da girin, sonra yeniden gönderin.",
+  engine_signed_out: "Ayarlar > Motorlar'ı açıp bu motoru bağlayın, sonra yeniden gönderin.",
+  engine_not_configured: "Ayarlar'ı açıp bu motorun kurulumunu tamamlayın, sonra yeniden gönderin.",
+  engine_unavailable: "Motorun durumunu Ayarlar'da kontrol edin, sonra yeniden gönderin.",
+  engine_stalled: "Motor yanıt vermeyi bıraktı. Mesajı yeniden gönderin; sürerse motoru bir terminalde kontrol edin.",
+  session_resume_failed: "Bu sohbete devam etmek için yeni bir oturum başlatın.",
+  no_session: "Bu sohbete devam etmek için yeni bir oturum başlatın.",
+  no_model: "Bu sohbet için bir model seçin, sonra yeniden gönderin.",
+  computer_unavailable: "Ajanın bilgisayarını Bilgisayar panelinden başlatın, sonra yeniden gönderin.",
+  engine_without_computers: "Bu motor ajanın bilgisayarını kullanamıyor. Kullanabilen bir motor seçin ya da bilgisayarı kaldırın.",
+  length: "Yanıt motorun uzunluk sınırına ulaştı. Daha kısa bir yanıt isteyin ya da yeni bir mesajla devam edin.",
+  runner_error: "Motor başlatılırken bir sorun çıktı. Yeniden gönderin; ayrıntılar sunucu günlüğünde.",
+  engine_limited: "Sınırın sıfırlanmasını bekleyin, bu sohbetin ajanını başka bir motora geçirin ya da Ajanlar panelinden ajana bir yedek motor verin.",
 };
 
 export function failureNextStep(errorCode: string): string | null {
@@ -150,29 +150,29 @@ export function engineLimitText(
   now: number = Date.now(),
 ): string | null {
   if (!limit) return null;
-  const what = limit.kind === "credits" ? "Out of credits" : limit.kind === "rate_limit" ? "Rate limited" : "Usage limit";
+  const what = limit.kind === "credits" ? "Kredi bitti" : limit.kind === "rate_limit" ? "İstek sınırı" : "Kullanım sınırı";
   const at = limit.resets_at ? Date.parse(limit.resets_at) : NaN;
   if (!Number.isFinite(at) || at <= now) return what;
   const minutes = Math.max(1, Math.round((at - now) / 60_000));
   const days = Math.floor(minutes / 1440);
   const hours = Math.floor((minutes % 1440) / 60);
   const mins = minutes % 60;
-  const span = days ? `${days}d${hours ? ` ${hours}h` : ""}` : hours ? `${hours}h${mins ? ` ${mins}m` : ""}` : `${mins}m`;
-  return `${what} · resets in ${span}`;
+  const span = days ? `${days} g${hours ? ` ${hours} sa` : ""}` : hours ? `${hours} sa${mins ? ` ${mins} dk` : ""}` : `${mins} dk`;
+  return `${what} · ${span} sonra sıfırlanır`;
 }
 
 // What an interrupted turn says, from why it stopped and how far it had got
 // (`replay` on turn.interrupted: before_accept, unknown, after_accept).
 export function interruptedText(reason: string, replay: string): string {
-  const when = reason === "shutdown" ? "The app was closed" : "The app stopped";
+  const when = reason === "shutdown" ? "Uygulama kapatıldı" : "Uygulama durdu";
   if (replay === "before_accept") {
-    return `${when} before the engine received this message, so nothing ran. It was not sent again: send it again when you are ready.`;
+    return `${when}. Motor bu mesajı henüz almamıştı, bu yüzden hiçbir şey çalışmadı. Mesaj yeniden gönderilmedi: hazır olduğunuzda yeniden gönderin.`;
   }
   if (replay === "after_accept") {
-    return `${when} while the agent was working. It may already have run tools or changed files, so this message was not resumed or sent again. Check what it did before sending it again.`;
+    return `${when}. Ajan o sırada çalışıyordu. Araç çalıştırmış ya da dosya değiştirmiş olabilir, bu yüzden mesaj sürdürülmedi ve yeniden gönderilmedi. Yeniden göndermeden önce ne yaptığını kontrol edin.`;
   }
   if (replay === "unknown") {
-    return `${when} just after the engine received this message. It may have started working, so this message was not resumed or sent again. Check before sending it again.`;
+    return `${when}. Motor bu mesajı az önce almıştı ve çalışmaya başlamış olabilir, bu yüzden mesaj sürdürülmedi ve yeniden gönderilmedi. Yeniden göndermeden önce kontrol edin.`;
   }
-  return `${when} while the agent was working. This message was not resumed or sent again.`;
+  return `${when}. Ajan o sırada çalışıyordu. Bu mesaj sürdürülmedi ve yeniden gönderilmedi.`;
 }

@@ -2,13 +2,13 @@
 import type { ApprovalRule, DecisionEntry, DecisionEvent, SentinelIssue } from "./api";
 
 export const DECISION_EVENTS: { value: DecisionEvent; label: string }[] = [
-  { value: "shown", label: "Asked" },
-  { value: "allowed", label: "Allowed" },
-  { value: "denied", label: "Denied" },
-  { value: "auto_allowed", label: "Allowed by a saved rule" },
-  { value: "expired", label: "Expired" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "undone", label: "Always-allow removed" },
+  { value: "shown", label: "Soruldu" },
+  { value: "allowed", label: "İzin verildi" },
+  { value: "denied", label: "Reddedildi" },
+  { value: "auto_allowed", label: "Kayıtlı kuralla izin verildi" },
+  { value: "expired", label: "Süresi doldu" },
+  { value: "cancelled", label: "İptal edildi" },
+  { value: "undone", label: "Her zaman izin kaldırıldı" },
 ];
 
 export function decisionEventLabel(event: string): string {
@@ -17,29 +17,29 @@ export function decisionEventLabel(event: string): string {
 
 // One line saying what happened and who decided.
 export function decisionText(entry: DecisionEntry): string {
-  const what = entry.summary || entry.tool || "a tool call";
+  const what = entry.summary || entry.tool || "bir araç çağrısı";
   switch (entry.event) {
     case "shown":
       return entry.rule?.startsWith("safety_floor:")
-        ? `Asked about ${what} (a saved rule matched, but the safety floor holds it for you)`
-        : `Asked about ${what}`;
+        ? `Soruldu: ${what} (kayıtlı bir kural eşleşti, ama güvenlik tabanı bunu size bırakıyor)`
+        : `Soruldu: ${what}`;
     case "allowed":
-      return entry.remembered ? `You allowed ${what} and chose to always allow it` : `You allowed ${what}`;
+      return entry.remembered ? `İzin verdiniz: ${what} (her zaman izin verilecek)` : `İzin verdiniz: ${what}`;
     case "denied":
-      return entry.source === "plan_mode" ? `${what} was refused: plan only changes nothing` : `You denied ${what}`;
+      return entry.source === "plan_mode" ? `Reddedildi: ${what} (yalnız plan modunda hiçbir şey değişmez)` : `Reddettiniz: ${what}`;
     case "auto_allowed":
-      if (entry.source === "screen_turn_grant") return `${what} ran with your screen permission for this turn`;
-      if (entry.source === "computer_screen_read") return `${what} ran without asking: reading the computer screen`;
-      if (entry.source === "computer_browser_read") return `${what} ran without asking: reading the agent's browser`;
-      if (entry.source === "computer_read") return `${what} ran without asking: reading inside the agent's computer`;
-      if (entry.source === "accept_edits") return `${what} ran without asking: edits are accepted for this agent`;
-      return `${what} ran without asking: a saved rule allowed it`;
+      if (entry.source === "screen_turn_grant") return `Bu tur için verdiğiniz ekran izniyle çalıştı: ${what}`;
+      if (entry.source === "computer_screen_read") return `Sormadan çalıştı (bilgisayar ekranını okuma): ${what}`;
+      if (entry.source === "computer_browser_read") return `Sormadan çalıştı (ajanın tarayıcısını okuma): ${what}`;
+      if (entry.source === "computer_read") return `Sormadan çalıştı (ajanın bilgisayarında okuma): ${what}`;
+      if (entry.source === "accept_edits") return `Sormadan çalıştı (bu ajan için düzenlemeler kabul ediliyor): ${what}`;
+      return `Sormadan çalıştı (kayıtlı bir kural izin verdi): ${what}`;
     case "expired":
-      return `Nobody answered about ${what} in time, so it did not run`;
+      return `Zamanında yanıt verilmediği için çalışmadı: ${what}`;
     case "cancelled":
-      return `The question about ${what} was withdrawn`;
+      return `Soru geri çekildi: ${what}`;
     case "undone":
-      return `You stopped always allowing ${ruleCommand(entry.rule) || "a command"}`;
+      return `Artık her zaman izin verilmiyor: ${ruleCommand(entry.rule) || "bir komut"}`;
     default:
       return what;
   }
@@ -53,11 +53,11 @@ export function ruleCommand(rule: string | null | undefined): string {
 }
 
 export function ruleMatchLabel(rule: Pick<ApprovalRule, "match">): string {
-  return rule.match === "prefix" ? "Starts with" : "Exactly";
+  return rule.match === "prefix" ? "Şununla başlar" : "Tam olarak";
 }
 
 export function ruleScopeLabel(rule: Pick<ApprovalRule, "workspace">): string {
-  return rule.workspace ? `In ${rule.workspace}` : "In every folder";
+  return rule.workspace ? `Klasör: ${rule.workspace}` : "Her klasörde";
 }
 
 // The card offers "Always allow this command" only where the backend can save
@@ -74,10 +74,10 @@ export function csvFileName(threadId: number | null | undefined, now: Date = new
 }
 
 const ISSUE_KIND: Record<SentinelIssue["kind"], string> = {
-  retry_loop: "Retry loop",
-  repeated_denial: "Asked again after a denial",
-  tool_error: "Tool error",
-  turn_failure: "Failed answer",
+  retry_loop: "Yeniden deneme döngüsü",
+  repeated_denial: "Reddedildikten sonra yeniden soruldu",
+  tool_error: "Araç hatası",
+  turn_failure: "Başarısız yanıt",
 };
 
 export function issueKindLabel(kind: string): string {

@@ -53,8 +53,9 @@ test('an older backend answers 404 as an ApiError the page can recognise', async
 test('model text: default and empty mean no model', () => {
   assert.equal(modelFromInput(' Default '), null);
   assert.equal(modelFromInput(''), null);
+  assert.equal(modelFromInput(' Varsayılan '), null);
   assert.equal(modelFromInput(' opus '), 'opus');
-  assert.equal(modelLabel(null), 'default');
+  assert.equal(modelLabel(null), 'varsayılan');
   assert.equal(modelLabel('sonnet'), 'sonnet');
 });
 
@@ -66,7 +67,7 @@ test('agent helpers', () => {
   assert.deepEqual(activeAgents(agents).map((a) => a.id), [1]);
   assert.equal(agentNames(agents).get(2), 'B');
   assert.equal(agentNames(null).size, 0);
-  assert.equal(approvalModeLabel('accept_edits'), 'Accept edits');
+  assert.equal(approvalModeLabel('accept_edits'), 'Düzenlemeleri kabul et');
   assert.equal(approvalModeLabel('weird'), 'weird');
 });
 
@@ -110,17 +111,17 @@ test('the notes gauge goes amber from 80% and red once anything is cut', () => {
   const over = memoryGauge({ ...base, lines: 250, bytes: 3000, loaded_lines: 200, truncated: true });
   assert.equal(over.level, 'over');
   assert.equal(over.percent, 100);
-  assert.match(over.text, /250 of 200 lines/);
-  assert.match(over.text, /50 lines past the limit/);
+  assert.match(over.text, /250 \/ 200 satır/);
+  assert.match(over.text, /sınırı aşan 50 satır/);
   // Expired notes are not loaded and are not counted as cut off.
   const expired = memoryGauge({ ...base, lines: 12, bytes: 400, loaded_lines: 9, expired: 3, expired_lines: 3 });
   assert.equal(expired.level, 'ok');
-  assert.match(expired.text, /3 expired notes are not loaded/);
+  assert.match(expired.text, /süresi dolmuş 3 not yüklenmez/);
 });
 
 test('agent files are read with a sentence when they are not one', () => {
-  assert.throws(() => parseAgentFile('not json'), /not JSON/);
-  assert.throws(() => parseAgentFile('[1]'), /not an agent file/);
+  assert.throws(() => parseAgentFile('not json'), /JSON değil/);
+  assert.throws(() => parseAgentFile('[1]'), /ajan dosyası değil/);
   const parsed = parseAgentFile(agentFileText({ format: 'open-dots.agent', notes: { 'MEMORY.md': '- a' } }));
   assert.equal(agentFileHasNotes(parsed), true);
   assert.equal(agentFileHasNotes({ notes: { 'MEMORY.md': '  ' } }), false);
@@ -133,9 +134,9 @@ test('the export notice names the redacted parts', () => {
 });
 
 test('a tidy-up is described in one line', () => {
-  assert.equal(tidyLine({ organized: 0, expired: 0, duplicates: 0, superseded: 0, note: null }), 'Nothing to tidy.');
+  assert.equal(tidyLine({ organized: 0, expired: 0, duplicates: 0, superseded: 0, note: null }), 'Toparlanacak bir şey yok.');
   assert.equal(
     tidyLine({ organized: 2, expired: 1, duplicates: 3, superseded: 1, note: null }),
-    'Tidied: 2 filed into topic notes, 1 expired moved to the archive, 3 repeats removed, 1 contradicted note struck through.'
+    'Toparlandı: 2 not konu notlarına taşındı, süresi dolmuş 1 not arşive taşındı, 3 tekrar kaldırıldı, çelişen 1 notun üstü çizildi.'
   );
 });

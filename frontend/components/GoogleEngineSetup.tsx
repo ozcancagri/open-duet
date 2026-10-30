@@ -36,7 +36,7 @@ export function GoogleEngineSetup({ engine, onChanged }: { engine: Engine; onCha
         }
       } catch (err) {
         if (cancelled) return;
-        setError(err instanceof ApiError ? err.message : "Could not check Google setup.");
+        setError(err instanceof ApiError ? err.message : "Google kurulumu kontrol edilemedi.");
       }
       if (!cancelled) timer = setTimeout(() => void poll(), 1500);
     };
@@ -47,7 +47,7 @@ export function GoogleEngineSetup({ engine, onChanged }: { engine: Engine; onCha
   const act = async (work: () => Promise<void>) => {
     setBusy(true); setError(null);
     try { await work(); }
-    catch (err) { setError(err instanceof ApiError ? err.message : "Could not complete Google setup."); }
+    catch (err) { setError(err instanceof ApiError ? err.message : "Google kurulumu tamamlanamadı."); }
     finally { setBusy(false); }
   };
   const running = operation?.phase === "running";
@@ -58,29 +58,29 @@ export function GoogleEngineSetup({ engine, onChanged }: { engine: Engine; onCha
 
   return <div className="space-y-3">
     <div className="flex flex-wrap gap-2">
-      {!engine.installed && <button type="button" className={BUTTON} disabled={busy || running} onClick={() => start("install")}>Install Antigravity</button>}
-      {engine.installed && <button type="button" className={BUTTON} disabled={busy || running} onClick={() => start("sign_in")}>{engine.signed_in ? "Switch Google account" : "Sign in with Google"}</button>}
+      {!engine.installed && <button type="button" className={BUTTON} disabled={busy || running} onClick={() => start("install")}>Antigravity&apos;yi kur</button>}
+      {engine.installed && <button type="button" className={BUTTON} disabled={busy || running} onClick={() => start("sign_in")}>{engine.signed_in ? "Google hesabını değiştir" : "Google ile giriş yap"}</button>}
       {engine.signed_in && <>
-        <button type="button" className={BUTTON} disabled={busy || running} onClick={() => start("models")}>Refresh models</button>
-        <button type="button" className={BUTTON} disabled={busy || running} onClick={() => void act(async () => { await api.deleteEngineConfig("antigravity"); setOperation(null); changed.current(); })}>Remove Google account</button>
+        <button type="button" className={BUTTON} disabled={busy || running} onClick={() => start("models")}>Modelleri yenile</button>
+        <button type="button" className={BUTTON} disabled={busy || running} onClick={() => void act(async () => { await api.deleteEngineConfig("antigravity"); setOperation(null); changed.current(); })}>Google hesabını kaldır</button>
       </>}
-      {running && <button type="button" className={BUTTON} disabled={busy} onClick={() => void act(async () => { await api.cancelGoogleSetup(); setOperation(await api.googleSetupStatus()); setCallback(""); changed.current(); })}>Cancel setup</button>}
+      {running && <button type="button" className={BUTTON} disabled={busy} onClick={() => void act(async () => { await api.cancelGoogleSetup(); setOperation(await api.googleSetupStatus()); setCallback(""); changed.current(); })}>Kurulumu iptal et</button>}
     </div>
-    {running && <p role="status" className="text-xs text-muted">{operation.kind === "install" ? "Downloading and verifying the official Google runtime. This can take a few minutes." : operation.kind === "models" ? "Refreshing the models available to your account…" : "Waiting for Google sign-in and loading your models…"}</p>}
+    {running && <p role="status" className="text-xs text-muted">{operation.kind === "install" ? "Resmi Google çalışma ortamı indiriliyor ve doğrulanıyor. Bu birkaç dakika sürebilir." : operation.kind === "models" ? "Hesabınızda kullanılabilen modeller yenileniyor…" : "Google girişi bekleniyor ve modelleriniz yükleniyor…"}</p>}
     {running && operation.authorization_url && <div className="space-y-2">
       <button type="button" className={BUTTON} disabled={busy} onClick={() => void act(async () => {
-        if (!window.openDots?.openGoogleSignIn) throw new Error("Open this setup in the Open Duet desktop app to continue.");
+        if (!window.openDots?.openGoogleSignIn) throw new Error("Devam etmek için bu kurulumu Open Duet masaüstü uygulamasında açın.");
         await window.openDots.openGoogleSignIn(operation.authorization_url!);
-      })}>Continue to Google sign-in</button>
-      <details><summary className="cursor-pointer text-xs">Signing in from another computer?</summary>
-        <p className="mt-2 text-xs text-muted">After signing in, copy the complete localhost redirect URL from your browser and paste it below.</p>
+      })}>Google girişine devam et</button>
+      <details><summary className="cursor-pointer text-xs">Başka bir bilgisayardan mı giriş yapıyorsunuz?</summary>
+        <p className="mt-2 text-xs text-muted">Giriş yaptıktan sonra tarayıcınızdaki localhost yönlendirme URL&apos;sinin tamamını kopyalayıp aşağıya yapıştırın.</p>
         <form className="mt-2 flex flex-wrap gap-2" onSubmit={(event) => { event.preventDefault(); void act(async () => { const value = callback; setCallback(""); await api.completeGoogleSetup(operation.id, value); }); }}>
-          <input aria-label="Google redirect URL" type="password" autoComplete="off" value={callback} onChange={(event) => setCallback(event.target.value)} className="min-w-0 flex-1 rounded-md border border-line bg-transparent px-3 py-2 text-sm" />
-          <button className={BUTTON} disabled={busy || !callback.trim()}>Complete sign-in</button>
+          <input aria-label="Google yönlendirme URL'si" type="password" autoComplete="off" value={callback} onChange={(event) => setCallback(event.target.value)} className="min-w-0 flex-1 rounded-md border border-line bg-transparent px-3 py-2 text-sm" />
+          <button className={BUTTON} disabled={busy || !callback.trim()}>Girişi tamamla</button>
         </form>
       </details>
     </div>}
-    {operation?.phase === "succeeded" && <p role="status" className="text-xs text-success">{operation.kind === "install" ? "Antigravity installed. Sign in with Google to continue." : "Google account models refreshed."}</p>}
+    {operation?.phase === "succeeded" && <p role="status" className="text-xs text-success">{operation.kind === "install" ? "Antigravity kuruldu. Devam etmek için Google ile giriş yapın." : "Google hesabının modelleri yenilendi."}</p>}
     {(error || operation?.error) && <p role="alert" className="text-xs text-danger">{error || operation?.error}</p>}
   </div>;
 }

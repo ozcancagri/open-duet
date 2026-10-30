@@ -94,25 +94,25 @@ def validate_workspace(workspace: str | None) -> str | None:
         or not (workspace.startswith("/") or re.match(r"^[A-Za-z]:[\\/]", workspace))
         or ".." in re.split(r"[\\/]", workspace)
     ):
-        raise InvalidRule("workspace must be an absolute path without '..' segments")
+        raise InvalidRule("çalışma klasörü '..' içermeyen tam (mutlak) bir yol olmalı")
     return workspace
 
 
 def validate_rule(kind: str, command: str, workspace: str | None = None) -> str:
     command = command.strip()
     if kind not in MATCH_KINDS:
-        raise InvalidRule("match must be 'exact' or 'prefix'")
+        raise InvalidRule("eşleşme 'exact' ya da 'prefix' olmalı")
     if not command or len(command) > MAX_COMMAND_CHARS or _CONTROL.search(command):
-        raise InvalidRule(f"command must be 1 to {MAX_COMMAND_CHARS} characters without control characters")
+        raise InvalidRule(f"komut, denetim karakteri içermeyen 1 ile {MAX_COMMAND_CHARS} karakter arasında olmalı")
     if decision_log.redact(command) != command:
-        raise InvalidRule("commands containing credentials cannot be saved; use an environment variable")
+        raise InvalidRule("kimlik bilgisi içeren komutlar kaydedilemez; bir ortam değişkeni kullanın")
     if kind == PREFIX:
         if _has_shell_operators(command):
-            raise InvalidRule("a prefix rule cannot contain shell operators")
+            raise InvalidRule("önek kuralı kabuk işleçleri içeremez")
         if not _words(command):
-            raise InvalidRule("a prefix rule must be a valid command")
+            raise InvalidRule("önek kuralı geçerli bir komut olmalı")
     if not safety_floor.clears_floor(command):
-        raise InvalidRule("this command is on the safety floor and is always asked about")
+        raise InvalidRule("bu komut güvenlik tabanında; her zaman sorulur")
     validate_workspace(workspace)
     return command
 
@@ -140,7 +140,7 @@ async def add_rule(
         if rule.connector == stored_kind and rule.tool == command:
             return rule
     if len(existing) >= MAX_RULES:
-        raise InvalidRule(f"at most {MAX_RULES} commands can be saved")
+        raise InvalidRule(f"en çok {MAX_RULES} komut kaydedilebilir")
     rule = PermissionRule(
         user_id=owner_id, bucket=BUCKET, connector=stored_kind, tool=command, decision="allow"
     )
@@ -224,9 +224,9 @@ async def remembered_rule(
     (the call was then allowed this once only)."""
     command = tool_input.get("command") if isinstance(tool_input, dict) else None
     if tool not in COMMAND_TOOLS or not isinstance(command, str):
-        return None, "only shell commands can be always allowed"
+        return None, "yalnız kabuk komutlarına her zaman izin verilebilir"
     if not workspace:
-        return None, "this conversation has no folder to tie the rule to"
+        return None, "bu sohbetin kuralın bağlanacağı bir klasörü yok"
     workspace = str(Path(workspace))  # spelled as the runtime saves it
     rule = await find_rule(db, owner_id, EXACT, command, workspace)
     if rule is not None:
@@ -235,4 +235,4 @@ async def remembered_rule(
         validate_rule(EXACT, command, workspace)
     except InvalidRule as exc:
         return None, str(exc)
-    return None, "the rule could not be saved"
+    return None, "kural kaydedilemedi"

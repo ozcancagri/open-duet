@@ -296,11 +296,11 @@ async def test_a_missing_or_unset_command_is_refused_with_the_reason(art, sessio
     async with sessions() as db:
         await engine_config.save(db, owner, "acp", {"command": "/nonexistent/agent --acp", "label": None})
     thread = await acp_thread(art, sessions, owner)
-    with pytest.raises(ProviderUnavailable, match="not found"):
+    with pytest.raises(ProviderUnavailable, match="bulunamadı"):
         await art.send_turn(thread.id, "hi")
     async with sessions() as db:
         await engine_config.remove(db, owner, "acp")
-    with pytest.raises(ProviderUnavailable, match="Set the agent's command"):
+    with pytest.raises(ProviderUnavailable, match="Ajanın komutunu"):
         await art.send_turn(thread.id, "again")
 
 
@@ -320,7 +320,7 @@ async def test_probe_reads_the_handshake(acp):
         acp_adapter.PROBE_INIT_TIMEOUT_SECONDS = saved
     assert not hung.ready and "handshake" in hung.reason
     adapter.config = {"command": "/nonexistent/x"}
-    assert "not found" in (await adapter.probe()).reason
+    assert "bulunamadı" in (await adapter.probe()).reason
 
 
 def test_config_validation_and_history_text():

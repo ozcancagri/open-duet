@@ -159,10 +159,10 @@ async def retry(room_id: int, dispatch_id: int, rt=Depends(get_runtime)):
             await rt.rooms.get(db, room_id, lock=True)
             row = await db.get(RoomDispatch, dispatch_id)
             if row is None or row.room_id != room_id or row.status not in ('failed', 'stopped'):
-                raise HTTPException(409, 'Only failed or stopped replies can be retried.')
+                raise HTTPException(409, 'Yalnız başarısız olan ya da durdurulan yanıtlar yeniden denenebilir.')
             member = await db.scalar(select(RoomMember).where(RoomMember.room_id == room_id, RoomMember.agent_id == row.agent_id, RoomMember.removed_at.is_(None)))
             if member is None or row.error_code == 'member_removed':
-                raise HTTPException(409, 'Removed member work cannot be retried. Send a new message after re-adding them.')
+                raise HTTPException(409, 'Çıkarılan üyenin işi yeniden denenemez. Üyeyi yeniden ekledikten sonra yeni bir mesaj gönderin.')
             # Explicit person action resets the existing unique delivery row;
             # it never creates duplicate delivery identities.
             row.status, row.reason, row.turn_id, row.error_code = 'queued', 'retry', None, None

@@ -29,17 +29,17 @@ class CodexLogin:
 
     async def start(self, owner: str, executable: Path):
         if self.task and not self.task.done():
-            raise LoginError("A Codex sign-in is already running. Finish or cancel it first.")
+            raise LoginError("Zaten süren bir Codex girişi var. Önce onu tamamlayın ya da iptal edin.")
         env = child_env()
         configured_home = Path(env.get("CODEX_HOME") or str(Path.home() / ".codex"))
         if not configured_home.is_absolute():
-            raise LoginError("Use an absolute CODEX_HOME path before signing in.")
+            raise LoginError("Giriş yapmadan önce tam (mutlak) bir CODEX_HOME yolu kullanın.")
         home = configured_home.resolve()
         home.mkdir(parents=True, exist_ok=True)
         fd = os.open(home / ".open-dots-login.lock", os.O_RDWR | os.O_CREAT, 0o600)
         if not data_lease._try_lock(fd):
             os.close(fd)
-            raise LoginError("A Codex sign-in is already running on this server.")
+            raise LoginError("Bu sunucuda zaten süren bir Codex girişi var.")
         self.flow = {"id": uuid4().hex, "owner": owner, "phase": "running"}
         flow = self.flow
         self.task = asyncio.create_task(self._run(flow, executable.resolve(), env))
@@ -55,7 +55,7 @@ class CodexLogin:
 
     def view(self, owner: str, flow_id: str):
         if not self.flow or self.flow["owner"] != owner or self.flow["id"] != flow_id:
-            raise KeyError("Sign-in not found")
+            raise KeyError("Giriş bulunamadı")
         return {key: value for key, value in self.flow.items() if key != "owner"}
 
     async def cancel(self, owner: str, flow_id: str):
@@ -79,8 +79,8 @@ class CodexLogin:
                 result = {"phase": "succeeded"}
                 return
             if status.failed_to_start or status.timed_out or not re.search(r"^\s*not logged in\b", said, re.I | re.M):
-                raise LoginError("Codex could not confirm its account status. Check its installation on the server.")
-            host_exec.ensure_allowed("an engine sign-in")
+                raise LoginError("Codex hesap durumunu doğrulayamadı. Sunucudaki kurulumunu kontrol edin.")
+            host_exec.ensure_allowed("motor girişi")
             starting = asyncio.create_task(asyncio.create_subprocess_exec(
                 str(executable), "login", "--device-auth", stdin=asyncio.subprocess.DEVNULL,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
@@ -100,10 +100,10 @@ class CodexLogin:
                     while "user_code" not in flow:
                         chunk = await proc.stdout.read(1024)
                         if not chunk:
-                            raise LoginError("Codex did not provide a device code. Update the CLI and enable device-code login in your ChatGPT security settings.")
+                            raise LoginError("Codex bir cihaz kodu vermedi. CLI'ı güncelleyin ve ChatGPT güvenlik ayarlarınızda cihaz koduyla girişi açın.")
                         output += chunk
                         if len(output) > 16384:
-                            raise LoginError("Codex returned too much sign-in output.")
+                            raise LoginError("Codex çok fazla giriş çıktısı döndürdü.")
                         text = _ANSI.sub("", output.decode("utf-8", "replace"))
                         code = next((_CODE.search(line) for line in text.split("\n")[:-1] if _CODE.search(line)), None)
                         if re.search(r"https://auth\.openai\.com/codex/device(?=[\s\x1b]|$)", text) and code:
@@ -113,22 +113,22 @@ class CodexLogin:
                 while chunk := await proc.stdout.read(1024):
                     total += len(chunk)
                     if total > 32768:
-                        raise LoginError("Codex returned too much sign-in output.")
+                        raise LoginError("Codex çok fazla giriş çıktısı döndürdü.")
                 if await proc.wait() != 0:
-                    raise LoginError("Codex sign-in did not finish. Enable device-code login in ChatGPT, then try again.")
+                    raise LoginError("Codex girişi tamamlanmadı. ChatGPT'de cihaz koduyla girişi açıp yeniden deneyin.")
                 checked = await cli_probe.run([str(executable), "login", "status"], timeout=8, env=env)
                 if not checked.ok or not re.search(r"^\s*logged in\b", checked.stdout + "\n" + checked.stderr, re.I | re.M):
-                    raise LoginError("Codex did not confirm the new account. Check its status on the server.")
+                    raise LoginError("Codex yeni hesabı doğrulamadı. Sunucudaki durumunu kontrol edin.")
             await asyncio.wait_for(receive(), timeout=self.lifetime)
             result = {"phase": "succeeded"}
         except asyncio.CancelledError:
             result = {"phase": "cancelled"}
         except TimeoutError:
-            result = {"phase": "expired", "error": "Codex sign-in timed out. Start again for a new code."}
+            result = {"phase": "expired", "error": "Codex girişi zaman aşımına uğradı. Yeni bir kod için yeniden başlatın."}
         except LoginError as exc:
             result = {"phase": "failed", "error": str(exc)}
         except Exception:
-            result = {"phase": "failed", "error": "Could not start Codex sign-in. Check the CLI installation on the server."}
+            result = {"phase": "failed", "error": "Codex girişi başlatılamadı. Sunucudaki CLI kurulumunu kontrol edin."}
         finally:
             if proc:
                 cli_probe.kill_group(proc)

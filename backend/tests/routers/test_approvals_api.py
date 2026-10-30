@@ -198,7 +198,7 @@ async def test_remember_says_why_nothing_was_saved(api, rt, sessions, cli, tools
         f"/api/v1/threads/{thread.id}/approvals/{approval.id}", json={"decision": "allow", "remember": True}
     )).json()
     await finished(sessions, thread.id)
-    assert "rule_id" not in body and "safety floor" in body["remember_error"]
+    assert "rule_id" not in body and "güvenlik tabanında" in body["remember_error"]
 
 
 async def test_an_answer_without_remember_has_no_rule_fields(api, rt, sessions, cli, tools_on, owner):

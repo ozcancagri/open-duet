@@ -35,13 +35,13 @@ def test_loopback_request_gets_a_grant():
 
 def test_disabled_feature_is_refused(monkeypatch):
     monkeypatch.setattr(settings, "LOCAL_EXECUTION_ENABLED", False)
-    with pytest.raises(LocalAccessDenied, match="disabled"):
+    with pytest.raises(LocalAccessDenied, match="kapalı"):
         LoopbackPolicy().authorize(make_request())
 
 
 @pytest.mark.parametrize("client", [("203.0.113.9", 1), ("10.0.0.5", 1), None])
 def test_non_loopback_client_is_refused(client):
-    with pytest.raises(LocalAccessDenied, match="this machine"):
+    with pytest.raises(LocalAccessDenied, match="bu makineden"):
         LoopbackPolicy().authorize(make_request(client=client))
 
 
@@ -54,7 +54,7 @@ def test_loopback_clients_are_accepted(client):
     "header", ["X-Forwarded-For", "Forwarded", "X-Forwarded-Host", "X-Real-IP"]
 )
 def test_proxied_request_is_refused_even_from_loopback(header):
-    with pytest.raises(LocalAccessDenied, match="proxy"):
+    with pytest.raises(LocalAccessDenied, match="vekil sunucu"):
         LoopbackPolicy().authorize(make_request(headers={header: "198.51.100.7"}))
 
 

@@ -76,7 +76,7 @@ def month_range(month: str | None, now: datetime | None = None) -> tuple[str, da
         try:
             first = date.fromisoformat(f"{month}-01")
         except ValueError:
-            raise ValueError("month must look like 2026-10") from None
+            raise ValueError("ay 2026-10 biçiminde olmalı") from None
     else:
         first = date(now.year, now.month, 1)
     start = datetime(first.year, first.month, 1, tzinfo=UTC)
@@ -205,7 +205,7 @@ async def month_csv(db: AsyncSession, owner_id: str, month: str | None) -> tuple
                 for value in (
                     datetime.fromtimestamp(float(row["at"]), UTC).isoformat(),
                     "",
-                    f"Helper model: {job} for {row.get('agent') or 'an agent'}",
+                    f"Yardımcı model: {job} ({row.get('agent') or 'bir ajan'})",
                     row.get("engine") or "",
                     row.get("model") or "",
                     "helper" if row.get("ok") else "helper_failed",

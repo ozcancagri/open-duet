@@ -36,9 +36,9 @@ def _error(status_code: int, code: str, message: str) -> HTTPException:
 def _configurable(rt: ThreadRuntime, engine_id: str):
     adapter = rt.adapters.get(engine_id)
     if adapter is None:
-        raise HTTPException(status_code=404, detail="Engine not found")
+        raise HTTPException(status_code=404, detail="Motor bulunamadı")
     if not getattr(adapter, "needs_config", False) or not callable(getattr(adapter, "validate_config", None)):
-        raise _error(409, "not_configurable", "This engine has nothing to configure here.")
+        raise _error(409, "not_configurable", "Bu motorun burada ayarlanacak bir şeyi yok.")
     return adapter
 
 
@@ -52,7 +52,7 @@ async def list_engines(refresh: bool = False, rt: ThreadRuntime = Depends(get_ru
 @router.get("/{engine_id}", response_model=EngineResponse)
 async def get_engine(engine_id: str, refresh: bool = False, rt: ThreadRuntime = Depends(get_runtime)):
     if engine_id not in rt.adapters:
-        raise HTTPException(status_code=404, detail="Engine not found")
+        raise HTTPException(status_code=404, detail="Motor bulunamadı")
     return (await rt.engines.describe(refresh=refresh, only=engine_id))[0]
 
 
@@ -64,7 +64,7 @@ async def save_engine_config(
     check the engine again. The response never includes a key."""
     adapter = _configurable(rt, engine_id)
     if engine_id == "antigravity" and (adapter.lock.locked() or (adapter.task and not adapter.task.done())):
-        raise _error(409, "engine_busy", "Wait for Antigravity to finish before changing settings.")
+        raise _error(409, "engine_busy", "Ayarları değiştirmeden önce Antigravity'nin işini bitirmesini bekleyin.")
     async with adapter.lock if engine_id == "antigravity" else nullcontext():
         return await _save_config(engine_id, payload, rt, adapter)
 
@@ -80,7 +80,7 @@ async def _save_config(engine_id, payload, rt, adapter):
         if getattr(adapter, "kind", None) == "api":
             allowed.add("context_tokens")
         if payload.model_fields_set - allowed:
-            raise _error(422, "invalid_engine_config", "This engine does not accept one or more supplied fields.")
+            raise _error(422, "invalid_engine_config", "Bu motor gönderilen alanlardan en az birini kabul etmiyor.")
     current = await rt.engine_config(engine_id)
     try:
         config = adapter.validate_config(payload.model_dump(exclude_none=True), current)
@@ -98,7 +98,7 @@ async def delete_engine_config(engine_id: str, rt: ThreadRuntime = Depends(get_r
     adapter = _configurable(rt, engine_id)
     if engine_id == "antigravity":
         if adapter.lock.locked() or (adapter.task and not adapter.task.done()):
-            raise _error(409, "engine_busy", "Stop the conversation or cancel setup before removing the account.")
+            raise _error(409, "engine_busy", "Hesabı kaldırmadan önce sohbeti durdurun ya da kurulumu iptal edin.")
     async with adapter.lock if engine_id == "antigravity" else nullcontext():
         if engine_id == "antigravity":
             from app.services.antigravity_adapter import profile_dir
@@ -119,7 +119,7 @@ def _antigravity(rt):
 
     adapter = rt.adapters.get("antigravity")
     if not isinstance(adapter, AntigravityAdapter):
-        raise _error(404, "engine_unavailable", "Antigravity is disabled on this server.")
+        raise _error(404, "engine_unavailable", "Antigravity bu sunucuda kapalı.")
     return adapter
 
 
@@ -140,14 +140,14 @@ async def setup_antigravity(action: str, response: Response, rt: ThreadRuntime =
             await antigravity_runtime.install(adapter.validate_runtime)
         elif action == "sign_in":
             if not antigravity_runtime.installed():
-                raise ValueError("Install Antigravity first.")
+                raise ValueError("Önce Antigravity'yi kurun.")
             await adapter.sign_in(save)
         else:
             await adapter.discover(adapter.config or {})
         rt.engines.forget("antigravity")
 
     if action not in {"install", "sign_in", "models"}:
-        raise HTTPException(status_code=404, detail="Unknown setup action")
+        raise HTTPException(status_code=404, detail="Bilinmeyen kurulum işlemi")
     try:
         return adapter.start_operation(action, work)
     except ValueError as exc:
@@ -174,7 +174,7 @@ async def antigravity_callback(request: Request, rt: ThreadRuntime = Depends(get
             raise ValueError
         await _antigravity(rt).complete_callback(operation_id, callback)
     except (ValueError, OSError, TypeError, KeyError):
-        raise _error(422, "invalid_google_callback", "This sign-in response is invalid or expired. Start sign-in again.") from None
+        raise _error(422, "invalid_google_callback", "Bu giriş yanıtı geçersiz ya da süresi dolmuş. Girişi yeniden başlatın.") from None
 
 
 def _login_owner(request: Request) -> str:
@@ -182,7 +182,7 @@ def _login_owner(request: Request) -> str:
 
     principal = principal_of(request.scope)
     if principal is None or not principal.is_admin:
-        raise _error(403, "admin_required", "Sign in as the owner to connect an engine.")
+        raise _error(403, "admin_required", "Motor bağlamak için sahip olarak giriş yapın.")
     return f"{principal.kind}:{principal.session_id}"
 
 
@@ -217,22 +217,22 @@ async def logout_engine(engine_id: str, request: Request, response: Response, rt
     response.headers["Cache-Control"] = "no-store"
     controller = rt.codex_login if engine_id == "codex" else _claude_login(rt, engine_id)
     if controller is None:
-        raise HTTPException(status_code=404, detail="Engine not found")
+        raise HTTPException(status_code=404, detail="Motor bulunamadı")
     if rt._closing or engine_id not in rt.adapters:
-        raise _error(409, "engine_unavailable", "This engine is unavailable on this server.")
+        raise _error(409, "engine_unavailable", "Bu motor bu sunucuda kullanılamıyor.")
     executable = (resolve_codex_executable if engine_id == "codex" else resolve_claude_executable)()
     if executable is None:
-        raise _error(409, "engine_unavailable", "Install the engine CLI on the server first.")
+        raise _error(409, "engine_unavailable", "Önce motorun CLI'ını sunucuya kurun.")
     # A running turn can switch to a fallback engine. Reserve before yielding,
     # and include turns still preparing readiness/context, before _runs exists.
     if rt._closing or rt._runs or rt._starting_turns or rt._account_changing:
-        raise _error(409, "engine_busy", "Stop running conversations before signing out.")
+        raise _error(409, "engine_busy", "Çıkış yapmadan önce çalışan sohbetleri durdurun.")
     rt._account_changing = True
     try:
         with _claude_account(rt, engine_id):
             await engine_logout.logout(controller, "codex" if engine_id == "codex" else "claude", executable)
     except (LoginError, OSError):
-        raise _error(409, "logout_unavailable", "Could not confirm sign-out. Finish pending sign-in, check the CLI and any configured API key, then try again.") from None
+        raise _error(409, "logout_unavailable", "Çıkış doğrulanamadı. Bekleyen girişi tamamlayın, CLI'ı ve ayarlı API anahtarını kontrol edip yeniden deneyin.") from None
     finally:
         rt._account_changing = False
         rt.engines.forget(engine_id)
@@ -246,14 +246,14 @@ async def start_codex_login(request: Request, response: Response, rt: ThreadRunt
     owner = _login_owner(request)
     response.headers["Cache-Control"] = "no-store"
     if rt._closing or "codex" not in rt.adapters:
-        raise _error(409, "engine_unavailable", "Codex is unavailable on this server.")
+        raise _error(409, "engine_unavailable", "Codex bu sunucuda kullanılamıyor.")
     executable = resolve_codex_executable()
     if executable is None:
-        raise _error(409, "engine_unavailable", "Install the Codex CLI on the server first.")
+        raise _error(409, "engine_unavailable", "Önce Codex CLI'ı sunucuya kurun.")
     try:
         return await rt.codex_login.start(owner, executable)
     except (LoginError, OSError):
-        raise _error(409, "login_unavailable", "Codex sign-in is busy or its account folder is unavailable. Finish any pending sign-in and try again.") from None
+        raise _error(409, "login_unavailable", "Codex girişi meşgul ya da hesap klasörü kullanılamıyor. Bekleyen girişi tamamlayıp yeniden deneyin.") from None
 
 
 @router.get("/codex/login/{flow_id}")
@@ -262,7 +262,7 @@ async def codex_login_status(flow_id: str, request: Request, response: Response,
     try:
         result = rt.codex_login.view(_login_owner(request), flow_id)
     except KeyError:
-        raise HTTPException(status_code=404, detail="Sign-in not found") from None
+        raise HTTPException(status_code=404, detail="Giriş bulunamadı") from None
     if result["phase"] == "succeeded":
         rt.engines.forget("codex")
     return result
@@ -273,13 +273,13 @@ async def cancel_codex_login(flow_id: str, request: Request, rt: ThreadRuntime =
     try:
         await rt.codex_login.cancel(_login_owner(request), flow_id)
     except KeyError:
-        raise HTTPException(status_code=404, detail="Sign-in not found") from None
+        raise HTTPException(status_code=404, detail="Giriş bulunamadı") from None
 
 
 def _claude_login_or_404(rt: ThreadRuntime, engine_id: str):
     controller = _claude_login(rt, engine_id)
     if controller is None:
-        raise HTTPException(status_code=404, detail="Engine not found")
+        raise HTTPException(status_code=404, detail="Motor bulunamadı")
     return controller
 
 
@@ -294,15 +294,15 @@ async def start_claude_login(engine_id: str, request: Request, response: Respons
     response.headers["Cache-Control"] = "no-store"
     controller = _claude_login_or_404(rt, engine_id)
     if rt._closing or engine_id not in rt.adapters:
-        raise _error(409, "engine_unavailable", "Claude is unavailable on this server.")
+        raise _error(409, "engine_unavailable", "Claude bu sunucuda kullanılamıyor.")
     executable = resolve_claude_executable()
     if executable is None:
-        raise _error(409, "engine_unavailable", "Install the Claude CLI on the server first.")
+        raise _error(409, "engine_unavailable", "Önce Claude CLI'ı sunucuya kurun.")
     try:
         with _claude_account(rt, engine_id):
             return await controller.start(owner, executable)
     except (LoginError, OSError):
-        raise _error(409, "login_unavailable", "Claude sign-in is busy or its account folder is unavailable. Finish any pending sign-in and try again.") from None
+        raise _error(409, "login_unavailable", "Claude girişi meşgul ya da hesap klasörü kullanılamıyor. Bekleyen girişi tamamlayıp yeniden deneyin.") from None
 
 
 @router.get("/{engine_id}/login/{flow_id}")
@@ -312,7 +312,7 @@ async def claude_login_status(engine_id: str, flow_id: str, request: Request, re
     try:
         result = controller.view(_login_owner(request), flow_id)
     except KeyError:
-        raise HTTPException(status_code=404, detail="Sign-in not found") from None
+        raise HTTPException(status_code=404, detail="Giriş bulunamadı") from None
     if result["phase"] == "succeeded":
         rt.engines.forget(engine_id)
     return result
@@ -338,9 +338,9 @@ async def complete_claude_login(engine_id: str, flow_id: str, request: Request, 
             raise ValueError
         await controller.complete(owner, flow_id, payload["code"])
     except KeyError:
-        raise HTTPException(status_code=404, detail="Sign-in not found") from None
+        raise HTTPException(status_code=404, detail="Giriş bulunamadı") from None
     except (ValueError, TypeError, LoginError):
-        raise _error(422, "invalid_login_code", "The code or sign-in is invalid or already submitted. Check the code, or start sign-in again.") from None
+        raise _error(422, "invalid_login_code", "Kod ya da giriş geçersiz veya zaten gönderilmiş. Kodu kontrol edin ya da girişi yeniden başlatın.") from None
 
 
 @router.delete("/{engine_id}/login/{flow_id}", status_code=204)
@@ -349,4 +349,4 @@ async def cancel_claude_login(engine_id: str, flow_id: str, request: Request, rt
     try:
         await controller.cancel(_login_owner(request), flow_id)
     except KeyError:
-        raise HTTPException(status_code=404, detail="Sign-in not found") from None
+        raise HTTPException(status_code=404, detail="Giriş bulunamadı") from None

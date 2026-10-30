@@ -25,24 +25,24 @@ export function RoomSettings({ room, agents, onSaved, onCancel }: { room?: Room;
       const input: RoomInput = { name: name.trim(), bulletin, member_ids: members, default_responder_kind: kind, default_responder_agent_id: kind === "member" ? responder : null };
       const saved = room ? await collaboration.saveRoom(room.id, { ...input, expected_member_ids: expectedMembers }) : await collaboration.createRoom(input);
       onSaved(saved);
-    } catch (err) { setError(err instanceof ApiError ? err.message : "Could not save this room."); }
+    } catch (err) { setError(err instanceof ApiError ? err.message : "Bu oda kaydedilemedi."); }
     finally { setBusy(false); }
   };
   return <form onSubmit={save} className="space-y-4"><fieldset disabled={busy} className="space-y-4">
-    <label className="block text-sm">Room name<input required maxLength={80} className={FIELD} value={name} onChange={event => setName(event.target.value)} /></label>
+    <label className="block text-sm">Oda adı<input required maxLength={80} className={FIELD} value={name} onChange={event => setName(event.target.value)} /></label>
     <fieldset className="space-y-2">
-      <legend className="mb-2 text-sm">Members</legend>
+      <legend className="mb-2 text-sm">Üyeler</legend>
       {choices.map(agent => <label key={agent.id} className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={members.includes(agent.id)} onChange={event => setMembers(previous => event.target.checked ? [...previous, agent.id] : previous.filter(id => id !== agent.id))} />
         {agent.name}
       </label>)}
-      <p className="text-xs text-muted">Choose up to 12 agents. They answer one at a time.</p>
-      {room && <p className="text-xs text-muted">Removal skips queued replies. Stop working members and wait for them to finish before removing them. Re-adding keeps their work history and starts with new room messages; old replies are never retried automatically.</p>}
+      <p className="text-xs text-muted">En fazla 12 ajan seçin. Sırayla tek tek yanıt verirler.</p>
+      {room && <p className="text-xs text-muted">Kaldırma, sıradaki yanıtları atlar. Çalışan üyeleri durdurun ve kaldırmadan önce işlerini bitirmelerini bekleyin. Yeniden eklenen üyenin iş geçmişi korunur ve yeni oda mesajlarıyla başlar; eski yanıtlar asla kendiliğinden yeniden denenmez.</p>}
     </fieldset>
-    <label className="block text-sm">Shared instructions<textarea maxLength={12000} rows={4} className={FIELD} value={bulletin} onChange={event => setBulletin(event.target.value)} /><span className="mt-1 block text-xs text-muted">Visible to every room member. Do not put credentials here.</span></label>
-    <label className="block text-sm">Who answers without a tag?<select className={FIELD} value={kind} onChange={event => setKind(event.target.value as Room["default_responder_kind"])}><option value="mentions">Only tagged members</option><option value="member">One member</option><option value="everyone">Everyone</option></select></label>
-    {kind === "member" && <label className="block text-sm">Default responder<select required className={FIELD} value={responder ?? ""} onChange={event => setResponder(Number(event.target.value) || null)}><option value="">Choose a member…</option>{agents.filter(agent => members.includes(agent.id)).map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>}
+    <label className="block text-sm">Ortak talimatlar<textarea maxLength={12000} rows={4} className={FIELD} value={bulletin} onChange={event => setBulletin(event.target.value)} /><span className="mt-1 block text-xs text-muted">Odanın tüm üyeleri görür. Buraya kimlik bilgisi yazmayın.</span></label>
+    <label className="block text-sm">Etiket olmadan kim yanıt verir?<select className={FIELD} value={kind} onChange={event => setKind(event.target.value as Room["default_responder_kind"])}><option value="mentions">Yalnız etiketlenen üyeler</option><option value="member">Bir üye</option><option value="everyone">Herkes</option></select></label>
+    {kind === "member" && <label className="block text-sm">Varsayılan yanıtlayıcı<select required className={FIELD} value={responder ?? ""} onChange={event => setResponder(Number(event.target.value) || null)}><option value="">Bir üye seçin…</option>{agents.filter(agent => members.includes(agent.id)).map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>}
     {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-    <div className="flex gap-2"><button className="rounded-field border border-line px-3 py-2 text-sm hover:bg-hover" type="submit" disabled={!name.trim() || members.length === 0 || members.length > 12 || (kind === "member" && (!responder || !members.includes(responder)))}>{busy ? "Saving…" : room ? "Save room" : "Create room"}</button><button className="px-3 py-2 text-sm underline" type="button" onClick={onCancel}>Cancel</button></div>
+    <div className="flex gap-2"><button className="rounded-field border border-line px-3 py-2 text-sm hover:bg-hover" type="submit" disabled={!name.trim() || members.length === 0 || members.length > 12 || (kind === "member" && (!responder || !members.includes(responder)))}>{busy ? "Kaydediliyor…" : room ? "Odayı kaydet" : "Oda oluştur"}</button><button className="px-3 py-2 text-sm underline" type="button" onClick={onCancel}>İptal</button></div>
   </fieldset></form>;
 }

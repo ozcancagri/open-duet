@@ -18,11 +18,11 @@ const WAITING = new Set(["INITIATED", "INITIALIZING"]);
 const FAILED = new Set(["FAILED", "EXPIRED"]);
 
 export function statusLabel(status: string): string {
-  if (status === "ACTIVE") return "Connected";
-  if (WAITING.has(status)) return "Waiting for you to finish in your browser";
-  if (status === "FAILED") return "Connection failed";
-  if (status === "EXPIRED") return "Link expired";
-  if (status === "INACTIVE") return "Inactive";
+  if (status === "ACTIVE") return "Bağlandı";
+  if (WAITING.has(status)) return "Tarayıcınızda işlemi bitirmeniz bekleniyor";
+  if (status === "FAILED") return "Bağlantı kurulamadı";
+  if (status === "EXPIRED") return "Bağlantının süresi doldu";
+  if (status === "INACTIVE") return "Etkin değil";
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
@@ -62,7 +62,7 @@ export function reservePage(bridge: LinkBridge | undefined, open: Opener): Reser
   if (bridge?.openComposioLink) {
     const openLink = bridge.openComposioLink;
     return {
-      navigate: async (url) => { if (!isComposioLink(url)) throw new Error("This connect link is not from Composio."); await openLink(url); },
+      navigate: async (url) => { if (!isComposioLink(url)) throw new Error("Bu bağlantı Composio'dan gelmiyor."); await openLink(url); },
       cancel: () => {},
     };
   }
@@ -70,8 +70,8 @@ export function reservePage(bridge: LinkBridge | undefined, open: Opener): Reser
   if (tab) tab.opener = null;
   return {
     navigate: async (url) => {
-      if (!isComposioLink(url)) { tab?.close(); throw new Error("This connect link is not from Composio."); }
-      if (!tab || tab.closed) throw new Error("Your browser blocked the new tab. Allow pop-ups for this page and try again.");
+      if (!isComposioLink(url)) { tab?.close(); throw new Error("Bu bağlantı Composio'dan gelmiyor."); }
+      if (!tab || tab.closed) throw new Error("Tarayıcınız yeni sekmeyi engelledi. Bu sayfa için açılır pencerelere izin verip yeniden deneyin.");
       tab.location.href = url;
     },
     cancel: () => { tab?.close(); },
@@ -92,17 +92,17 @@ export function accountsOf(accounts: ComposioAccount[], toolkit: string): Compos
 export const AGENT_APPS: { slug: string; label: string; read: string; write: string | null }[] = [
   {
     slug: "github", label: "GitHub",
-    read: "Read your profile, repositories, issues, pull requests, commits and files, and search.",
-    write: "Also create issues, comment, and close or reopen issues. You approve each change first.",
+    read: "Profilinizi, depolarınızı, issue'ları, pull request'leri, commit'leri ve dosyaları okur; arama yapar.",
+    write: "Ayrıca issue açar, yorum yazar, issue kapatır ya da yeniden açar. Her değişikliği önce siz onaylarsınız.",
   },
   {
     slug: "gmail", label: "Gmail",
-    read: "Search messages, read message threads, and see the connected account profile.",
-    write: "Also create a plain-text draft reply in an existing thread. You approve each draft; it is never sent.",
+    read: "Mesajlarda arar, mesaj zincirlerini okur ve bağlı hesabın profilini görür.",
+    write: "Ayrıca var olan bir zincire düz metin taslak yanıt oluşturur. Her taslağı siz onaylarsınız; hiçbiri gönderilmez.",
   },
   {
-    slug: "googlecalendar", label: "Google Calendar",
-    read: "List calendars and search event summaries in a date window of up to 31 days.",
+    slug: "googlecalendar", label: "Google Takvim",
+    read: "Takvimleri listeler ve en çok 31 günlük bir tarih aralığında etkinlik özetlerinde arar.",
     write: null,
   },
 ];

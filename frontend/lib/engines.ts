@@ -2,8 +2,8 @@ import type { Engine, EngineConfigInput } from "./api";
 
 export function engineGroups(engines: Engine[]): { label: string; engines: Engine[] }[] {
   return [
-    { label: "Ready", engines: engines.filter((engine) => engine.available) },
-    { label: "Needs setup", engines: engines.filter((engine) => !engine.available) },
+    { label: "Hazır", engines: engines.filter((engine) => engine.available) },
+    { label: "Kurulum gerekli", engines: engines.filter((engine) => !engine.available) },
   ].filter((group) => group.engines.length > 0);
 }
 

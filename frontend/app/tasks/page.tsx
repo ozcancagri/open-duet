@@ -57,7 +57,7 @@ function Home() {
         // No answer at all: the backend is down, or the browser blocked the
         // request because this page's address is not in FRONTEND_ORIGINS.
         setBackendProblem(
-          `Cannot reach the backend. Check that it is running, and that this page's address (${window.location.origin}) is listed in FRONTEND_ORIGINS in backend/.env.`
+          `Arka uca ulaşılamıyor. Çalıştığını ve bu sayfanın adresinin (${window.location.origin}) backend/.env dosyasındaki FRONTEND_ORIGINS içinde yer aldığını kontrol edin.`
         );
       });
     return () => {
@@ -71,7 +71,7 @@ function Home() {
       const { user_id } = await auth.setIdentity(identity);
       setUserId(user_id);
     } catch (err) {
-      setIdentityError(err instanceof ApiError ? err.message : "Could not save who you are.");
+      setIdentityError(err instanceof ApiError ? err.message : "Kimliğiniz kaydedilemedi.");
     }
   };
 
@@ -80,7 +80,7 @@ function Home() {
     try {
       await auth.clearIdentity();
     } catch (err) {
-      setIdentityError(err instanceof ApiError ? err.message : "Could not start over.");
+      setIdentityError(err instanceof ApiError ? err.message : "Baştan başlanamadı.");
       return;
     }
     setUserId(null);
@@ -94,20 +94,20 @@ function Home() {
         <div className="mb-6 text-center">
           <h1 className="text-xl font-semibold">Open Duet</h1>
           <p className="text-sm text-muted">
-            Connect your accounts, then submit a task.
+            Hesaplarınızı bağlayın, ardından bir görev gönderin.
           </p>
           <Link href="/chat" className="mt-2 inline-block text-sm font-medium underline">
-            Open chat
+            Sohbeti aç
           </Link>
         </div>
 
         {backendProblem ? (
           <section className="rounded-lg border border-danger/50 p-5">
-            <h2 className="text-base font-semibold">Backend not reachable</h2>
+            <h2 className="text-base font-semibold">Arka uca ulaşılamıyor</h2>
             <p className="mt-1 text-sm text-muted">{backendProblem}</p>
           </section>
         ) : boatEnabled === null ? (
-          <p className="text-center text-sm text-muted">Loading…</p>
+          <p className="text-center text-sm text-muted">Yükleniyor…</p>
         ) : (
           <>
             <ConnectTelegram userId={userId} onLinked={handleLinked} onReset={handleReset} />
@@ -124,7 +124,7 @@ function Home() {
                   />
                 ) : (
                   <section className="rounded-lg border border-line p-5 opacity-50">
-                    <h2 className="text-base font-semibold">2. Connect Claude</h2>
+                    <h2 className="text-base font-semibold">2. Claude&apos;u bağlayın</h2>
                   </section>
                 )}
 
@@ -132,7 +132,7 @@ function Home() {
                   <ConnectGitHub boxId={sandboxId} />
                 ) : (
                   <section className="rounded-lg border border-line p-5 opacity-50">
-                    <h2 className="text-base font-semibold">3. Connect GitHub (optional)</h2>
+                    <h2 className="text-base font-semibold">3. GitHub&apos;ı bağlayın (isteğe bağlı)</h2>
                   </section>
                 )}
 
@@ -140,17 +140,17 @@ function Home() {
                   <SubmitTask userId={userId} boxId={boxId} />
                 ) : (
                   <section className="rounded-lg border border-line p-5 opacity-50">
-                    <h2 className="text-base font-semibold">4. Submit a task</h2>
+                    <h2 className="text-base font-semibold">4. Bir görev gönderin</h2>
                   </section>
                 )}
               </>
             ) : (
               <>
                 <section className="rounded-lg border border-line p-5">
-                  <h2 className="text-base font-semibold">Boat sandboxes are off</h2>
+                  <h2 className="text-base font-semibold">Boat korumalı alanları kapalı</h2>
                   <p className="mt-1 text-sm text-muted">
-                    Connecting Claude in a sandbox, GitHub, schedules and tool tasks need
-                    Boat. Local Claude above works without it.
+                    Claude&apos;u korumalı alanda bağlamak, GitHub, zamanlamalar ve araç görevleri
+                    Boat gerektirir. Yukarıdaki yerel Claude onsuz da çalışır.
                     {boatReason ? ` (${boatReason}.)` : ""}
                   </p>
                 </section>
@@ -161,7 +161,7 @@ function Home() {
                     boxId={null}
                     step={2}
                     showComposer={false}
-                    blockedReason="New Boat tasks are unavailable while Boat is off."
+                    blockedReason="Boat kapalıyken yeni Boat görevleri kullanılamaz."
                   />
                 )}
               </>

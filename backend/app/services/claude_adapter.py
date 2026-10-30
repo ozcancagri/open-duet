@@ -145,7 +145,7 @@ class ClaudeAdapter:
     setup = {
         "sign_in": "claude auth login", "credential": "terminal",
         "docs_url": "https://code.claude.com/docs/en/setup",
-        "notes": ["Install the CLI and sign in from a terminal, then check again."],
+        "notes": ["CLI'ı kurun ve bir terminalden giriş yapın, sonra yeniden kontrol edin."],
     }
     key = "claude"
     label = "Claude"
@@ -165,8 +165,8 @@ class ClaudeAdapter:
     # Optional: with an API key saved here, turns run in API mode (engine_api_mode.py).
     needs_config = True
     config_fields = [engine_api_mode.field(
-        "Anthropic API key (sk-ant-…). With a key, Open Duet runs Claude Code on API credits in a folder "
-        "of its own and never uses your subscription sign-in. Leave empty to keep the saved key."
+        "Anthropic API anahtarı (sk-ant-…). Anahtar girilirse Open Duet, Claude Code'u kendine ait bir klasörde API kredisiyle "
+        "çalıştırır ve abonelik girişinizi hiç kullanmaz. Kayıtlı anahtarı korumak için boş bırakın."
     )]
     config: dict | None = None
     # The account folder of an extra Claude account; None is the CLI's default.
@@ -198,7 +198,7 @@ class ClaudeAdapter:
         return ProviderStatus(
             ready=ready,
             version=cli.version,
-            error=None if ready else (cli.error or "Claude CLI is not ready for local use."),
+            error=None if ready else (cli.error or "Claude CLI yerel kullanıma hazır değil."),
             installed=cli.installed,
             signed_in=cli.signed_in,
         )
@@ -252,7 +252,7 @@ class ClaudeAdapter:
     ) -> TurnOutcome:
         if not ctx.provider_session_id:
             return TurnOutcome(
-                "failed", error="This thread has no Claude session id.", error_code="no_session"
+                "failed", error="Bu sohbetin Claude oturum kimliği yok.", error_code="no_session"
             )
         # A computer is the agent's sandbox: its turns always have tools, and
         # they are the computer's tools only.
@@ -340,14 +340,14 @@ class ClaudeAdapter:
                     {
                         "call_id": data["tool_use_id"],
                         "name": data["tool"],
-                        "summary": data["tool"].removeprefix("mcp__computer__native_").replace("_", " ") + " on this Mac" if native else data["summary"],
+                        "summary": data["tool"].removeprefix("mcp__computer__native_").replace("_", " ") + " (bu Mac'te)" if native else data["summary"],
                         "input": durable_input(data["tool"], event.extra.get("input", {})),
                     },
                 )
             elif event.kind == "tool_completed":
                 output, truncated = cap_tool_output(event.extra.get("output", ""))
                 if data["tool_use_id"] in native_calls:
-                    output, truncated = "Native desktop result omitted from history for privacy.", False
+                    output, truncated = "Yerel masaüstü sonucu gizlilik için geçmişe kaydedilmedi.", False
                 await sink.emit(
                     "tool.completed",
                     {
@@ -497,14 +497,14 @@ class ClaudeAdapter:
             )
 
         if ctx.aborted:
-            return failed("The run was stopped because it no longer owns its turn.", "lost")
+            return failed("Çalışma durduruldu, çünkü bu yanıt artık ona ait değil.", "lost")
         from app.core.turn_sandbox import SandboxUnavailable
         if isinstance(attempt.error, SandboxUnavailable):
             return failed(str(attempt.error), "sandbox_unavailable")
         if isinstance(attempt.error, local_claude_runner.ClaudeCliUnavailable):
             return failed(str(attempt.error), "cli_unavailable")
         if attempt.error is not None or attempt.output is None:
-            return failed("Local run failed unexpectedly", "runner_error")
+            return failed("Yerel çalışma beklenmedik biçimde başarısız oldu", "runner_error")
 
         out, final = attempt.output, n.final
         stderr = out.stderr.strip()
@@ -515,28 +515,28 @@ class ClaudeAdapter:
             said = f"{stderr} {final.text if final and final.text else ''}".lower()
             if "no conversation found" in said:
                 return failed(
-                    "Claude could not find this conversation's session, so it cannot continue "
-                    "it. Start a new session to go on.",
+                    "Claude bu sohbetin oturumunu bulamadı, bu yüzden sohbeti sürdüremiyor. "
+                    "Devam etmek için yeni bir oturum başlatın.",
                     "session_resume_failed",
                     session_state="broken",
                 )
 
         if out.timed_out:
             return failed(
-                f"Timed out after {app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} seconds", "timeout"
+                f"{app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} saniye sonra zaman aşımı", "timeout"
             )
         if out.output_truncated or n.over_limit:
-            return failed("Claude produced more output than allowed", "output_too_large")
+            return failed("Claude izin verilenden fazla çıktı üretti", "output_too_large")
         if final is None:
             if stderr:
                 return failed(stderr, "cli_error")
             if out.exit_code not in (0, None):
-                return failed(f"Claude exited with code {out.exit_code}", "cli_error")
-            return failed("Claude ended without a result", "no_result")
+                return failed(f"Claude {out.exit_code} koduyla çıktı", "cli_error")
+            return failed("Claude sonuç vermeden bitti", "no_result")
         if final.is_error:
             # A refused API call (a usage or rate limit) keeps Claude's own
             # words and the reset time it reported; the runtime classifies it.
-            said = final.text or n.api_error or stderr or "Claude reported an error"
+            said = final.text or n.api_error or stderr or "Claude bir hata bildirdi"
             if n.limit_refused and n.api_error and n.api_error not in said:
                 said = f"{said} {n.api_error}"
             if n.limit_refused and engine_errors.classify(said) is None:
@@ -546,7 +546,7 @@ class ClaudeAdapter:
             return failed(said, "claude_error", limit_resets_at=n.limit_resets_at)
         if final.permission_denied and not tools:
             return failed(
-                "Claude tried to use a tool, which is turned off for local chat", "tools_disabled"
+                "Claude bir araç kullanmaya çalıştı; yerel sohbette araçlar kapalı", "tools_disabled"
             )
 
         # Prefer the CLI's own final text; if it sent none, keep what was streamed.
@@ -570,7 +570,7 @@ class ClaudeAccountAdapter(ClaudeAdapter):
         self.setup = {
             **ClaudeAdapter.setup,
             "sign_in": sign_in,
-            "notes": [f"This engine uses the Claude account in {config_dir}. Sign in here, then check again."],
+            "notes": [f"Bu motor {config_dir} içindeki Claude hesabını kullanır. Burada giriş yapın, sonra yeniden kontrol edin."],
         }
         self.config = None
 

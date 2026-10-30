@@ -42,7 +42,7 @@ def asset():
     arch = {"aarch64": "arm64", "amd64": "x86_64"}.get(arch, arch)
     found = ASSETS.get((sys.platform, arch))
     if found is None:
-        raise InstallError("Antigravity managed installs support macOS and Linux on Intel and ARM64.")
+        raise InstallError("Antigravity yönetilen kurulumu Intel ve ARM64 üzerinde macOS ile Linux'u destekler.")
     family, target, digest = found
     return f"https://dl.google.com/agy-extensions/releases/{family}/agy-acp-server-{VERSION}-{target}.zip", digest
 
@@ -65,21 +65,21 @@ def installed() -> bool:
 
 def extract_archive(archive: Path, destination: Path, digest: str) -> dict:
     if archive.stat().st_size > MAX_ARCHIVE_BYTES:
-        raise InstallError("The Antigravity download exceeded its size limit.")
+        raise InstallError("Antigravity indirmesi boyut sınırını aştı.")
     with archive.open("rb") as source:
         if hashlib.file_digest(source, "sha256").hexdigest() != digest:
-            raise InstallError("The Antigravity download failed its SHA-256 check.")
+            raise InstallError("Antigravity indirmesi SHA-256 kontrolünden geçemedi.")
     with zipfile.ZipFile(archive) as package:
         entries = package.infolist()
         if len(entries) != len(MEMBERS) or {e.filename for e in entries} != set(MEMBERS):
-            raise InstallError("The Antigravity archive contains unexpected files.")
+            raise InstallError("Antigravity arşivinde beklenmeyen dosyalar var.")
         if sum(e.file_size for e in entries) > MAX_EXPANDED_BYTES:
-            raise InstallError("The Antigravity archive exceeds its expanded size limit.")
+            raise InstallError("Antigravity arşivi açılmış boyut sınırını aşıyor.")
         sizes = {}
         for entry in entries:
             kind = stat.S_IFMT(entry.external_attr >> 16)
             if kind not in (0, stat.S_IFREG) or entry.flag_bits & 1 or entry.file_size <= 0:
-                raise InstallError("The Antigravity archive contains an unsafe file.")
+                raise InstallError("Antigravity arşivinde güvenli olmayan bir dosya var.")
             path = destination / entry.filename
             with package.open(entry) as source, path.open("xb") as target:
                 shutil.copyfileobj(source, target, 1024 * 1024)
@@ -95,7 +95,7 @@ async def install(validate) -> None:
         return
     root.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if shutil.disk_usage(root.parent).free < MAX_ARCHIVE_BYTES + FREE_SPACE_MARGIN:
-        raise InstallError("Antigravity needs 1.25 GiB of free space for a safe download. Close other apps and retry.")
+        raise InstallError("Antigravity güvenli indirme için 1,25 GiB boş alan gerektirir. Diğer uygulamaları kapatıp yeniden deneyin.")
     with tempfile.TemporaryDirectory(prefix=".install-", dir=root.parent) as temporary:
         stage = Path(temporary)
         archive = stage / "download.zip"
@@ -107,14 +107,14 @@ async def install(validate) -> None:
                     async for chunk in response.aiter_bytes():
                         count += len(chunk)
                         if count > MAX_ARCHIVE_BYTES:
-                            raise InstallError("The Antigravity download exceeded its size limit.")
+                            raise InstallError("Antigravity indirmesi boyut sınırını aştı.")
                         target.write(chunk)
         with zipfile.ZipFile(archive) as package:
             expanded_bytes = sum(entry.file_size for entry in package.infolist())
         if expanded_bytes > MAX_EXPANDED_BYTES:
-            raise InstallError("The Antigravity archive exceeds its expanded size limit.")
+            raise InstallError("Antigravity arşivi açılmış boyut sınırını aşıyor.")
         if shutil.disk_usage(stage).free < expanded_bytes + FREE_SPACE_MARGIN:
-            raise InstallError("Antigravity needs more free space to unpack. Free disk space and retry.")
+            raise InstallError("Antigravity'nin açılması için daha fazla boş alan gerekiyor. Diskte yer açıp yeniden deneyin.")
         candidate = stage / "runtime"
         candidate.mkdir(mode=0o700)
         # Extraction is bounded and runs outside the event loop; cancellation must

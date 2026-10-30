@@ -68,7 +68,7 @@ class FileAccessError(Exception):
 
 
 def _outside() -> FileAccessError:
-    return FileAccessError(403, "outside_workspace", "That path is outside this conversation's workspace.")
+    return FileAccessError(403, "outside_workspace", "Bu yol bu sohbetin çalışma klasörünün dışında.")
 
 
 def is_secret(parts: tuple[str, ...]) -> bool:
@@ -83,12 +83,12 @@ def clean_relative(raw: str | None) -> tuple[str, ...]:
     relative path. Empty means the root."""
     value = (raw or "").strip()
     if len(value) > PATH_MAX_CHARS or "\x00" in value or "\\" in value or _DRIVE.match(value):
-        raise FileAccessError(400, "bad_path", "Use a relative path inside the workspace.")
+        raise FileAccessError(400, "bad_path", "Çalışma klasörü içinde göreli bir yol kullanın.")
     if value.startswith("/"):
-        raise FileAccessError(400, "bad_path", "Use a relative path inside the workspace.")
+        raise FileAccessError(400, "bad_path", "Çalışma klasörü içinde göreli bir yol kullanın.")
     parts = tuple(part for part in PurePosixPath(value).parts if part not in ("", "."))
     if any(part == ".." for part in parts):
-        raise FileAccessError(400, "bad_path", "Use a relative path inside the workspace.")
+        raise FileAccessError(400, "bad_path", "Çalışma klasörü içinde göreli bir yol kullanın.")
     return parts
 
 
@@ -98,13 +98,13 @@ def _contained(root: Path, candidate: Path) -> bool:
 
 def canonical_root(workspace: str | None) -> Path:
     if not workspace:
-        raise FileAccessError(404, "no_workspace", "This conversation has no workspace.")
+        raise FileAccessError(404, "no_workspace", "Bu sohbetin çalışma klasörü yok.")
     try:
         root = Path(os.path.realpath(workspace))
     except OSError:
-        raise FileAccessError(404, "no_workspace", "This conversation's workspace is missing.") from None
+        raise FileAccessError(404, "no_workspace", "Bu sohbetin çalışma klasörü bulunamıyor.") from None
     if not root.is_dir() or not tenant_paths.contains(root):
-        raise FileAccessError(404, "no_workspace", "This conversation's workspace is missing.")
+        raise FileAccessError(404, "no_workspace", "Bu sohbetin çalışma klasörü bulunamıyor.")
     return root
 
 
@@ -113,15 +113,15 @@ def resolve(workspace: str | None, raw: str | None) -> tuple[Path, Path, tuple[s
     root = canonical_root(workspace)
     parts = clean_relative(raw)
     if is_secret(parts):
-        raise FileAccessError(403, "secret_file", "Secret files (keys, .env, credentials) are never shown.")
+        raise FileAccessError(403, "secret_file", "Gizli dosyalar (anahtarlar, .env, kimlik bilgileri) hiçbir zaman gösterilmez.")
     target = Path(os.path.realpath(root.joinpath(*parts)))
     if not _contained(root, target):
         raise _outside()
     if not os.path.lexists(target):
-        raise FileAccessError(404, "not_found", "No such file or folder in the workspace.")
+        raise FileAccessError(404, "not_found", "Çalışma klasöründe böyle bir dosya ya da klasör yok.")
     rel = target.relative_to(root).parts
     if is_secret(rel):
-        raise FileAccessError(403, "secret_file", "Secret files (keys, .env, credentials) are never shown.")
+        raise FileAccessError(403, "secret_file", "Gizli dosyalar (anahtarlar, .env, kimlik bilgileri) hiçbir zaman gösterilmez.")
     return root, target, parts
 
 
@@ -137,14 +137,14 @@ class Entry:
 def list_dir(workspace: str | None, raw: str | None) -> tuple[str, list[Entry], bool]:
     root, target, parts = resolve(workspace, raw)
     if not target.is_dir():
-        raise FileAccessError(400, "not_a_folder", "That is a file, not a folder.")
+        raise FileAccessError(400, "not_a_folder", "Bu bir klasör değil, dosya.")
     rel_base = target.relative_to(root).parts
     entries: list[Entry] = []
     truncated = False
     try:
         names = sorted(os.listdir(target), key=lambda n: (n.lower(), n))
     except OSError:
-        raise FileAccessError(403, "unreadable", "That folder can't be read.") from None
+        raise FileAccessError(403, "unreadable", "Bu klasör okunamıyor.") from None
     for name in names:
         rel = (*rel_base, name)
         rel_path = "/".join(rel)
@@ -199,25 +199,25 @@ def _open_confined(root: Path, target: Path) -> tuple[int, os.stat_result, Path]
     try:
         fd = os.open(target, flags)
     except IsADirectoryError:
-        raise FileAccessError(400, "not_a_file", "That is a folder, not a file.") from None
+        raise FileAccessError(400, "not_a_file", "Bu bir dosya değil, klasör.") from None
     except OSError:
-        raise FileAccessError(404, "not_found", "No such file in the workspace.") from None
+        raise FileAccessError(404, "not_found", "Çalışma klasöründe böyle bir dosya yok.") from None
     try:
         opened = os.fstat(fd)
         if stat.S_ISDIR(opened.st_mode):
-            raise FileAccessError(400, "not_a_file", "That is a folder, not a file.")
+            raise FileAccessError(400, "not_a_file", "Bu bir dosya değil, klasör.")
         if not stat.S_ISREG(opened.st_mode):
-            raise FileAccessError(400, "not_a_file", "Only regular files can be read.")
+            raise FileAccessError(400, "not_a_file", "Yalnız normal dosyalar okunabilir.")
         after = Path(os.path.realpath(target))
         if not _contained(root, after):
             raise _outside()
         if is_secret(after.relative_to(root).parts):
             # A folder on the path was swapped for a link to a secret one
             # after the path was checked.
-            raise FileAccessError(403, "secret_file", "Secret files (keys, .env, credentials) are never shown.")
+            raise FileAccessError(403, "secret_file", "Gizli dosyalar (anahtarlar, .env, kimlik bilgileri) hiçbir zaman gösterilmez.")
         now = os.stat(after)
         if (now.st_dev, now.st_ino) != (opened.st_dev, opened.st_ino):
-            raise FileAccessError(409, "file_changed", "The file changed while it was being opened. Try again.")
+            raise FileAccessError(409, "file_changed", "Dosya açılırken değişti. Yeniden deneyin.")
     except BaseException:
         os.close(fd)
         raise
@@ -232,7 +232,7 @@ def read_file(workspace: str | None, raw: str | None, *, max_bytes: int, whole: 
     try:
         if whole and opened.st_size > max_bytes:
             raise FileAccessError(
-                413, "too_large", f"The file is over the {max_bytes // (1024 * 1024)} MB limit for this."
+                413, "too_large", f"Dosya bunun için {max_bytes // (1024 * 1024)} MB sınırını aşıyor."
             )
         chunks = []
         remaining = max_bytes
@@ -285,8 +285,8 @@ def _too_big_folder() -> FileAccessError:
     return FileAccessError(
         413,
         "too_large",
-        f"That folder is over the zip limit ({ZIP_MAX_FILES} files or "
-        f"{ZIP_MAX_BYTES // (1024 * 1024)} MB). Download a smaller folder.",
+        f"Bu klasör zip sınırını aşıyor ({ZIP_MAX_FILES} dosya ya da "
+        f"{ZIP_MAX_BYTES // (1024 * 1024)} MB). Daha küçük bir klasör indirin.",
     )
 
 
@@ -355,7 +355,7 @@ def zip_folder(workspace: str | None, raw: str | None) -> tuple[str, str, int]:
     folders are not followed."""
     root, target, _ = resolve(workspace, raw)
     if not target.is_dir():
-        raise FileAccessError(400, "not_a_folder", "That is a file, not a folder.")
+        raise FileAccessError(400, "not_a_folder", "Bu bir klasör değil, dosya.")
     members, skipped = _zip_members(root, target)
     handle = tempfile.NamedTemporaryFile(prefix="workspace-", suffix=".zip", delete=False)
     written = 0

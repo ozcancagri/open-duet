@@ -12,7 +12,7 @@ from app.services.local_access_policy import require_local_access
 
 def desktop_only():
     if not profile.active():
-        raise HTTPException(404, "Settings are available in the desktop app. Headless installs use environment configuration.")
+        raise HTTPException(404, "Ayarlar masaüstü uygulamasında. Arayüzsüz kurulumlar ortam değişkenleriyle ayarlanır.")
 
 
 router = APIRouter(prefix="/settings", tags=["Settings"], dependencies=[Depends(desktop_only), Depends(require_local_access)])
@@ -33,7 +33,7 @@ async def read_settings():
             "data_folder": str(desktop.data_dir),
             "database": str(desktop.database_file),
             "backups": str(desktop.backup_dir),
-            "encryption_key": "Stored in the operating system's secret storage",
+            "encryption_key": "İşletim sisteminin gizli depolamasında saklanıyor",
         },
     }
 
@@ -44,9 +44,9 @@ async def change_setting(key: str, change: SettingChange, db: AsyncSession = Dep
         result = await app_settings.save(db, key, change.value, change.expected_version)
         return app_settings.as_dict(result)
     except KeyError:
-        raise HTTPException(404, "Unknown setting.") from None
+        raise HTTPException(404, "Bilinmeyen ayar.") from None
     except app_settings.VersionConflict:
-        raise HTTPException(409, "This setting changed elsewhere. Reload settings and try again.") from None
+        raise HTTPException(409, "Bu ayar başka bir yerde değişti. Ayarları yeniden yükleyip tekrar deneyin.") from None
     except (ValueError, OSError) as exc:
         raise HTTPException(422, str(exc)) from None
 

@@ -40,7 +40,7 @@ export function toolRunSummary(tools: readonly { state: string }[]): { total: nu
 // their words.
 export function spokenText(markdown: string): string {
   return markdown
-    .replace(/```[\s\S]*?```/g, " code block ")
+    .replace(/```[\s\S]*?```/g, " kod bloğu ")
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[`*_>#|~]/g, "")
     .replace(/^\s*[-+]\s+/gm, "")
@@ -56,11 +56,11 @@ type AnnounceItem = { kind: string; key: string; text?: string; incomplete?: boo
 export function announcement(items: readonly AnnounceItem[]): { key: string; text: string } | null {
   for (let i = items.length - 1; i >= 0; i--) {
     const item = items[i];
-    if (item.kind === "approval" && item.status === "pending") return { key: item.key, text: "Your agent is waiting for your approval." };
-    if (item.kind === "turn_end" && item.status === "failed") return { key: item.key, text: "The run failed." };
+    if (item.kind === "approval" && item.status === "pending") return { key: item.key, text: "Ajanınız onayınızı bekliyor." };
+    if (item.kind === "turn_end" && item.status === "failed") return { key: item.key, text: "Çalıştırma başarısız oldu." };
     if (item.kind === "assistant" && !item.incomplete && item.text) {
       const text = spokenText(item.text);
-      return { key: item.key, text: `Agent replied: ${text.length > 240 ? `${text.slice(0, 240)}…` : text}` };
+      return { key: item.key, text: `Ajan yanıtladı: ${text.length > 240 ? `${text.slice(0, 240)}…` : text}` };
     }
   }
   return null;

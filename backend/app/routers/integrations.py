@@ -27,7 +27,7 @@ def _owner(request: Request) -> None:
     if principal is None or not principal.is_admin:
         raise HTTPException(
             status_code=403,
-            detail={"error_code": "admin_required", "message": "Sign in as the owner to manage connected apps."},
+            detail={"error_code": "admin_required", "message": "Bağlı uygulamaları yönetmek için sahip olarak giriş yapın."},
         )
 
 

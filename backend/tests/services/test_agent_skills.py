@@ -113,14 +113,14 @@ def test_the_import_preview_parses_and_cleans_without_saving(home):
     preview = skills.preview(text)
     assert preview["name"] == "expense-review" and preview["description"] == "Check expenses"
     assert "sk-abcdef" not in preview["body"]
-    assert any("ignore" in w.lower() for w in preview["warnings"])
-    assert any("secret" in w.lower() for w in preview["warnings"])
+    assert any("yok say" in w.lower() for w in preview["warnings"])
+    assert any("gizli bilgi" in w.lower() for w in preview["warnings"])
     assert not (home / "agents").exists()
 
 
 def test_a_preview_without_a_usable_name_or_body_says_so():
     preview = skills.preview("Just some instructions, no header.")
-    assert preview["name"] == "" and any("name" in w.lower() for w in preview["warnings"])
+    assert preview["name"] == "" and any("bir ad seçin" in w.lower() for w in preview["warnings"])
     assert code(skills.preview, "---\nname: x\ndescription: d\n---\n") == "invalid_skill"
     assert code(skills.preview, "x" * (skills.FILE_MAX_BYTES + 1)) == "skill_too_large"
 

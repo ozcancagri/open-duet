@@ -149,8 +149,8 @@ def check_entry(text: str) -> None:
     lines = len(text.rstrip("\n").split("\n"))
     if len(text) > ENTRY_MAX_CHARS or lines > ENTRY_MAX_LINES:
         raise EntryTooLarge(
-            f"An entry is one fact of at most {ENTRY_MAX_CHARS} characters and {ENTRY_MAX_LINES} lines "
-            f"(this one is {len(text)} characters over {lines} lines)."
+            f"Bir kayıt en çok {ENTRY_MAX_CHARS} karakter ve {ENTRY_MAX_LINES} satırlık tek bir bilgidir "
+            f"(bu kayıt {lines} satırda {len(text)} karakter)."
         )
 
 

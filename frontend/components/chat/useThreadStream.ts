@@ -81,7 +81,7 @@ export function useThreadStream(threadId: number | null): ThreadStream {
           if (err instanceof ApiError && [400, 403, 404].includes(err.status)) {
             publish({
               connection: "failed",
-              error: err.status === 404 ? "This conversation was not found." : err.message,
+              error: err.status === 404 ? "Bu sohbet bulunamadı." : err.message,
             });
             return;
           }

@@ -15,8 +15,8 @@ def test_preview_redacts_before_truncation_preserves_provenance_and_excludes_too
     assert (result["thread_id"], result["turn_id"]) == (4, 7)
     assert result["redacted"] == 2 and "sk-abc" not in str(result)
     assert len(result["body"].encode()) < 11000
-    assert any("shortened" in warning for warning in result["warnings"])
-    assert any("ignore" in warning.lower() for warning in result["warnings"])
+    assert any("kısaltıldı" in warning for warning in result["warnings"])
+    assert any("yok say" in warning.lower() for warning in result["warnings"])
     assert "second input" in result["body"] and "grants no permission" in result["body"]
 
 

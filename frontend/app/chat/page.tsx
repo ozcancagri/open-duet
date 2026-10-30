@@ -3,7 +3,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { ChatApp } from "@/components/chat/ChatApp";
 
 export const metadata = {
-  title: "Chat · Open Duet",
+  title: "Sohbet · Open Duet",
 };
 
 // The open conversation is a query string (/chat?thread=3), not a route
@@ -11,7 +11,7 @@ export const metadata = {
 // the Suspense boundary for that.
 export default function ChatPage() {
   return (
-    <Suspense fallback={<p className="p-6 text-center text-sm text-muted">Loading…</p>}>
+    <Suspense fallback={<p className="p-6 text-center text-sm text-muted">Yükleniyor…</p>}>
       <AuthGate>
         <ChatApp />
       </AuthGate>

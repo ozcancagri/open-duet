@@ -24,7 +24,7 @@ from app.services.schedule_service import _crontab_trigger
 KINDS = ("cron", "weekdays", "interval", "once", "manual")
 MIN_INTERVAL_MINUTES = 5
 MAX_INTERVAL_MINUTES = 7 * 24 * 60
-DAY_NAMES = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+DAY_NAMES = ("Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt")
 _TIME = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
 # Bounds the search when every candidate falls on a skipped repeated hour.
 _MAX_SKIPS = 200
@@ -38,7 +38,7 @@ def zone(name: str) -> ZoneInfo:
     try:
         return ZoneInfo(name)
     except (ZoneInfoNotFoundError, ValueError, TypeError):
-        raise InvalidSchedule(f"Unknown timezone: {name!r}") from None
+        raise InvalidSchedule(f"Bilinmeyen saat dilimi: {name!r}") from None
 
 
 def _parse_datetime(value, tz: ZoneInfo, what: str) -> datetime:
@@ -48,9 +48,9 @@ def _parse_datetime(value, tz: ZoneInfo, what: str) -> datetime:
         try:
             moment = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
         except ValueError:
-            raise InvalidSchedule(f"{what} must be an ISO date and time") from None
+            raise InvalidSchedule(f"{what} ISO biçiminde bir tarih ve saat olmalı") from None
     else:
-        raise InvalidSchedule(f"{what} is required")
+        raise InvalidSchedule(f"{what} zorunlu")
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=tz)
     return moment.astimezone(UTC)
@@ -58,11 +58,11 @@ def _parse_datetime(value, tz: ZoneInfo, what: str) -> datetime:
 
 def _days(value) -> list[int]:
     if not isinstance(value, list) or not value:
-        raise InvalidSchedule("Choose at least one day")
+        raise InvalidSchedule("En az bir gün seçin")
     days = set()
     for day in value:
         if not isinstance(day, int) or isinstance(day, bool) or not 0 <= day <= 6:
-            raise InvalidSchedule("Days are numbers from 0 (Sunday) to 6 (Saturday)")
+            raise InvalidSchedule("Günler 0 (Pazar) ile 6 (Cumartesi) arasında sayılardır")
         days.add(day)
     return sorted(days)
 
@@ -74,17 +74,17 @@ def normalize(kind: str, spec: dict | None, timezone: str, *, now: datetime) -> 
     if kind == "cron":
         expression = spec.get("expression")
         if not isinstance(expression, str) or len(expression.split()) != 5:
-            raise InvalidSchedule("A cron expression has five fields: minute hour day month weekday")
+            raise InvalidSchedule("Bir cron ifadesinin beş alanı vardır: dakika saat gün ay haftanın günü")
         expression = " ".join(expression.split())
         try:
             _crontab_trigger(expression, tz)
         except ValueError as exc:
-            raise InvalidSchedule(f"Invalid cron expression: {exc}") from None
+            raise InvalidSchedule(f"Geçersiz cron ifadesi: {exc}") from None
         return {"expression": expression}
     if kind == "weekdays":
         time = spec.get("time")
         if not isinstance(time, str) or not _TIME.match(time):
-            raise InvalidSchedule("Time must be HH:MM (24-hour)")
+            raise InvalidSchedule("Saat SS:DD (24 saat) biçiminde olmalı")
         return {"days": _days(spec.get("days")), "time": time}
     if kind == "interval":
         every = spec.get("every_minutes")
@@ -92,16 +92,16 @@ def normalize(kind: str, spec: dict | None, timezone: str, *, now: datetime) -> 
             MIN_INTERVAL_MINUTES <= every <= MAX_INTERVAL_MINUTES
         ):
             raise InvalidSchedule(
-                f"Interval must be a whole number of minutes from {MIN_INTERVAL_MINUTES} to {MAX_INTERVAL_MINUTES}"
+                f"Aralık {MIN_INTERVAL_MINUTES} ile {MAX_INTERVAL_MINUTES} arasında tam sayı (dakika) olmalı"
             )
         anchor = spec.get("anchor")
-        anchor_at = _parse_datetime(anchor, tz, "Start") if anchor else now.astimezone(UTC).replace(second=0, microsecond=0)
+        anchor_at = _parse_datetime(anchor, tz, "Başlangıç") if anchor else now.astimezone(UTC).replace(second=0, microsecond=0)
         return {"every_minutes": every, "anchor": anchor_at.isoformat()}
     if kind == "once":
-        return {"at": _parse_datetime(spec.get("at"), tz, "Date and time").isoformat()}
+        return {"at": _parse_datetime(spec.get("at"), tz, "Tarih ve saat").isoformat()}
     if kind == "manual":
         return {}
-    raise InvalidSchedule(f"Schedule kind must be one of: {', '.join(KINDS)}")
+    raise InvalidSchedule(f"Zamanlama türü şunlardan biri olmalı: {', '.join(KINDS)}")
 
 
 def _cron_expression(kind: str, spec: dict) -> str:
@@ -154,7 +154,7 @@ def _carried_gap_after(expression: str, tz: ZoneInfo, after: datetime) -> dateti
         if roundtrip > naive and carried > after:
             return carried
         cursor = wall + timedelta(microseconds=1)
-    raise InvalidSchedule("The clock-change search exceeded its bounded window")
+    raise InvalidSchedule("Saat değişikliği araması sınırlı aralığını aştı")
 
 
 def next_after(kind: str, spec: dict, timezone: str, after: datetime) -> datetime | None:
@@ -221,56 +221,56 @@ def latest_due(
 
 def _day_list(days: list[int]) -> str:
     if days == [0, 1, 2, 3, 4, 5, 6]:
-        return "Every day"
+        return "Her gün"
     if days == [1, 2, 3, 4, 5]:
-        return "Mon–Fri"
+        return "Pzt–Cum"
     if days == [0, 6]:
-        return "Weekends"
+        return "Hafta sonları"
     return ", ".join(DAY_NAMES[d] for d in days)
 
 
 def _cron_summary(expression: str) -> str | None:
     minute, hour, day, month, weekday = expression.split()
     if expression == "* * * * *":
-        return "Every minute"
+        return "Her dakika"
     step = re.fullmatch(r"\*/(\d+)", minute)
     if step and hour == day == month == weekday == "*":
-        return f"Every {int(step.group(1))} minutes"
+        return f"Her {int(step.group(1))} dakikada bir"
     if minute.isdigit() and hour == day == month == weekday == "*":
-        return f"Every hour at :{int(minute):02d}"
+        return f"Her saat başı :{int(minute):02d} geçe"
     if not (minute.isdigit() and hour.isdigit()):
         return None
     at = f"{int(hour):02d}:{int(minute):02d}"
     if day == month == "*":
         if weekday == "*":
-            return f"Every day at {at}"
+            return f"Her gün, saat {at}"
         if weekday in ("1-5", "MON-FRI", "mon-fri"):
-            return f"Mon–Fri at {at}"
+            return f"Pzt–Cum, saat {at}"
         if re.fullmatch(r"[0-6](,[0-6])*", weekday):
-            return f"{_day_list(sorted({int(d) for d in weekday.split(',')}))} at {at}"
+            return f"{_day_list(sorted({int(d) for d in weekday.split(',')}))}, saat {at}"
         return None
     if day.isdigit() and month == "*" and weekday == "*":
-        return f"Monthly on day {int(day)} at {at}"
+        return f"Her ayın {int(day)}. günü, saat {at}"
     return None
 
 
 def summary(kind: str, spec: dict, timezone: str) -> str:
     """One line a person can read, e.g. "Mon–Fri at 09:00 (Europe/Berlin)"."""
     if kind == "manual":
-        return "Only when run by hand or by its webhook"
+        return "Yalnız elle ya da webhook ile çalıştırıldığında"
     if kind == "interval":
         every = spec["every_minutes"]
         if every % 1440 == 0:
-            text = "Every day" if every == 1440 else f"Every {every // 1440} days"
+            text = "Her gün" if every == 1440 else f"Her {every // 1440} günde bir"
         elif every % 60 == 0:
-            text = "Every hour" if every == 60 else f"Every {every // 60} hours"
+            text = "Her saat" if every == 60 else f"Her {every // 60} saatte bir"
         else:
-            text = f"Every {every} minutes"
+            text = f"Her {every} dakikada bir"
         return text
     if kind == "once":
         at = datetime.fromisoformat(spec["at"]).astimezone(zone(timezone))
-        return f"Once on {at.strftime('%a %d %b %Y %H:%M')} ({timezone})"
+        return f"Bir kez: {at.strftime('%d.%m.%Y %H:%M')} ({timezone})"
     if kind == "weekdays":
-        return f"{_day_list(spec['days'])} at {spec['time']} ({timezone})"
+        return f"{_day_list(spec['days'])}, saat {spec['time']} ({timezone})"
     described = _cron_summary(spec["expression"])
     return f"{described} ({timezone})" if described else f"Cron {spec['expression']} ({timezone})"

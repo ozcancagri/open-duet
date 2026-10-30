@@ -13,7 +13,7 @@ export default function HomePage() {
   }, [router]);
   return (
     <p className="p-6 text-center text-sm text-muted">
-      Opening the chat… <Link href="/chat/" className="underline">Continue</Link>
+      Sohbet açılıyor… <Link href="/chat/" className="underline">Devam</Link>
     </p>
   );
 }

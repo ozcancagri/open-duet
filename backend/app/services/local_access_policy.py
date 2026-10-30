@@ -78,8 +78,8 @@ class LoopbackPolicy:
     def authorize(self, request: HTTPConnection) -> LocalAccessGrant:
         if not settings.LOCAL_EXECUTION_ENABLED:
             raise LocalAccessDenied(
-                "Local execution is disabled. Set LOCAL_EXECUTION_ENABLED=true on the "
-                "machine running the backend to enable it.",
+                "Yerel çalıştırma kapalı. Açmak için backend'i çalıştıran makinede "
+                "LOCAL_EXECUTION_ENABLED=true ayarlayın.",
                 status_code=403,
             )
 
@@ -96,20 +96,20 @@ class LoopbackPolicy:
 
         client = request.client
         if client is None or not _is_loopback_address(client.host):
-            raise LocalAccessDenied("Local execution is only available from this machine.")
+            raise LocalAccessDenied("Yerel çalıştırma yalnız bu makineden kullanılabilir.")
 
         if any(header in request.headers for header in _FORWARDING_HEADERS):
-            raise LocalAccessDenied("Local execution cannot be used through a proxy or tunnel.")
+            raise LocalAccessDenied("Yerel çalıştırma bir vekil sunucu ya da tünel üzerinden kullanılamaz.")
 
         host_header = request.headers.get("host")
         if host_header is None or _hostname(host_header) not in settings.LOCAL_ALLOWED_HOST_LIST:
-            raise LocalAccessDenied("Local execution request has an untrusted Host header.")
+            raise LocalAccessDenied("Yerel çalıştırma isteğinde güvenilmeyen bir Host başlığı var.")
 
         # Browsers send Origin on cross-site requests; same-origin GETs and
         # non-browser clients may omit it.
         origin = request.headers.get("origin")
         if origin is not None and origin not in settings.FRONTEND_ORIGIN_LIST:
-            raise LocalAccessDenied("Local execution request has an untrusted Origin.")
+            raise LocalAccessDenied("Yerel çalıştırma isteğinde güvenilmeyen bir Origin var.")
 
         return _issue_grant()
 

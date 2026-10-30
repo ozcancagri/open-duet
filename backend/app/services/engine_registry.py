@@ -71,7 +71,7 @@ class UnavailableAdapter:
         return TurnOutcome("failed", error=self.reason, error_code="engine_unavailable")
 
 
-HOSTED_REASON = "This hosted service runs agents in your own private sandbox. Choose the Claude engine."
+HOSTED_REASON = "Bu barındırılan hizmet ajanları size özel bir korumalı alanda çalıştırır. Claude motorunu seçin."
 
 
 def hosted_adapters() -> dict:
@@ -81,8 +81,8 @@ def hosted_adapters() -> dict:
     from app.services.boat_adapter import BoatClaudeAdapter, SdkBoatBoxes
 
     labels = {"codex": "Codex", "cursor": "Cursor", "gemini": "Gemini CLI",
-              "antigravity": "Google Gemini (Antigravity)", "opencode": "OpenCode (experimental)",
-              "openrouter": "OpenRouter", "acp": "ACP agent", "openai_compat": "OpenAI-compatible"}
+              "antigravity": "Google Gemini (Antigravity)", "opencode": "OpenCode (deneysel)",
+              "openrouter": "OpenRouter", "acp": "ACP ajanı", "openai_compat": "OpenAI uyumlu"}
     adapters: dict = {"claude": BoatClaudeAdapter(SdkBoatBoxes())}
     for key, label in labels.items():
         adapters[key] = UnavailableAdapter(key, label, HOSTED_REASON)
@@ -109,10 +109,10 @@ def default_adapters() -> dict:
         ("cursor", "Cursor", CursorAdapter),
         ("gemini", "Gemini CLI", GeminiAdapter),
         ("antigravity", "Google Gemini (Antigravity)", AntigravityAdapter),
-        ("opencode", "OpenCode (experimental)", OpenCodeAdapter),
+        ("opencode", "OpenCode (deneysel)", OpenCodeAdapter),
         ("openrouter", "OpenRouter", OpenRouterAdapter),
-        ("acp", "ACP agent", AcpAdapter),
-        ("openai_compat", "OpenAI-compatible", OpenAIChatAdapter),
+        ("acp", "ACP ajanı", AcpAdapter),
+        ("openai_compat", "OpenAI uyumlu", OpenAIChatAdapter),
     ):
         selected = os.environ.get("OPEN_DOTS_PRESET_ENGINES")
         enabled = {name.strip() for name in selected.split(",")} if selected is not None else {"gemini", "cursor", "openrouter", "antigravity"}
@@ -122,7 +122,7 @@ def default_adapters() -> dict:
             adapters[key] = factory()
         except Exception as exc:  # noqa: BLE001
             logger.exception("could not set up an engine", engine=key)
-            adapters[key] = UnavailableAdapter(key, label, f"This engine could not be set up ({exc.__class__.__name__}).")
+            adapters[key] = UnavailableAdapter(key, label, f"Bu motor kurulamadı ({exc.__class__.__name__}).")
     accounts = claude_accounts(os.environ)
     if not accounts or "claude" not in adapters:
         return adapters
@@ -185,8 +185,8 @@ def accepts_custom_models(adapter) -> bool:
 def check_model_id(model: str) -> None:
     if not _MODEL_ID.match(model):
         raise InvalidModel(
-            "A model id is one word of letters, digits and . _ : / @ + - [ ], "
-            "and does not start with '-'."
+            "Model kimliği harf, rakam ve . _ : / @ + - [ ] karakterlerinden oluşan tek bir sözcüktür "
+            "ve '-' ile başlamaz."
         )
 
 
@@ -214,14 +214,14 @@ async def run_probe(adapter, timeout: float) -> EngineProbe:
         return EngineProbe(
             installed=False,
             ready=False,
-            reason=f"This engine did not report its status within {timeout:g} seconds. "
-            "Check that its command starts in a terminal.",
+            reason=f"Bu motor durumunu {timeout:g} saniye içinde bildirmedi. "
+            "Komutunun bir terminalde başladığını kontrol edin.",
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("engine probe failed", engine=getattr(adapter, "key", "?"), error=exc.__class__.__name__)
-        return EngineProbe(installed=False, ready=False, reason=f"The status check failed ({exc.__class__.__name__}).")
+        return EngineProbe(installed=False, ready=False, reason=f"Durum kontrolü başarısız oldu ({exc.__class__.__name__}).")
     if not isinstance(result, EngineProbe):
-        return EngineProbe(installed=False, ready=False, reason="The status check returned nothing usable.")
+        return EngineProbe(installed=False, ready=False, reason="Durum kontrolü kullanılabilir bir sonuç döndürmedi.")
     return result
 
 
@@ -266,8 +266,8 @@ class EngineRegistry:
         if model not in known:
             label = label_of(adapter, engine_id)
             raise InvalidModel(
-                f"{label} has no model named {model!r}."
-                + (" It runs the agent's own default model only." if not known else "")
+                f"{label} motorunda {model!r} adlı bir model yok."
+                + (" Yalnız ajanın kendi varsayılan modelini çalıştırır." if not known else "")
             )
 
     def forget(self, engine_id: str | None = None) -> None:
@@ -336,7 +336,7 @@ class EngineRegistry:
             "version": probe.version,
             "signed_in": probe.signed_in,
             "available": bool(probe.ready),
-            "reason": None if probe.ready else (probe.reason or "This engine is not ready."),
+            "reason": None if probe.ready else (probe.reason or "Bu motor hazır değil."),
             "models": [{"id": m.id, "label": m.label, "default": m.default} for m in models],
             "default_model": default,
             "custom_models": accepts_custom_models(adapter),

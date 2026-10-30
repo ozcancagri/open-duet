@@ -18,7 +18,7 @@ export class DesktopRfb {
   constructor(callbacks: RfbCallbacks) { this.callbacks = callbacks; }
   private consume(n: number) { this.bytes = this.bytes.slice(n); }
   push(chunk: Uint8Array) {
-    if (this.bytes.length + chunk.length > MAX_BYTES) throw new Error("Desktop message is too large.");
+    if (this.bytes.length + chunk.length > MAX_BYTES) throw new Error("Masaüstü mesajı çok büyük.");
     const joined = new Uint8Array(this.bytes.length + chunk.length);
     joined.set(this.bytes); joined.set(chunk, this.bytes.length); this.bytes = joined;
     while (this.parse()) { /* Parse only complete, bounded protocol records. */ }
@@ -28,25 +28,25 @@ export class DesktopRfb {
     const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
     if (this.phase === "version") {
       if (b.length < 12) return false;
-      if (new TextDecoder().decode(b.slice(0, 12)) !== "RFB 003.008\n") throw new Error("Unsupported desktop protocol.");
+      if (new TextDecoder().decode(b.slice(0, 12)) !== "RFB 003.008\n") throw new Error("Desteklenmeyen masaüstü protokolü.");
       this.consume(12); this.callbacks.send(new TextEncoder().encode("RFB 003.008\n")); this.phase = "security"; return true;
     }
     if (this.phase === "security") {
       if (!b.length) return false;
-      if (b[0] < 1 || b[0] > 16) throw new Error("Unsupported desktop security.");
+      if (b[0] < 1 || b[0] > 16) throw new Error("Desteklenmeyen masaüstü güvenlik türü.");
       if (b.length < b[0] + 1) return false;
-      if (!b.slice(1, b[0]+1).includes(1)) throw new Error("Unsupported desktop security.");
+      if (!b.slice(1, b[0]+1).includes(1)) throw new Error("Desteklenmeyen masaüstü güvenlik türü.");
       this.consume(b[0]+1); this.callbacks.send(new Uint8Array([1])); this.phase = "security-result"; return true;
     }
     if (this.phase === "security-result") {
       if (b.length < 4) return false;
-      if (v.getUint32(0) !== 0) throw new Error("Desktop connection was refused.");
+      if (v.getUint32(0) !== 0) throw new Error("Masaüstü bağlantısı reddedildi.");
       this.consume(4); this.callbacks.send(new Uint8Array([1])); this.phase = "init"; return true;
     }
     if (this.phase === "init") {
       if (b.length < 24) return false;
       const width = v.getUint16(0), height = v.getUint16(2), nameLength = v.getUint32(20);
-      if (width < 1 || width > 1280 || height < 1 || height > 800 || nameLength > 4096) throw new Error("Invalid desktop dimensions or name.");
+      if (width < 1 || width > 1280 || height < 1 || height > 800 || nameLength > 4096) throw new Error("Geçersiz masaüstü boyutu ya da adı.");
       if (b.length < 24+nameLength) return false;
       this.width = width; this.height = height; this.consume(24+nameLength);
       // SetPixelFormat: 32 bpp, depth 24, little endian, true color RGB888.
@@ -67,14 +67,14 @@ export class DesktopRfb {
     if (this.rectangles !== null) {
       if (b.length < 12) return false;
       const x=v.getUint16(0), y=v.getUint16(2), width=v.getUint16(4), height=v.getUint16(6), encoding=v.getInt32(8);
-      if (encoding !== 0 || width < 1 || height < 1 || x+width > this.width || y+height > this.height) throw new Error("Invalid or unsupported desktop rectangle.");
+      if (encoding !== 0 || width < 1 || height < 1 || x+width > this.width || y+height > this.height) throw new Error("Geçersiz ya da desteklenmeyen masaüstü dikdörtgeni.");
       this.consume(12); this.rectangle={x,y,width,height}; return true;
     }
     if (!b.length) return false;
     if (b[0] === 0) {
       if (b.length < 4) return false;
       const count = v.getUint16(2);
-      if (count > 1024) throw new Error("Too many desktop rectangles.");
+      if (count > 1024) throw new Error("Çok fazla masaüstü dikdörtgeni.");
       this.consume(4); this.rectangles = count || null;
       if (!count) this.callbacks.frame();
       return true;
@@ -83,11 +83,11 @@ export class DesktopRfb {
     if (b[0] === 3) {
       if (b.length < 8) return false;
       const size = v.getUint32(4);
-      if (size > 65536) throw new Error("Desktop clipboard message is too large.");
+      if (size > 65536) throw new Error("Masaüstü pano mesajı çok büyük.");
       if (b.length < 8+size) return false;
       this.consume(8+size); return true; // explicitly discard clipboard
     }
-    throw new Error("Unsupported desktop message.");
+    throw new Error("Desteklenmeyen masaüstü mesajı.");
   }
   request(incremental=true) {
     if (!this.width) return;

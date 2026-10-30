@@ -34,7 +34,7 @@ export function ApprovalRules({
         }
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not load the saved rules.");
+        if (!cancelled) setError(err instanceof ApiError ? err.message : "Kayıtlı kurallar yüklenemedi.");
       });
     return () => {
       cancelled = true;
@@ -49,7 +49,7 @@ export function ApprovalRules({
       then?.();
       setTick((n) => n + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "That did not work.");
+      setError(err instanceof ApiError ? err.message : "İşlem başarısız oldu.");
     } finally {
       setBusy(false);
     }
@@ -66,22 +66,23 @@ export function ApprovalRules({
   return (
     <div className="space-y-4 text-sm">
       <p className="text-xs text-muted">
-        A saved rule lets a shell command run without asking. Anything else still asks, and a command on the
-        safety floor (deleting your home folder, formatting a disk, a force push…) always asks, whatever a rule
-        says. A rule that starts with some words never matches a command that chains another one.
+        Kayıtlı bir kural, bir kabuk komutunun sormadan çalışmasını sağlar. Diğer her şey yine sorar; güvenlik
+        tabanındaki bir komut (ev klasörünüzü silmek, bir diski biçimlendirmek, zorla gönderme (force push)…) kural
+        ne derse desin her zaman sorar. Belirli sözcüklerle başlayan bir kural, arkasına başka bir komut ekleyen
+        bir komutla asla eşleşmez.
       </p>
       {workspace !== null && (
         <label className="flex items-center gap-2 text-xs">
           <input type="checkbox" checked={onlyHere} onChange={(e) => setOnlyHere(e.target.checked)} />
-          Only rules that apply in this conversation&apos;s folder
+          Yalnız bu sohbetin klasöründe geçerli kurallar
         </label>
       )}
       {error && <p role="alert" className="text-xs text-danger">{error}</p>}
-      {rules === null && !error && <p className="text-xs text-muted">Loading…</p>}
+      {rules === null && !error && <p className="text-xs text-muted">Yükleniyor…</p>}
       {rules !== null && rules.length === 0 && (
         <p className="rounded-md bg-inset px-3 py-3 text-xs text-muted">
-          No saved rules{onlyHere ? " for this folder" : ""}. Choose &ldquo;Always allow this command&rdquo; on a
-          request, or add one below.
+          {onlyHere ? "Bu klasör için kayıtlı kural yok" : "Kayıtlı kural yok"}. Bir istekte &ldquo;Bu komuta her
+          zaman izin ver&rdquo; seçeneğini seçin ya da aşağıdan bir kural ekleyin.
         </p>
       )}
       {rules !== null && rules.length > 0 && (
@@ -97,29 +98,29 @@ export function ApprovalRules({
               <button
                 className={BUTTON}
                 disabled={busy}
-                aria-label={`Remove the rule for ${rule.command}`}
+                aria-label={`${rule.command} kuralını kaldır`}
                 onClick={() => run(() => api.deleteApprovalRule(rule.id, threadId))}
               >
-                Remove
+                Kaldır
               </button>
             </li>
           ))}
         </ul>
       )}
       <form onSubmit={add} className="space-y-2 rounded-md border border-line p-3">
-        <p className="text-xs font-medium">Add a rule</p>
+        <p className="text-xs font-medium">Kural ekle</p>
         <div className="flex gap-2">
           <select
-            aria-label="How the command must match"
+            aria-label="Komutun nasıl eşleşeceği"
             value={match}
             onChange={(e) => setMatch(e.target.value === "prefix" ? "prefix" : "exact")}
             className={`${FIELD_BOX} w-36 shrink-0`}
           >
-            <option value="exact">Exactly</option>
-            <option value="prefix">Starts with</option>
+            <option value="exact">Tam olarak</option>
+            <option value="prefix">Şununla başlar</option>
           </select>
           <input
-            aria-label="Command"
+            aria-label="Komut"
             className={`${FIELD} font-mono`}
             placeholder={match === "prefix" ? "git status" : "npm test"}
             value={command}
@@ -130,16 +131,16 @@ export function ApprovalRules({
           />
         </div>
         <input
-          aria-label="Folder"
+          aria-label="Klasör"
           className={`${FIELD} font-mono`}
-          placeholder="Folder (empty: every folder)"
+          placeholder="Klasör (boş: tüm klasörler)"
           value={folder}
           onChange={(e) => setFolder(e.target.value)}
           spellCheck={false}
           autoComplete="off"
         />
         <button type="submit" className={PRIMARY} disabled={busy || !command.trim()}>
-          {busy ? "Saving…" : "Add rule"}
+          {busy ? "Kaydediliyor…" : "Kural ekle"}
         </button>
       </form>
     </div>

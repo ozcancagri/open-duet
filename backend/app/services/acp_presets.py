@@ -16,9 +16,9 @@ from app.services.engine_registry import check_model_id
 from app.services.provider_adapter import EngineProbe, ModelOption
 
 FIELDS = [
-    {"name": "api_key", "label": "API key", "kind": "secret"},
-    {"name": "model", "label": "Default model", "advanced": True},
-    {"name": "command", "label": "Program path", "advanced": True, "help": "Program only; the ACP arguments are added automatically."},
+    {"name": "api_key", "label": "API anahtarı", "kind": "secret"},
+    {"name": "model", "label": "Varsayılan model", "advanced": True},
+    {"name": "command", "label": "Program yolu", "advanced": True, "help": "Yalnız program; ACP argümanları otomatik eklenir."},
 ]
 
 
@@ -41,7 +41,7 @@ class PresetAdapter(AcpAdapter):
         current = current or {}
         command = payload.get("command") or ""
         if not isinstance(command, str) or len(command) > 1000 or any(ord(c) < 32 for c in command):
-            raise InvalidConfig("The program must be one line of at most 1000 characters.")
+            raise InvalidConfig("Program en çok 1000 karakterlik tek bir satır olmalı.")
         if command.strip():
             split_command(command)
         model = payload.get("model") or None
@@ -49,7 +49,7 @@ class PresetAdapter(AcpAdapter):
             check_model_id(model)
         key = payload.get("api_key")
         if key is not None and (not isinstance(key, str) or any(ord(c) < 32 for c in key) or len(key) > 16_000):
-            raise InvalidConfig("The API key must be one line of text.")
+            raise InvalidConfig("API anahtarı tek satırlık bir metin olmalı.")
         return {"command": command.strip() or None, "model": model, "api_key": None if payload.get("clear_api_key") else (key.strip() if key else current.get("api_key"))}
 
     def public_config(self, config):
@@ -71,14 +71,14 @@ class PresetAdapter(AcpAdapter):
 
     async def probe(self, *, handshake=True):
         if sys.platform == "win32":
-            return EngineProbe(installed=False, ready=False, reason="Preset CLIs are not supported on Windows yet. Use a custom ACP command or an API endpoint.")
+            return EngineProbe(installed=False, ready=False, reason="Hazır CLI'lar Windows'ta henüz desteklenmiyor. Özel bir ACP komutu ya da bir API uç noktası kullanın.")
         config = self.config or {}
         try:
             program = self.program(config)
         except InvalidConfig:
-            return EngineProbe(installed=False, ready=False, reason="The saved program could not be read.")
+            return EngineProbe(installed=False, ready=False, reason="Kayıtlı program okunamadı.")
         if not program:
-            return EngineProbe(installed=False, ready=False, reason=f"Install {self.label}, or set its program path in Settings → Engines.")
+            return EngineProbe(installed=False, ready=False, reason=f"{self.label} kurun ya da program yolunu Ayarlar → Motorlar bölümünde girin.")
         env = self.child_env(config)
         signed = await self.signed_in(env, config)
         version = await cli_probe.run([*program, "--version"], timeout=2, env=env)
@@ -89,7 +89,7 @@ class PresetAdapter(AcpAdapter):
         ready = signed is not False
         if self.key == "opencode":
             ready = bool(models)
-        reason = None if ready else ("OpenCode lists no models; run `opencode auth login` or save a key." if self.key == "opencode" else self.signed_out_message())
+        reason = None if ready else ("OpenCode hiç model listelemiyor; `opencode auth login` çalıştırın ya da bir anahtar kaydedin." if self.key == "opencode" else self.signed_out_message())
         return EngineProbe(installed=True, ready=ready, signed_in=signed, version=number.group() if number else None, reason=reason, models=models)
 
 
@@ -100,7 +100,7 @@ class GeminiAdapter(PresetAdapter):
     credential_names = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
     state_dirs = ("~/.gemini",)
     models = [ModelOption("gemini-2.5-pro", "Gemini 2.5 Pro"), ModelOption("gemini-2.5-flash", "Gemini 2.5 Flash")]
-    setup = {"install": "npm install -g @google/gemini-cli", "sign_in": "gemini", "docs_url": "https://geminicli.com/docs/", "credential": "either", "notes": ["Use an API key, opt-in Vertex configuration, or an existing CLI login. Consumer login availability depends on Google's current policy.", "Windows presets are not supported yet."]}
+    setup = {"install": "npm install -g @google/gemini-cli", "sign_in": "gemini", "docs_url": "https://geminicli.com/docs/", "credential": "either", "notes": ["Bir API anahtarı, isteğe bağlı Vertex yapılandırması ya da mevcut bir CLI girişi kullanın. Kişisel hesapla girişin kullanılabilirliği Google'ın güncel politikasına bağlıdır.", "Windows için hazır ayarlar henüz desteklenmiyor."]}
 
     def mode_args(self, ctx, config):
         model = (ctx.model if ctx else None) or config.get("model")
@@ -127,7 +127,7 @@ class GeminiAdapter(PresetAdapter):
         # a refusal; old CLIs omit model metadata, so argv is the only contract.
         reported = session.get("models", {}).get("currentModelId") if isinstance(session.get("models"), dict) else None
         if model and reported and model != reported:
-            raise InvalidConfig("The CLI selected a different model.")
+            raise InvalidConfig("CLI farklı bir model seçti.")
         return model or reported
 
 
@@ -154,7 +154,7 @@ class CursorAdapter(PresetAdapter):
     credential_names = ("CURSOR_API_KEY", "CURSOR_AUTH_TOKEN")
     state_dirs = ("~/.cursor", "~/.config/cursor")
     models = [ModelOption("auto", "Auto")]
-    setup = {"install": "curl https://cursor.com/install -fsS | bash", "sign_in": "cursor-agent login", "docs_url": "https://cursor.com/docs/cli", "credential": "either", "notes": ["Cursor's own allow rules can skip approval requests. Review its CLI configuration.", "Interactive Cursor question cards and Windows presets are not supported yet."]}
+    setup = {"install": "curl https://cursor.com/install -fsS | bash", "sign_in": "cursor-agent login", "docs_url": "https://cursor.com/docs/cli", "credential": "either", "notes": ["Cursor'ın kendi izin kuralları onay isteklerini atlayabilir. CLI yapılandırmasını gözden geçirin.", "Etkileşimli Cursor soru kartları ve Windows için hazır ayarlar henüz desteklenmiyor."]}
 
     def mode_args(self, ctx, config):
         return ["acp"]
@@ -200,7 +200,7 @@ class CursorAdapter(PresetAdapter):
             return current
         mapped = cursor_model_id(model, data.get("availableModels") or [])
         if not mapped:
-            raise InvalidConfig("The session did not offer this model.")
+            raise InvalidConfig("Oturum bu modeli sunmadı.")
         if mapped != current:
             await call("session/set_model", {"sessionId": session_id, "modelId": mapped}, handle_incoming=True)
         return mapped
@@ -208,11 +208,11 @@ class CursorAdapter(PresetAdapter):
 
 class OpenCodeAdapter(PresetAdapter):
     key = "opencode"
-    label = "OpenCode (experimental)"
+    label = "OpenCode (deneysel)"
     default_program = "opencode"
     credential_names = ("OPENCODE_API_KEY",)
     state_dirs = ("~/.local/share/opencode", "~/.config/opencode", "~/.cache/opencode")
-    setup = {"install": "npm install -g opencode-ai", "sign_in": "opencode auth login", "docs_url": "https://opencode.ai/docs/", "credential": "either", "notes": ["Experimental: enable with OPEN_DOTS_PRESET_ENGINES=opencode. Permission overrides require a real CLI adversarial configuration check before default enablement.", "Windows presets are not supported yet."]}
+    setup = {"install": "npm install -g opencode-ai", "sign_in": "opencode auth login", "docs_url": "https://opencode.ai/docs/", "credential": "either", "notes": ["Deneysel: OPEN_DOTS_PRESET_ENGINES=opencode ile açın. İzin geçersiz kılmaları, varsayılan olarak açılmadan önce gerçek CLI üzerinde saldırgan senaryolu bir yapılandırma kontrolü gerektirir.", "Windows için hazır ayarlar henüz desteklenmiyor."]}
 
     def mode_args(self, ctx, config):
         return ["acp"]
@@ -254,7 +254,7 @@ class OpenCodeAdapter(PresetAdapter):
         option = next((o for o in session.get("configOptions", []) if isinstance(o, dict) and o.get("id") == "model"), None)
         if not option:
             if model:
-                raise InvalidConfig("The CLI did not offer model configuration.")
+                raise InvalidConfig("CLI model yapılandırması sunmadı.")
             return session_models(session).get("currentModelId")
         if not model:
             return option.get("currentValue")
@@ -262,9 +262,9 @@ class OpenCodeAdapter(PresetAdapter):
         for item in option.get("options", []):
             values.extend(item.get("options", []) if isinstance(item, dict) and "options" in item else [item])
         if model not in {v.get("value") for v in values if isinstance(v, dict)}:
-            raise InvalidConfig("The session did not offer this model.")
+            raise InvalidConfig("Oturum bu modeli sunmadı.")
         result = await call("session/set_config_option", {"sessionId": session_id, "configId": "model", "value": model}, handle_incoming=True)
         confirmed = next((o.get("currentValue") for o in (result or {}).get("configOptions", []) if isinstance(o, dict) and o.get("id") == "model"), None)
         if confirmed != model:
-            raise InvalidConfig("The engine did not confirm this model.")
+            raise InvalidConfig("Motor bu modeli doğrulamadı.")
         return confirmed

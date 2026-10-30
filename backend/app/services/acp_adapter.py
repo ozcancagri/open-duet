@@ -65,7 +65,7 @@ MAX_LABEL_CHARS = 60
 # How much of the conversation an agent that cannot load sessions is given.
 HISTORY_CHARS = 60_000
 
-NOT_CONFIGURED = "Set the agent's command in Settings → Engines, for example `gemini --acp`."
+NOT_CONFIGURED = "Ajanın komutunu Ayarlar → Motorlar bölümünde girin, örneğin `gemini --acp`."
 
 
 class InvalidConfig(ValueError):
@@ -76,9 +76,9 @@ def split_command(command: str) -> list[str]:
     try:
         argv = shlex.split(command)
     except ValueError as exc:
-        raise InvalidConfig(f"The command could not be read: {exc}.") from None
+        raise InvalidConfig(f"Komut okunamadı: {exc}.") from None
     if not argv:
-        raise InvalidConfig("The command is empty.")
+        raise InvalidConfig("Komut boş.")
     return argv
 
 
@@ -166,15 +166,15 @@ class AcpAdapter:
         pass
 
     config_fields = [
-        {"name": "command", "label": "ACP command", "required": True, "placeholder": "agent-cli --acp"},
-        {"name": "label", "label": "Display name", "placeholder": "ACP agent"},
+        {"name": "command", "label": "ACP komutu", "required": True, "placeholder": "agent-cli --acp"},
+        {"name": "label", "label": "Görünen ad", "placeholder": "ACP ajanı"},
     ]
     setup = {
         "credential": "terminal",
-        "notes": ["Sign in to this command in a terminal first. It uses its configured model and asks for tools through ACP."],
+        "notes": ["Önce bir terminalde bu komutla giriş yapın. Kendi ayarlı modelini kullanır ve araçlar için ACP üzerinden izin ister."],
     }
     key = "acp"
-    label = "ACP agent"
+    label = "ACP ajanı"
     kind = "acp"
     capabilities = Capabilities(
         tools=True, approvals=True, mcp=False, images=False, resume=True, computers=False, memory_tools=True
@@ -201,14 +201,14 @@ class AcpAdapter:
     def validate_config(self, payload: dict, current: dict | None) -> dict:
         command = payload.get("command")
         if not isinstance(command, str) or not command.strip():
-            raise InvalidConfig("Give the agent's command, for example `gemini --acp`.")
+            raise InvalidConfig("Ajanın komutunu girin, örneğin `gemini --acp`.")
         command = command.strip()
         if len(command) > MAX_COMMAND_CHARS or any(ord(c) < 32 for c in command):
-            raise InvalidConfig("The command must be one line of at most 1000 characters.")
+            raise InvalidConfig("Komut en çok 1000 karakterlik tek bir satır olmalı.")
         split_command(command)
         label = payload.get("label")
         if label is not None and not isinstance(label, str):
-            raise InvalidConfig("The name must be text.")
+            raise InvalidConfig("Ad metin olmalı.")
         label = (label or "").strip()[:MAX_LABEL_CHARS] or None
         return {"command": command, "label": label}
 
@@ -238,7 +238,7 @@ class AcpAdapter:
 
     def signed_out_message(self) -> str:
         sign_in = self.setup.get("sign_in")
-        return f"{self.label} is signed out. " + (f"Run `{sign_in}` or connect it in Settings → Engines." if sign_in else "Connect it in Settings → Engines.")
+        return f"{self.label} oturumu kapalı. " + (f"`{sign_in}` komutunu çalıştırın ya da Ayarlar → Motorlar bölümünden bağlayın." if sign_in else "Ayarlar → Motorlar bölümünden bağlayın.")
 
     def is_auth_error(self, exc: Exception) -> bool:
         if not getattr(self, "preset", False):
@@ -272,7 +272,7 @@ class AcpAdapter:
             return EngineProbe(installed=False, ready=False, reason=str(exc))
         if argv is None:
             return EngineProbe(
-                installed=False, ready=False, reason=f"The program {split_command(command)[0]!r} was not found."
+                installed=False, ready=False, reason=f"{split_command(command)[0]!r} programı bulunamadı."
             )
         if not handshake:
             return EngineProbe(installed=True, ready=True)
@@ -283,10 +283,10 @@ class AcpAdapter:
         except asyncio.TimeoutError:
             return EngineProbe(
                 installed=True, ready=False,
-                reason=f"The agent did not answer the ACP handshake within {PROBE_INIT_TIMEOUT_SECONDS:g} seconds.",
+                reason=f"Ajan ACP el sıkışmasına {PROBE_INIT_TIMEOUT_SECONDS:g} saniye içinde yanıt vermedi.",
             )
         except (OSError, RpcError, RpcClosed) as exc:
-            return EngineProbe(installed=True, ready=False, reason=f"The agent did not answer the ACP handshake ({exc.__class__.__name__}).")
+            return EngineProbe(installed=True, ready=False, reason=f"Ajan ACP el sıkışmasına yanıt vermedi ({exc.__class__.__name__}).")
         finally:
             if rpc is not None:
                 await rpc.close()
@@ -308,11 +308,11 @@ class AcpAdapter:
         except InvalidConfig as exc:
             return TurnOutcome("failed", error=str(exc), error_code="engine_not_configured")
         if argv is None:
-            return TurnOutcome("failed", error="The agent's program was not found.", error_code="cli_unavailable")
+            return TurnOutcome("failed", error="Ajanın programı bulunamadı.", error_code="cli_unavailable")
         argv += self.mode_args(ctx, config)
         if ctx.computer is not None:
             return TurnOutcome(
-                "failed", error="This engine cannot run its tools in an agent computer.",
+                "failed", error="Bu motor araçlarını bir ajan bilgisayarında çalıştıramıyor.",
                 error_code="engine_without_computers",
             )
         env = self.child_env(config, ctx)
@@ -380,7 +380,7 @@ class _AcpTurn:
         except turn_sandbox.SandboxUnavailable as exc:
             return TurnOutcome("failed", error=str(exc), error_code="sandbox_unavailable")
         except (OSError, ValueError):
-            return TurnOutcome("failed", error="The agent's command could not be started.", error_code="cli_unavailable")
+            return TurnOutcome("failed", error="Ajanın komutu başlatılamadı.", error_code="cli_unavailable")
         try:
             early = await self._start()
             if early is not None:
@@ -460,12 +460,12 @@ class _AcpTurn:
         try:
             init = await self._call("initialize", _initialize_params())
         except (RpcError, RpcClosed, asyncio.TimeoutError) as exc:
-            return self._failed(self._why(exc, "The agent did not answer the ACP handshake."), "cli_error")
+            return self._failed(self._why(exc, "Ajan ACP el sıkışmasına yanıt vermedi."), "cli_error")
         init = init if isinstance(init, dict) else {}
         try:
             self.adapter.validate_initialize(init)
         except InvalidConfig:
-            return self._failed("The runtime did not identify as a supported ACP agent.", "cli_error")
+            return self._failed("Çalışma ortamı kendini desteklenen bir ACP ajanı olarak tanıtmadı.", "cli_error")
         config = self.ctx.engine_config or self.adapter.config or {}
         method = self.adapter.authenticate(init.get("authMethods") or [], self.env or {})
         if method:
@@ -490,20 +490,20 @@ class _AcpTurn:
                 if self.adapter.is_auth_error(exc):
                     return self._failed(self.adapter.signed_out_message(), "engine_signed_out")
                 return self._failed(
-                    "The agent could not load this conversation's session, so it cannot continue it. "
-                    f"Start a new session to go on. ({exc})",
+                    "Ajan bu sohbetin oturumunu yükleyemedi, bu yüzden sohbeti sürdüremiyor. "
+                    f"Devam etmek için yeni bir oturum başlatın. ({exc})",
                     "session_resume_failed",
                     session_state="broken",
                 )
             except (RpcClosed, asyncio.TimeoutError) as exc:
-                return self._failed(self._why(exc, "The agent did not load the session."), "cli_error")
+                return self._failed(self._why(exc, "Ajan oturumu yüklemedi."), "cli_error")
             self.session_id = self.saved_session
         else:
             if self.ctx.resume:
                 try:
                     self.preamble = history_preamble(await self.ctx.history(), self.ctx.turn_id)
                 except ReplayAborted:
-                    return self._failed("The run was stopped because it no longer owns its turn.", "lost")
+                    return self._failed("Çalışma durduruldu, çünkü bu yanıt artık ona ait değil.", "lost")
             try:
                 created = await self._call(
                     "session/new", {"cwd": str(self.workspace), "mcpServers": self._mcp_servers()}, handle_incoming=True
@@ -511,24 +511,24 @@ class _AcpTurn:
             except RpcError as exc:
                 if self.adapter.is_auth_error(exc):
                     return self._failed(self.adapter.signed_out_message(), "engine_signed_out")
-                return self._failed(f"The agent refused to start a session: {exc}", "acp_error")
+                return self._failed(f"Ajan oturum başlatmayı reddetti: {exc}", "acp_error")
             except (RpcClosed, asyncio.TimeoutError) as exc:
-                return self._failed(self._why(exc, "The agent did not start a session."), "cli_error")
+                return self._failed(self._why(exc, "Ajan oturum başlatmadı."), "cli_error")
             session_id = created.get("sessionId") if isinstance(created, dict) else None
             if not isinstance(session_id, str) or not session_id:
-                return self._failed("The agent did not return a session id.", "acp_error")
+                return self._failed("Ajan oturum kimliği döndürmedi.", "acp_error")
             self.session_id = session_id
             session = created
         try:
             await self.adapter.configure_session(self._call, self.session_id, session or {}, self.ctx)
         except (RpcError, RpcClosed, asyncio.TimeoutError, InvalidConfig):
-            return self._failed("The engine could not confirm its tool approval mode.", "engine_permission_mode_unavailable")
+            return self._failed("Motor araç onay modunu doğrulayamadı.", "engine_permission_mode_unavailable")
         try:
             self.confirmed_model = await self.adapter.select_model(
                 self._call, self.session_id, session or {}, self.ctx.model or config.get("model")
             )
         except (RpcError, RpcClosed, asyncio.TimeoutError, InvalidConfig):
-            return self._failed("The engine could not confirm the selected model. Choose another model in Settings → Engines.", "engine_model_unavailable")
+            return self._failed("Motor seçilen modeli doğrulayamadı. Ayarlar → Motorlar bölümünde başka bir model seçin.", "engine_model_unavailable")
         self.session_started = True
         return None
 
@@ -757,20 +757,20 @@ class _AcpTurn:
             return TurnOutcome("failed", error=_clip(self.adapter.redact(error, self.env or {})), error_code=code, partial_text=partial, **self._common())
 
         if self.ctx.aborted:
-            return failed("The run was stopped because it no longer owns its turn.", "lost")
+            return failed("Çalışma durduruldu, çünkü bu yanıt artık ona ait değil.", "lost")
         if crashed:
-            return failed("Local run failed unexpectedly", "runner_error")
+            return failed("Yerel çalışma beklenmedik biçimde başarısız oldu", "runner_error")
         if self.timed_out:
-            return failed(f"Timed out after {app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} seconds", "timeout")
+            return failed(f"{app_settings.get('LOCAL_TASK_TIMEOUT_SECONDS')} saniye sonra zaman aşımı", "timeout")
         if self.over_text or (self.rpc is not None and self.rpc.over_limit):
-            return failed("The agent produced more output than allowed", "output_too_large")
+            return failed("Ajan izin verilenden fazla çıktı üretti", "output_too_large")
         if self.prompt_error is not None:
-            return failed(f"The agent reported an error: {self.prompt_error}", "engine_signed_out" if getattr(self, "prompt_auth_error", False) else "acp_error")
+            return failed(f"Ajan bir hata bildirdi: {self.prompt_error}", "engine_signed_out" if getattr(self, "prompt_auth_error", False) else "acp_error")
         if not self.finished:
             tail = self.rpc.stderr_tail.strip() if self.rpc is not None and not getattr(self.adapter, "preset", False) else ""
-            return failed(tail or "The agent ended without finishing the turn.", "cli_error")
+            return failed(tail or "Ajan yanıtı bitirmeden sonlandı.", "cli_error")
         if self.stop_reason == "end_turn":
             return TurnOutcome("succeeded", result=self.messages[-1] if self.messages else "", **self._common())
         if self.stop_reason == "cancelled":
-            return failed("The agent stopped the turn.", "interrupted")
-        return failed(f"The agent stopped: {self.stop_reason or 'no reason given'}.", "acp_error")
+            return failed("Ajan yanıtı durdurdu.", "interrupted")
+        return failed(f"Ajan durdu: {self.stop_reason or 'gerekçe belirtilmedi'}.", "acp_error")

@@ -87,17 +87,17 @@ def _clean_helper(value) -> dict | None:
     if value is None:
         return None
     if not isinstance(value, dict) or set(value) - {"engine", "model"}:
-        raise InvalidSetting("The helper is an engine and, optionally, one of its models.")
+        raise InvalidSetting("Yardımcı bir motordur ve isteğe bağlı olarak o motorun modellerinden biridir.")
     engine, model = value.get("engine"), value.get("model") or ""
     if not isinstance(engine, str) or not isinstance(model, str):
-        raise InvalidSetting("The helper is an engine and, optionally, one of its models.")
+        raise InvalidSetting("Yardımcı bir motordur ve isteğe bağlı olarak o motorun modellerinden biridir.")
     engine, model = engine.strip(), " ".join(model.split())
     if not engine:
         return None
     if len(engine) > ENGINE_MAX or len(model) > MODEL_MAX or not re.match(r"^[A-Za-z0-9_.-]+$", engine):
-        raise InvalidSetting("The helper engine is one engine id, and its model at most 80 characters.")
+        raise InvalidSetting("Yardımcı motor tek bir motor kimliğidir; modeli en çok 80 karakter olabilir.")
     if model and not re.match(r"^[A-Za-z0-9][\x21-\x7e]*$", model):
-        raise InvalidSetting("A model name is one word and cannot start with a dash.")
+        raise InvalidSetting("Model adı tek bir sözcüktür ve tireyle başlayamaz.")
     return {"engine": engine, "model": model}
 
 
@@ -107,26 +107,26 @@ def update(*, learn_from_rooms=None, tidy_hour=None, helper_models=None, **more)
     data = _read()
     if learn_from_rooms is not None:
         if not isinstance(learn_from_rooms, bool):
-            raise InvalidSetting("Learn from group chats is on or off.")
+            raise InvalidSetting("Grup sohbetlerinden öğrenme açık ya da kapalı olmalı.")
         data["learn_from_rooms"] = learn_from_rooms
     if tidy_hour is not None:
         if _hour(tidy_hour) is None:
-            raise InvalidSetting("The tidy-up hour is a whole hour from 0 to 23, or 24 to switch it off.")
+            raise InvalidSetting("Düzenleme saati 0 ile 23 arasında tam bir saattir; kapatmak için 24 girin.")
         data["tidy_hour"] = tidy_hour
     if "helper" in more:
         data["helper"] = _clean_helper(more.pop("helper"))
     if more:
-        raise InvalidSetting("Unknown setting.")
+        raise InvalidSetting("Bilinmeyen ayar.")
     if helper_models is not None:
         if not isinstance(helper_models, dict):
-            raise InvalidSetting("Helper models are a model name per engine.")
+            raise InvalidSetting("Yardımcı modeller her motor için bir model adıdır.")
         clean: dict[str, str] = {}
         for engine, model in helper_models.items():
             if not isinstance(engine, str) or not isinstance(model, str):
-                raise InvalidSetting("Helper models are a model name per engine.")
+                raise InvalidSetting("Yardımcı modeller her motor için bir model adıdır.")
             engine, model = engine.strip(), " ".join(model.split())
             if not engine or len(engine) > ENGINE_MAX or len(model) > MODEL_MAX or model.startswith("-"):
-                raise InvalidSetting(f"A model name is at most {MODEL_MAX} characters and cannot start with a dash.")
+                raise InvalidSetting(f"Model adı en çok {MODEL_MAX} karakterdir ve tireyle başlayamaz.")
             if model:
                 clean[engine] = model
         data["helper_models"] = clean
@@ -136,5 +136,5 @@ def update(*, learn_from_rooms=None, tidy_hour=None, helper_models=None, **more)
         agent_memory.write_atomic(path, json.dumps(data))
     except OSError:
         logger.exception("could not save the memory settings")
-        raise InvalidSetting("The settings could not be saved.") from None
+        raise InvalidSetting("Ayarlar kaydedilemedi.") from None
     return read()

@@ -289,11 +289,11 @@ async def undo(db, owner, request_id):
     row = await existing(db, owner, request_id)
     if row is None or team is None or row.team_id != team.id or row.kind not in ('setup', 'routine'):
         await db.rollback()
-        raise TeamError('request_not_found', 'No such team change to undo.')
+        raise TeamError('request_not_found', 'Geri alınacak böyle bir takım değişikliği yok.')
     if row.state != 'applied':
         code = 'already_undone' if row.state == 'undone' else 'not_undoable'
         await db.rollback()
-        raise TeamError(code, 'This change cannot be undone.')
+        raise TeamError(code, 'Bu değişiklik geri alınamaz.')
     if row.kind == 'routine':
         from app.team import routine_changes
         from app.services.routine_service import InvalidRoutine

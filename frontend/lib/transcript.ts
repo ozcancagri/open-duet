@@ -117,7 +117,7 @@ function attachmentRefs(value: unknown): AttachmentRef[] {
     .filter((a) => typeof a.id === "string" && /^[0-9a-f]{32}$/.test(a.id))
     .map((a) => ({
       id: a.id as string,
-      name: text(a.name) || "attachment",
+      name: text(a.name) || "ek",
       mime: text(a.mime),
       bytes: typeof a.bytes === "number" ? a.bytes : 0,
       kind: text(a.kind),
@@ -406,7 +406,7 @@ export function applyEvent(state: Transcript, event: ThreadEvent): Transcript {
         kind: "team_job", key: previous?.key ?? key, turnId: previous?.turnId ?? id,
         jobId: data.job_id, agentId: typeof data.assignee_agent_id === "number" ? data.assignee_agent_id : previous?.agentId ?? 0,
         threadId: typeof data.assignee_thread_id === "number" ? data.assignee_thread_id : previous?.threadId ?? null,
-        mode: text(data.mode) || previous?.mode || "work", brief: text(data.brief) || previous?.brief || "Delegated work",
+        mode: text(data.mode) || previous?.mode || "work", brief: text(data.brief) || previous?.brief || "Devredilen iş",
         status: text(data.status) || previous?.status || "queued", result: text(data.result_preview) || previous?.result || "", outcome: text(data.outcome) || previous?.outcome || "",
       };
       return { ...base, items: previous ? state.items.map(entry => entry === previous ? item : entry) : [...state.items, item] };
@@ -425,7 +425,7 @@ export function applyEvent(state: Transcript, event: ThreadEvent): Transcript {
       });
       const item: NeedsYouItem = {
         kind: "needs_you", key: previous?.key ?? key, turnId: null, cardId: data.card_id, revision,
-        title: text(data.title) || "Needs you", subtitle: text(data.subtitle), emptyText: text(data.empty_text) || "Nothing needs you right now.",
+        title: text(data.title) || "Sizi bekleyenler", subtitle: text(data.subtitle), emptyText: text(data.empty_text) || "Şu an sizi bekleyen bir şey yok.",
         more: typeof data.more === "number" ? data.more : 0, rows,
         checkedAt: typeof data.checked_at === "string" ? data.checked_at : undefined,
         timeZone: typeof data.time_zone === "string" ? data.time_zone : undefined,

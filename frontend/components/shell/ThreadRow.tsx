@@ -23,8 +23,8 @@ function when(iso: string): string {
   if (Number.isNaN(date.getTime())) return "";
   const today = new Date();
   return date.toDateString() === today.toDateString()
-    ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : date.toLocaleDateString([], { month: "short", day: "numeric" });
+    ? date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })
+    : date.toLocaleDateString("tr-TR", { month: "short", day: "numeric" });
 }
 
 // One conversation in the Recent list: the agent's avatar, the title, when it last moved, and

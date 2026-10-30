@@ -201,42 +201,42 @@ export function SkillsPanel({
   const canSave = draft !== null && !busy && nameValid && !taken && draft.body.trim() !== "" && draft.description.trim() !== "" && (!draft.learnedFrom || reviewed);
 
   return (
-    <section aria-label="Skills" className="space-y-3 border-t border-line pt-4">
+    <section aria-label="Beceriler" className="space-y-3 border-t border-line pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Skills</h3>
+        <h3 className="text-sm font-semibold">Beceriler</h3>
         <div className="flex gap-2">
-          <button className={SMALL} onClick={startNew} disabled={busy}>New skill</button>
+          <button className={SMALL} onClick={startNew} disabled={busy}>Yeni beceri</button>
           <button className={SMALL} onClick={() => { setDraft(null); setImporting({ text: "", error: null }); }} disabled={busy}>
-            Import SKILL.md
+            SKILL.md içe aktar
           </button>
         </div>
       </div>
       <p className="text-xs text-muted">
-        Saved instructions for {agent.name}. A skill is used only when you pick it for a message; it never starts on its own,
-        and importing one does not switch it on.
+        {agent.name} için kayıtlı talimatlar. Bir beceri yalnız onu bir mesaj için seçtiğinizde kullanılır; kendiliğinden
+        asla başlamaz ve içe aktarmak onu açmaz.
       </p>
       {receipt && (
         <div role="status" className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          <span>Saved /{receipt.name} switched off. Test it on a second input before routine use.</span>
-          <button className={SMALL} disabled={busy} onClick={undo}>Undo save</button>
+          <span>/{receipt.name} kapalı olarak kaydedildi. Düzenli kullanmadan önce ikinci bir girdiyle deneyin.</span>
+          <button className={SMALL} disabled={busy} onClick={undo}>Kaydı geri al</button>
         </div>
       )}
       {error && <p role="alert" className="text-xs text-danger">{error}</p>}
 
       {importing && (
         <div className="space-y-2 rounded-md border border-line p-3">
-          <label className="block text-xs text-muted" htmlFor="skill-import">Paste the contents of a SKILL.md file</label>
+          <label className="block text-xs text-muted" htmlFor="skill-import">Bir SKILL.md dosyasının içeriğini yapıştırın</label>
           <textarea
             id="skill-import"
             className={`${FIELD} min-h-32 font-mono text-xs`}
             value={importing.text}
             onChange={(e) => setImporting({ text: e.target.value, error: null })}
-            placeholder={"---\nname: weekly-report\ndescription: Summarise the week\n---\n\nSteps…"}
+            placeholder={"---\nname: haftalik-rapor\ndescription: Haftayı özetle\n---\n\nAdımlar…"}
           />
           {importing.error && <p role="alert" className="text-xs text-danger">{importing.error}</p>}
           <div className="flex gap-2">
-            <button className={PRIMARY} onClick={preview} disabled={busy || !importing.text.trim()}>Review</button>
-            <button className={BUTTON} onClick={() => setImporting(null)} disabled={busy}>Cancel</button>
+            <button className={PRIMARY} onClick={preview} disabled={busy || !importing.text.trim()}>İncele</button>
+            <button className={BUTTON} onClick={() => setImporting(null)} disabled={busy}>İptal</button>
           </div>
         </div>
       )}
@@ -244,8 +244,8 @@ export function SkillsPanel({
       {draft && (
         <div className="space-y-2 rounded-md border border-line p-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
-            <span>{draft.existing === null ? "New skill" : "Editing"} · {sourceLabel(draft.source)}</span>
-            <span>{draft.enabled ? "On" : "Off"}</span>
+            <span>{draft.existing === null ? "Yeni beceri" : "Düzenleniyor"} · {sourceLabel(draft.source)}</span>
+            <span>{draft.enabled ? "Açık" : "Kapalı"}</span>
           </div>
           {draft.warnings.length > 0 && (
             <ul role="status" className="list-disc space-y-0.5 pl-5 text-xs text-warning">
@@ -254,10 +254,10 @@ export function SkillsPanel({
           )}
           {draft.redacted > 0 && (
             <p role="status" className="text-xs text-warning">
-              {draft.redacted} secret-like {draft.redacted === 1 ? "value was" : "values were"} removed from the saved text.
+              Gizli bilgiye benzeyen {draft.redacted} değer kaydedilen metinden çıkarıldı.
             </p>
           )}
-          <label className="block text-xs text-muted" htmlFor="skill-name">Name</label>
+          <label className="block text-xs text-muted" htmlFor="skill-name">Ad</label>
           <input
             id="skill-name"
             className={FIELD}
@@ -265,18 +265,18 @@ export function SkillsPanel({
             disabled={draft.existing !== null}
             maxLength={SKILL_NAME_MAX}
             onChange={(e) => setDraft({ ...draft, name: slugSkillName(e.target.value) })}
-            placeholder="expense-review"
+            placeholder="masraf-inceleme"
           />
-          {draft.existing === null && draft.name !== "" && taken && <p className="text-xs text-danger">A skill with this name already exists.</p>}
-          {draft.existing === null && draft.name === "" && <p className="text-xs text-muted">Lowercase letters, digits and hyphens.</p>}
-          <label className="block text-xs text-muted" htmlFor="skill-description">Description (one line, shown in the picker)</label>
+          {draft.existing === null && draft.name !== "" && taken && <p className="text-xs text-danger">Bu adda bir beceri zaten var.</p>}
+          {draft.existing === null && draft.name === "" && <p className="text-xs text-muted">Küçük harfler, rakamlar ve kısa çizgiler.</p>}
+          <label className="block text-xs text-muted" htmlFor="skill-description">Açıklama (tek satır, seçicide gösterilir)</label>
           <input
             id="skill-description"
             className={FIELD}
             value={draft.description}
             onChange={(e) => setDraft({ ...draft, description: e.target.value })}
           />
-          <label className="block text-xs text-muted" htmlFor="skill-body">Instructions (Markdown)</label>
+          <label className="block text-xs text-muted" htmlFor="skill-body">Talimatlar (Markdown)</label>
           <textarea
             id="skill-body"
             className={`${FIELD} min-h-64 font-mono text-xs`}
@@ -285,28 +285,28 @@ export function SkillsPanel({
           />
           {draft.learnedFrom && (
             <>
-              <p className="text-xs text-muted">Source: conversation {draft.learnedFrom.thread_id}, turn {draft.learnedFrom.turn_id}. Only the request and result were copied; review the reference and replace the workflow sections.</p>
+              <p className="text-xs text-muted">Kaynak: sohbet {draft.learnedFrom.thread_id}, tur {draft.learnedFrom.turn_id}. Yalnız istek ve sonuç kopyalandı; referansı gözden geçirip iş akışı bölümlerini değiştirin.</p>
               <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
                 <input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} />
-                I reviewed the reusable steps, inputs, validation and approval boundary.
+                Yeniden kullanılabilir adımları, girdileri, doğrulamayı ve onay sınırını gözden geçirdim.
               </label>
             </>
           )}
           <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
             <input type="checkbox" disabled={!!draft.learnedFrom} checked={draft.enabled} onChange={() => setDraft({ ...draft, enabled: !draft.enabled })} />
-            Available to pick in conversations
+            Sohbetlerde seçilebilir
           </label>
           <div className="flex flex-wrap gap-2">
-            <button className={PRIMARY} onClick={save} disabled={!canSave}>{busy ? "Saving…" : "Save skill"}</button>
-            <button className={BUTTON} onClick={() => setDraft(null)} disabled={busy}>Close</button>
+            <button className={PRIMARY} onClick={save} disabled={!canSave}>{busy ? "Kaydediliyor…" : "Beceriyi kaydet"}</button>
+            <button className={BUTTON} onClick={() => setDraft(null)} disabled={busy}>Kapat</button>
           </div>
         </div>
       )}
 
       {skills === null ? (
-        <p className="text-xs text-muted">Loading…</p>
+        <p className="text-xs text-muted">Yükleniyor…</p>
       ) : skills.length === 0 ? (
-        <p className="text-xs text-muted">No skills yet. Write one, import a SKILL.md, or use Save as skill after a conversation that went well.</p>
+        <p className="text-xs text-muted">Henüz beceri yok. Bir tane yazın, bir SKILL.md içe aktarın ya da iyi geçen bir sohbetten sonra Beceri olarak kaydet&apos;i kullanın.</p>
       ) : (
         <ul className="space-y-2">
           {skills.map((skill) => (
@@ -319,23 +319,23 @@ export function SkillsPanel({
                     checked={skill.enabled}
                     disabled={busy}
                     onChange={() => toggle(skill)}
-                    aria-label={`${skill.enabled ? "Switch off" : "Switch on"} ${skill.name}`}
+                    aria-label={`${skill.name}: ${skill.enabled ? "kapat" : "aç"}`}
                   />
                   <span className="min-w-0">
                     <span className="block break-words font-mono text-xs text-ink">/{skill.name}</span>
                     <span className="block break-words text-xs text-muted">{skill.description}</span>
-                    <span className="block text-xs text-faint">{sourceLabel(skill.source)} · {skill.enabled ? "on" : "off"}</span>
+                    <span className="block text-xs text-faint">{sourceLabel(skill.source)} · {skill.enabled ? "açık" : "kapalı"}</span>
                   </span>
                 </label>
                 <div className="flex shrink-0 gap-2">
-                  <button className={SMALL} onClick={() => open(skill.name)} disabled={busy}>Edit</button>
+                  <button className={SMALL} onClick={() => open(skill.name)} disabled={busy}>Düzenle</button>
                   {confirming === skill.name ? (
                     <>
-                      <button className={`${SMALL} text-danger`} onClick={() => remove(skill.name)} disabled={busy}>Delete</button>
-                      <button className={SMALL} onClick={() => setConfirming(null)} disabled={busy}>Keep</button>
+                      <button className={`${SMALL} text-danger`} onClick={() => remove(skill.name)} disabled={busy}>Sil</button>
+                      <button className={SMALL} onClick={() => setConfirming(null)} disabled={busy}>Kalsın</button>
                     </>
                   ) : (
-                    <button className={SMALL} onClick={() => setConfirming(skill.name)} disabled={busy}>Delete…</button>
+                    <button className={SMALL} onClick={() => setConfirming(skill.name)} disabled={busy}>Sil…</button>
                   )}
                 </div>
               </div>

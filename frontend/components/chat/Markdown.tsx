@@ -50,14 +50,14 @@ function CodeBlock({ lang, text, closed }: { lang: string; text: string; closed:
   return (
     <div className="my-3 overflow-hidden rounded-field border border-line">
       <div className="flex items-center justify-between bg-inset px-3 py-1 text-xs text-muted">
-        <span>{lang || "text"}</span>
+        <span>{lang || "metin"}</span>
         <button
           onClick={copy}
           disabled={!closed && text === ""}
-          aria-label="Copy code"
+          aria-label="Kodu kopyala"
           className="cursor-pointer rounded px-1.5 py-0.5 hover:bg-hover touch:px-3 touch:py-2"
         >
-          {copied ? "Copied" : "Copy"}
+          {copied ? "Kopyalandı" : "Kopyala"}
         </button>
       </div>
       <pre className="overflow-x-auto bg-code p-3 font-mono text-xs leading-relaxed text-ink">

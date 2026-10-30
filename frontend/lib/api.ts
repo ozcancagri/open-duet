@@ -757,7 +757,7 @@ async function readEventStream<T extends StreamEnvelope>(
     signal,
   });
   if (!res.ok || !res.body) {
-    throw new ApiError(res.status, res.statusText || "Could not open the live stream");
+    throw new ApiError(res.status, res.statusText || "Canlı akış açılamadı");
   }
   onOpen?.();
   const parser = createSseParser<T>(onEvent);

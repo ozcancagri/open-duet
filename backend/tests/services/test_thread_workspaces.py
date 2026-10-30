@@ -45,7 +45,7 @@ async def test_missing_pinned_workspace_is_not_recreated(rt, sessions, owner, cl
     workspace.mkdir()
     thread = await new_thread(sessions, owner, workspace_path=str(workspace))
     workspace.rmdir()
-    with pytest.raises(ProviderUnavailable, match="missing or inaccessible"):
+    with pytest.raises(ProviderUnavailable, match="bulunamıyor ya da erişilemiyor"):
         await rt.send_turn(thread.id, "do not switch folders")
     assert not workspace.exists()
     assert cli.launches() == []

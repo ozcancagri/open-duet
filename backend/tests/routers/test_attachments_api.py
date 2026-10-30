@@ -95,7 +95,7 @@ def test_images_must_match_their_signature_and_text_must_be_utf8():
     assert latin.value.status == 415
     with pytest.raises(attachments.AttachmentError) as exe:
         attachments.classify("tool.exe", "application/octet-stream", b"MZ\x90\x00")
-    assert exe.value.status == 415 and "Supported" in exe.value.message
+    assert exe.value.status == 415 and "Desteklenenler" in exe.value.message
     with pytest.raises(attachments.AttachmentError) as empty:
         attachments.classify("a.txt", "text/plain", b"")
     assert empty.value.status == 400

@@ -88,22 +88,22 @@ test('an unchanged one-time minute preserves its original seconds and millisecon
 });
 
 test('run states and triggers read as words', () => {
-  assert.equal(runStateLabel('needs_input'), 'Needs your approval');
+  assert.equal(runStateLabel('needs_input'), 'Onayınızı bekliyor');
   assert.equal(runStateTone('needs_input'), 'warn');
   assert.equal(runStateTone('interrupted'), 'bad');
   assert.equal(runStateTone('skipped'), 'muted');
   assert.equal(triggerLabel('webhook'), 'Webhook');
-  assert.equal(triggerLabel('retry'), 'Retry');
+  assert.equal(triggerLabel('retry'), 'Yeniden deneme');
   assert.equal(isActiveRun({ state: 'queued' }), true);
   assert.equal(isActiveRun({ state: 'completed' }), false);
   assert.equal(isActiveRun(null), false);
 });
 
 test('next run text covers paused, manual and none', () => {
-  assert.equal(nextRunText({ paused: true, next_run_at: null, schedule_kind: 'cron', timezone: 'UTC' }), 'Paused');
-  assert.match(nextRunText({ paused: false, next_run_at: null, schedule_kind: 'manual', timezone: 'UTC' }), /by hand/);
-  assert.equal(nextRunText({ paused: false, next_run_at: null, schedule_kind: 'once', timezone: 'UTC' }), 'No upcoming run');
-  assert.match(nextRunText({ paused: false, next_run_at: '2026-10-19T07:00:00Z', schedule_kind: 'cron', timezone: 'UTC' }), /^Next: /);
+  assert.equal(nextRunText({ paused: true, next_run_at: null, schedule_kind: 'cron', timezone: 'UTC' }), 'Duraklatıldı');
+  assert.match(nextRunText({ paused: false, next_run_at: null, schedule_kind: 'manual', timezone: 'UTC' }), /elle/);
+  assert.equal(nextRunText({ paused: false, next_run_at: null, schedule_kind: 'once', timezone: 'UTC' }), 'Yaklaşan çalıştırma yok');
+  assert.match(nextRunText({ paused: false, next_run_at: '2026-10-19T07:00:00Z', schedule_kind: 'cron', timezone: 'UTC' }), /^Sonraki: /);
 });
 
 test('webhook url, curl and badge', () => {

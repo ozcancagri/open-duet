@@ -82,7 +82,7 @@ async def test_remote_client_is_refused(db_session, user_id, ready_cli, no_backg
         status = await client.get("/api/v1/local/status")
     assert created.status_code == 403
     assert status.json()["available"] is False
-    assert "this machine" in status.json()["reason"]
+    assert "bu makineden" in status.json()["reason"]
     assert await task_count(db_session) == before
     assert no_background_run == []
 

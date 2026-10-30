@@ -18,7 +18,7 @@ async def owned_item(db, owner, item_id, *, lock=False):
         query = query.with_for_update(key_share=True)
     item = await db.scalar(query)
     if item is None:
-        raise error(404, "Task not found")
+        raise error(404, "Görev bulunamadı")
     return item
 
 
@@ -39,7 +39,7 @@ async def describe(db, receipt):
 
 
 def execution_state(receipt, run):
-    if receipt.cancelled_at or (run and run.error == "The run was stopped."):
+    if receipt.cancelled_at or (run and run.error in ("Çalışma durduruldu.", "The run was stopped.")):
         return "cancelled"
     if run is None:
         return "scheduled"
@@ -80,14 +80,14 @@ async def start(db, owner, item_id, payload):
     if previous:
         return await describe(db, previous)
     if item.archived:
-        raise error(409, "Restore the task before starting work")
+        raise error(409, "Çalışmaya başlamadan önce görevi geri yükleyin")
     if item.revision != payload.revision:
-        raise error(409, "The task changed. Reload it before starting work.")
+        raise error(409, "Görev değişti. Çalışmaya başlamadan önce yeniden yükleyin.")
     receipts = (await db.scalars(select(WorkItemRun).where(WorkItemRun.work_item_id == item.id))).all()
     for receipt in receipts:
         status = (await describe(db, receipt)).state
         if status in (*ACTIVE_RUN_STATES, "scheduled", "claimed"):
-            raise error(409, "This task already has scheduled or active work. Open or cancel that attempt first.")
+            raise error(409, "Bu görevin zaten zamanlanmış ya da süren bir çalışması var. Önce o denemeyi açın ya da iptal edin.")
     data = dict(agent_id=payload.agent_id, name=f"Task #{item.id}: {item.title}"[:80],
                 prompt=payload.prompt, approval_mode=payload.approval_mode, timezone=item.timezone,
                 schedule_kind="once" if payload.scheduled_for else "manual",
@@ -124,7 +124,7 @@ async def cancel(scheduler, owner, item_id, receipt_id):
                 WorkItemRun.id == receipt_id, WorkItemRun.work_item_id == item_id,
                 WorkItemRun.owner_id == owner))
             if receipt is None:
-                raise error(404, "Task attempt not found")
+                raise error(404, "Görev denemesi bulunamadı")
             routine = await db.get(Routine, receipt.routine_id, with_for_update=True)
             run = await db.scalar(select(RoutineRun).where(RoutineRun.routine_id == routine.id)
                                   .with_for_update())
@@ -132,14 +132,14 @@ async def cancel(scheduler, owner, item_id, receipt_id):
                 return await describe(db, receipt)
             if run and run.state in ("running", "needs_input"):
                 if run.thread_id is None or run.turn_id is None:
-                    raise error(409, "This attempt is starting. Try Stop again in a moment.")
+                    raise error(409, "Bu deneme başlıyor. Birazdan Durdur'u yeniden deneyin.")
                 # Release SQLite's write lock while the runtime writes the stop.
                 thread_id, run_id = run.thread_id, run.id
                 await db.rollback()
                 try:
                     await scheduler.runtime.stop_turn(thread_id)
                 except routines.runtime_module.TurnNotHere:
-                    raise error(409, "This attempt runs in another process. Stop it from its conversation there.") from None
+                    raise error(409, "Bu deneme başka bir süreçte çalışıyor. Oradaki sohbetinden durdurun.") from None
                 except routines.runtime_module.NoRunningTurn:
                     pass
                 await scheduler._follow(run_id)
@@ -148,7 +148,7 @@ async def cancel(scheduler, owner, item_id, receipt_id):
                 await db.refresh(routine, with_for_update=True)
                 await db.refresh(run, with_for_update=True)
                 # A completion racing Stop keeps its actual outcome.
-                if run.state not in ACTIVE_RUN_STATES and run.error != "The run was stopped.":
+                if run.state not in ACTIVE_RUN_STATES and run.error not in ("Çalışma durduruldu.", "The run was stopped."):
                     return await describe(db, receipt)
             elif run and run.state not in ACTIVE_RUN_STATES:
                 return await describe(db, receipt)
@@ -157,12 +157,12 @@ async def cancel(scheduler, owner, item_id, receipt_id):
             receipt.cancelled_at = now
             work_events.add(db, await owned_item(db, owner, item_id), "cancelled", receipt_id=receipt.id)
             if run:
-                run.state, run.finished_at, run.error = "cancelled", now, "Cancelled by the task owner."
+                run.state, run.finished_at, run.error = "cancelled", now, "Görevin sahibi tarafından iptal edildi."
             else:
                 # Keep a cancelled future occurrence visible on the calendar
                 # and occupy the scheduler's unique occurrence key as well.
                 db.add(RoutineRun(routine_id=routine.id, trigger="schedule", state="cancelled",
                     scheduled_for=datetime.fromisoformat(routine.schedule_spec["at"]),
-                    prompt=routine.prompt, finished_at=now, error="Cancelled by the task owner."))
+                    prompt=routine.prompt, finished_at=now, error="Görevin sahibi tarafından iptal edildi."))
             await db.commit()
             return await describe(db, receipt)

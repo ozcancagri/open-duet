@@ -30,12 +30,12 @@ def identity(connection):
 async def desktop(service, computer_id, *, ready=False):
     computer = await _computer_or_404(service, computer_id)
     if computer.kind != "desktop":
-        raise _error(409, "not_a_desktop", "This computer has no screen.")
+        raise _error(409, "not_a_desktop", "Bu bilgisayarın ekranı yok.")
     if ready:
         health, status = await service.live_status(computer)
-        if not health.available: raise _error(503, "docker_unavailable", health.error or "Docker is unavailable.")
-        if not status or status.state != "running": raise _error(409, "computer_not_running", "Start the computer first.")
-        if not status.desktop_ready: raise _error(409, "desktop_not_ready", "The desktop is starting.")
+        if not health.available: raise _error(503, "docker_unavailable", health.error or "Docker kullanılamıyor.")
+        if not status or status.state != "running": raise _error(409, "computer_not_running", "Önce bilgisayarı başlatın.")
+        if not status.desktop_ready: raise _error(409, "desktop_not_ready", "Masaüstü başlatılıyor.")
     return computer
 
 
@@ -89,7 +89,7 @@ async def heartbeat(computer_id: int, payload: HeartbeatRequest, rt: ThreadRunti
     await desktop(service, computer_id)
     service.expire_control()
     if not service.control.heartbeat(computer_id, payload.lease_id):
-        raise _error(409, "lease_lost", "This view no longer holds control.")
+        raise _error(409, "lease_lost", "Denetim artık bu görünümde değil.")
     await service._call(service.write_control, computer_id)
     return Response(status_code=204)
 
@@ -99,7 +99,7 @@ async def viewer_ticket(computer_id: int, payload: TicketRequest, request: Reque
     service = rt.computers
     await desktop(service, computer_id, ready=True)
     service.expire_control()
-    if not service.control.owns(computer_id, payload.lease_id): raise _error(409, "lease_lost", "Take control first.")
+    if not service.control.owns(computer_id, payload.lease_id): raise _error(409, "lease_lost", "Önce denetimi alın.")
     try: token = viewers(service).issue(computer_id, payload.lease_id, identity(request))
     except ValueError as exc: raise _error(429, "too_many_viewers", str(exc)) from None
     return {"ticket": token, "ticket_expires_in": 30}

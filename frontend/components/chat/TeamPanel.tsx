@@ -10,6 +10,16 @@ import { SharedApproval } from "./SharedApproval";
 
 const BUTTON = "rounded-field border border-line px-3 py-1.5 text-sm hover:bg-hover disabled:opacity-50";
 
+// Turkish labels for the backend's job and agent states; an unknown value is shown as it is.
+const WORDS: Record<string, string> = {
+  work: "iş", consult: "danışma",
+  queued: "sırada", running: "çalışıyor", needs_input: "girdi bekliyor", waiting: "bekliyor", resume: "sürdürülecek",
+  done: "tamamlandı", completed: "tamamlandı", failed: "başarısız", cancelled: "iptal edildi",
+  stopped: "durduruldu", expired: "süresi doldu", refused: "reddedildi", budget: "bütçe aşıldı", root_budget: "bütçe aşıldı", interrupted: "kesildi",
+  idle: "boşta", working: "çalışıyor", waiting_on_you: "sizi bekliyor",
+};
+const word = (value: string) => WORDS[value] ?? value;
+
 export function JobCard({ job: initial, compact = false }: { job: TeamJob; compact?: boolean }) {
   const [job, setJob] = useState(initial);
   const [error, setError] = useState<string | null>(null);
@@ -17,13 +27,13 @@ export function JobCard({ job: initial, compact = false }: { job: TeamJob; compa
   const { session } = useSession();
   const refresh = useCallback(() => collaboration.job(initial.id).then(setJob).catch(() => {}), [initial.id]);
   useEffect(() => { void refresh(); const timer = setInterval(() => { if (!document.hidden) void refresh(); }, 3000); return () => clearInterval(timer); }, [refresh]);
-  const cancel = async () => { setBusy(true); setError(null); try { await collaboration.cancelJob(job.id); await refresh(); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not stop this job."); } finally { setBusy(false); } };
+  const cancel = async () => { setBusy(true); setError(null); try { await collaboration.cancelJob(job.id); await refresh(); } catch (err) { setError(err instanceof ApiError ? err.message : "Bu iş durdurulamadı."); } finally { setBusy(false); } };
   return <article className="space-y-2 rounded-field border border-line bg-raised p-3 text-sm" style={{ marginLeft: compact ? undefined : `${Math.min(job.depth ?? 0, 3) * 8}px` }}>
-    <div className="flex flex-wrap items-center gap-2"><strong>Job {job.id}</strong><span className="text-xs text-muted">{job.mode} · {job.status}{job.outcome ? ` · ${job.outcome}` : ""}</span></div>
+    <div className="flex flex-wrap items-center gap-2"><strong>İş {job.id}</strong><span className="text-xs text-muted">{word(job.mode)} · {word(job.status)}{job.outcome ? ` · ${word(job.outcome)}` : ""}</span></div>
     <p className="whitespace-pre-wrap break-words">{job.brief}</p>
-    {job.result && <details><summary className="cursor-pointer text-xs underline">Result</summary><p className="mt-2 whitespace-pre-wrap break-words">{job.result}</p></details>}
+    {job.result && <details><summary className="cursor-pointer text-xs underline">Sonuç</summary><p className="mt-2 whitespace-pre-wrap break-words">{job.result}</p></details>}
     {job.outcome_detail && <p className="text-xs text-warning">{job.outcome_detail}</p>}
-    <div className="flex flex-wrap gap-2">{job.assignee_thread_id && <Link className={BUTTON} href={`/chat?thread=${job.assignee_thread_id}`}>Open work</Link>}{["queued", "running", "needs_input", "waiting", "resume"].includes(job.status) && session?.scopes.includes("admin") && <button type="button" className={BUTTON} disabled={busy} onClick={() => void cancel()}>Stop this job</button>}</div>
+    <div className="flex flex-wrap gap-2">{job.assignee_thread_id && <Link className={BUTTON} href={`/chat?thread=${job.assignee_thread_id}`}>İşi aç</Link>}{["queued", "running", "needs_input", "waiting", "resume"].includes(job.status) && session?.scopes.includes("admin") && <button type="button" className={BUTTON} disabled={busy} onClick={() => void cancel()}>Bu işi durdur</button>}</div>
     {job.approvals?.filter(item => item.status === "pending").map(approval => <SharedApproval key={approval.id} approval={approval} onChanged={() => void refresh()} />)}
     {error && <p role="alert" className="text-xs text-danger">{error}</p>}
   </article>;
@@ -40,21 +50,21 @@ export function TeamPanel({ agents, onClose, onChanged }: { agents: Agent[]; onC
   const admin = session?.scopes.includes("admin") === true;
   const refresh = useCallback(async () => {
     try { const [team, list] = await Promise.all([collaboration.team(), collaboration.jobs()]); setData(team); setJobs(list); if (admin) setActivity(await collaboration.activity()); }
-    catch (err) { setError(err instanceof ApiError ? err.message : "Could not load the team."); }
+    catch (err) { setError(err instanceof ApiError ? err.message : "Takım yüklenemedi."); }
   }, [admin]);
   useEffect(() => { const initial = setTimeout(() => void refresh(), 0); const timer = setInterval(() => { if (!document.hidden) void refresh(); }, 5000); return () => { clearTimeout(initial); clearInterval(timer); }; }, [refresh]);
-  const act = async (action: () => Promise<unknown>) => { setBusy(true); setError(null); try { await action(); await refresh(); onChanged(); } catch (err) { setError(err instanceof ApiError ? err.message : "Could not update the team."); } finally { setBusy(false); } };
-  return <Dialog open onOpenChange={open => { if (!open) onClose(); }} title={data?.team?.name ?? "Team"} description="A lead can create specialists and hand them work. Each agent keeps its own approvals." size="lg">
-    <div className="space-y-4"><div className="flex gap-2" role="tablist" aria-label="Team view">{["agents", "activity"].map(value => <button key={value} role="tab" aria-selected={tab === value} className={BUTTON} onClick={() => setTab(value)}>{value === "agents" ? "Agents" : "Activity"}</button>)}</div>
+  const act = async (action: () => Promise<unknown>) => { setBusy(true); setError(null); try { await action(); await refresh(); onChanged(); } catch (err) { setError(err instanceof ApiError ? err.message : "Takım güncellenemedi."); } finally { setBusy(false); } };
+  return <Dialog open onOpenChange={open => { if (!open) onClose(); }} title={data?.team?.name ?? "Takım"} description="Bir lider uzmanlar oluşturabilir ve onlara iş verebilir. Her ajanın onayları kendisine aittir." size="lg">
+    <div className="space-y-4"><div className="flex gap-2" role="tablist" aria-label="Takım görünümü">{["agents", "activity"].map(value => <button key={value} role="tab" aria-selected={tab === value} className={BUTTON} onClick={() => setTab(value)}>{value === "agents" ? "Ajanlar" : "Etkinlik"}</button>)}</div>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      {!data && !error && <p role="status">Loading team…</p>}
-      {data && tab === "agents" && <div className="space-y-3">{!data.team && <p className="text-sm text-muted">Choose a lead from your agents to start a team.</p>}{data.team && !data.lead_ready.ok && <p className="text-sm text-warning">{data.lead_ready.reason}</p>}
-        {data.agents.map(agent => <article key={agent.id} className="space-y-2 rounded-field border border-line p-3"><div><strong>{agent.name}</strong>{agent.is_lead && <span className="ml-2 rounded bg-accent/15 px-2 py-0.5 text-xs">Lead</span>}<span className="ml-2 text-xs text-muted">{agent.state}</span></div><p className="text-xs text-muted">{agent.created_by_agent_id ? `Instructions written by agent ${agent.created_by_agent_id}${agent.instructions_reviewed ? " · reviewed" : " · review in Agents"}` : "Added by you"}</p>
-          {admin && <div className="flex flex-wrap items-center gap-2"><label className="flex items-center gap-2 text-xs"><input type="checkbox" disabled={busy} checked={agent.delegation_enabled} onChange={event => void act(() => collaboration.delegation(agent.id, event.target.checked))} />Can delegate</label>{!agent.is_lead && <><button className={BUTTON} disabled={busy} onClick={() => void act(() => collaboration.lead(agent.id))}>Make lead</button><button className={BUTTON} disabled={busy} onClick={() => void act(() => collaboration.removeMember(agent.id))}>Remove from team</button></>}{agent.created_by_agent_id && <button className={BUTTON} disabled={busy} onClick={() => void act(() => collaboration.undoCreate(agent.id))}>Undo creation</button>}</div>}
+      {!data && !error && <p role="status">Takım yükleniyor…</p>}
+      {data && tab === "agents" && <div className="space-y-3">{!data.team && <p className="text-sm text-muted">Bir takım başlatmak için ajanlarınızdan birini lider seçin.</p>}{data.team && !data.lead_ready.ok && <p className="text-sm text-warning">{data.lead_ready.reason}</p>}
+        {data.agents.map(agent => <article key={agent.id} className="space-y-2 rounded-field border border-line p-3"><div><strong>{agent.name}</strong>{agent.is_lead && <span className="ml-2 rounded bg-accent/15 px-2 py-0.5 text-xs">Lider</span>}<span className="ml-2 text-xs text-muted">{word(agent.state)}</span></div><p className="text-xs text-muted">{agent.created_by_agent_id ? `Talimatları ${agent.created_by_agent_id} numaralı ajan yazdı${agent.instructions_reviewed ? " · gözden geçirildi" : " · Ajanlar bölümünde gözden geçirin"}` : "Sizin eklediğiniz"}</p>
+          {admin && <div className="flex flex-wrap items-center gap-2"><label className="flex items-center gap-2 text-xs"><input type="checkbox" disabled={busy} checked={agent.delegation_enabled} onChange={event => void act(() => collaboration.delegation(agent.id, event.target.checked))} />Görev verebilir</label>{!agent.is_lead && <><button className={BUTTON} disabled={busy} onClick={() => void act(() => collaboration.lead(agent.id))}>Lider yap</button><button className={BUTTON} disabled={busy} onClick={() => void act(() => collaboration.removeMember(agent.id))}>Takımdan çıkar</button></>}{agent.created_by_agent_id && <button className={BUTTON} disabled={busy} onClick={() => void act(() => collaboration.undoCreate(agent.id))}>Oluşturmayı geri al</button>}</div>}
         </article>)}
-        {admin && <label className="block text-sm">{data.team ? "Add an agent" : "Choose team lead"}<select className="mt-1 w-full rounded-field border border-line bg-raised p-2" value="" disabled={busy} onChange={event => { const id = Number(event.target.value); if (id) void act(() => data.team ? collaboration.addMember(id) : collaboration.lead(id)); }}><option value="">Select an agent…</option>{agents.filter(agent => !data.agents.some(member => member.id === agent.id) && !agent.archived_at).map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>}
+        {admin && <label className="block text-sm">{data.team ? "Ajan ekle" : "Takım liderini seç"}<select className="mt-1 w-full rounded-field border border-line bg-raised p-2" value="" disabled={busy} onChange={event => { const id = Number(event.target.value); if (id) void act(() => data.team ? collaboration.addMember(id) : collaboration.lead(id)); }}><option value="">Bir ajan seçin…</option>{agents.filter(agent => !data.agents.some(member => member.id === agent.id) && !agent.archived_at).map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label>}
       </div>}
-      {tab === "activity" && <div className="space-y-3">{jobs.length === 0 && <p className="text-sm text-muted">No delegated jobs yet.</p>}{jobs.map(job => <JobCard key={job.id} job={job} />)}{activity.length > 0 && <details><summary className="cursor-pointer text-sm">Team activity</summary><ol className="mt-2 space-y-1 text-xs text-muted">{activity.map(item => <li key={item.id}>{item.kind.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString()}</li>)}</ol></details>}</div>}
+      {tab === "activity" && <div className="space-y-3">{jobs.length === 0 && <p className="text-sm text-muted">Henüz devredilmiş iş yok.</p>}{jobs.map(job => <JobCard key={job.id} job={job} />)}{activity.length > 0 && <details><summary className="cursor-pointer text-sm">Takım etkinliği</summary><ol className="mt-2 space-y-1 text-xs text-muted">{activity.map(item => <li key={item.id}>{item.kind.replaceAll("_", " ")} · {new Date(item.created_at).toLocaleString("tr-TR")}</li>)}</ol></details>}</div>}
     </div>
   </Dialog>;
 }

@@ -68,7 +68,7 @@ export function ConnectGitHub({ boxId }: { boxId: string | null }) {
         }
       }, POLL_INTERVAL_MS);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not start GitHub login.");
+      setError(err instanceof ApiError ? err.message : "GitHub girişi başlatılamadı.");
     } finally {
       setStarting(false);
     }
@@ -76,39 +76,39 @@ export function ConnectGitHub({ boxId }: { boxId: string | null }) {
 
   if (checking) {
     return (
-      <Card step={3} title="Connect GitHub (optional)" disabled={!boxId}>
-        <p className="text-sm text-muted">Checking…</p>
+      <Card step={3} title="GitHub'ı bağla (isteğe bağlı)" disabled={!boxId}>
+        <p className="text-sm text-muted">Kontrol ediliyor…</p>
       </Card>
     );
   }
 
   if (connected) {
     return (
-      <Card step={3} title="Connect GitHub (optional)" done>
+      <Card step={3} title="GitHub'ı bağla (isteğe bağlı)" done>
         <p className="text-sm text-muted">
-          GitHub is connected — tasks that push to a repo will use your account.
+          GitHub bağlı — bir depoya gönderim (push) yapan görevler sizin hesabınızı kullanır.
         </p>
       </Card>
     );
   }
 
   return (
-    <Card step={3} title="Connect GitHub (optional)" disabled={!boxId}>
+    <Card step={3} title="GitHub'ı bağla (isteğe bağlı)" disabled={!boxId}>
       <p className="mb-3 text-sm text-muted">
-        Only needed if you want tasks to <code>git push</code> as you. Skip
-        this if you don&apos;t need that.
+        Yalnız görevlerin sizin adınıza <code>git push</code> yapmasını istiyorsanız gerekir.
+        Buna ihtiyacınız yoksa bu adımı atlayın.
       </p>
 
       {!deviceLogin && (
         <Button onClick={startLogin} disabled={starting}>
-          {starting ? "Starting…" : "Connect GitHub"}
+          {starting ? "Başlatılıyor…" : "GitHub'ı bağla"}
         </Button>
       )}
 
       {deviceLogin && (
         <div className="space-y-2">
           <p className="text-sm">
-            Enter this code:{" "}
+            Bu kodu girin:{" "}
             <code className="rounded bg-inset px-2 py-1 font-mono text-base font-semibold">
               {deviceLogin.code}
             </code>
@@ -119,11 +119,11 @@ export function ConnectGitHub({ boxId }: { boxId: string | null }) {
             rel="noopener noreferrer"
             className="inline-block text-sm font-medium text-accent underline hover:opacity-80"
           >
-            Open {deviceLogin.url} →
+            {deviceLogin.url} adresini aç →
           </a>
           <p className="text-xs text-muted">
-            Waiting for you to approve it — no need to come back here, this
-            updates on its own.
+            Onaylamanız bekleniyor — buraya geri dönmenize gerek yok, bu sayfa
+            kendiliğinden güncellenir.
           </p>
         </div>
       )}

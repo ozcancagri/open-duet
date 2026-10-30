@@ -20,10 +20,10 @@ async def remind_due(session, owner, now):
         for item in candidates:
             if item.due_at:
                 key = f"deadline:{item.due_at.isoformat()}"
-                detail = f"Due {item.due_at.astimezone(ZoneInfo(item.timezone)).isoformat()} ({item.timezone})."
+                detail = f"Son tarih: {item.due_at.astimezone(ZoneInfo(item.timezone)).isoformat()} ({item.timezone})."
             elif item.due_date and item.due_date <= now.astimezone(ZoneInfo(item.timezone)).date():
                 key = f"deadline:{item.due_date.isoformat()}"
-                detail = f"Due {item.due_date.isoformat()} ({item.timezone})."
+                detail = f"Son tarih: {item.due_date.isoformat()} ({item.timezone})."
             else:
                 continue
             sent = await db.scalar(select(exists().where(
@@ -32,7 +32,7 @@ async def remind_due(session, owner, now):
                 continue
             work_events.add(db, item, "deadline_reminder", actor="scheduler", key=key, detail=detail)
             notification = notification_feed.add(db, owner_id=owner, kind="task_due",
-                title=f"Task due: {item.title}", body=f"{detail} Open Tasks & calendar to review it. This reminder does not start agent work.",
+                title=f"Görevin son tarihi geldi: {item.title}", body=f"{detail} İncelemek için Görevler ve takvim bölümünü açın. Bu hatırlatma ajan çalışması başlatmaz.",
                 thread_id=item.thread_id)
             texts.append(notification_feed.telegram_text(notification))
         await db.commit()

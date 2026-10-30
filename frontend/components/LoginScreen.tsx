@@ -35,7 +35,7 @@ export function LoginScreen() {
       if (value.signed_in || value.desktop) window.location.replace(nextPath());
       else setStatus(value);
     }).catch((err: unknown) => {
-      if (!cancelled) setProblem(message(err, `Cannot reach the backend from ${window.location.origin}. Check that it is running and that this address is in FRONTEND_ORIGINS.`));
+      if (!cancelled) setProblem(message(err, `${window.location.origin} adresinden sunucuya ulaşılamıyor. Sunucunun çalıştığını ve bu adresin FRONTEND_ORIGINS içinde olduğunu kontrol edin.`));
     });
     return () => { cancelled = true; };
   }, []);
@@ -46,7 +46,7 @@ export function LoginScreen() {
     event.preventDefault();
     setError(null);
     if (settingUp && passphrase !== repeat) {
-      setError("The two passphrases differ.");
+      setError("İki parola birbirinden farklı.");
       return;
     }
     setBusy(true);
@@ -55,7 +55,7 @@ export function LoginScreen() {
       else await auth.login(passphrase);
       window.location.replace(nextPath());
     } catch (err) {
-      setError(message(err, "Could not sign in. Try again."));
+      setError(message(err, "Giriş yapılamadı. Yeniden deneyin."));
       setBusy(false);
     }
   };
@@ -63,36 +63,36 @@ export function LoginScreen() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-inset px-4">
       <main className="w-full max-w-sm space-y-5 rounded-lg border border-line bg-raised p-6">
-        <h1 className="text-lg font-semibold">{settingUp ? "Set the owner passphrase" : "Sign in to Open Duet"}</h1>
+        <h1 className="text-lg font-semibold">{settingUp ? "Sahip parolasını belirleyin" : "Open Duet'e giriş yapın"}</h1>
         {problem && <p role="alert" className="text-sm text-danger">{problem}</p>}
-        {!status && !problem && <p className="text-sm text-muted">Loading…</p>}
+        {!status && !problem && <p className="text-sm text-muted">Yükleniyor…</p>}
         {settingUp && !status.setup_allowed && (
           <div className="space-y-2 text-sm text-muted">
-            <p>No owner passphrase is set yet, and it can only be set from the server itself. On the server, run:</p>
+            <p>Henüz bir sahip parolası belirlenmedi ve parola yalnız sunucunun kendisinden belirlenebilir. Sunucuda şunu çalıştırın:</p>
             <pre className="overflow-x-auto rounded bg-inset p-3 text-xs">cd backend{"\n"}uv run python -m app.auth.cli set-passphrase</pre>
-            <p>Then reload this page and sign in.</p>
+            <p>Sonra bu sayfayı yeniden yükleyip giriş yapın.</p>
           </div>
         )}
         {status && (!settingUp || status.setup_allowed) && (
           <form onSubmit={submit} className="space-y-4">
-            {settingUp && <p className="text-sm text-muted">This passphrase protects this server. Use at least 10 characters; you will sign in with it on every new browser.</p>}
+            {settingUp && <p className="text-sm text-muted">Bu parola bu sunucuyu korur. En az 10 karakter kullanın; her yeni tarayıcıda bu parolayla giriş yapacaksınız.</p>}
             <div className="space-y-1">
-              <label htmlFor="passphrase" className="block text-sm font-medium">Passphrase</label>
+              <label htmlFor="passphrase" className="block text-sm font-medium">Parola</label>
               <input id="passphrase" type="password" className={inputClass} value={passphrase} onChange={(e) => setPassphrase(e.target.value)}
                 autoComplete={settingUp ? "new-password" : "current-password"} required minLength={settingUp ? 10 : 1} autoFocus />
             </div>
             {settingUp && (
               <div className="space-y-1">
-                <label htmlFor="repeat" className="block text-sm font-medium">Repeat it</label>
+                <label htmlFor="repeat" className="block text-sm font-medium">Parolayı yineleyin</label>
                 <input id="repeat" type="password" className={inputClass} value={repeat} onChange={(e) => setRepeat(e.target.value)} autoComplete="new-password" required />
               </div>
             )}
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            <button type="submit" className={buttonClass} disabled={busy}>{busy ? "Working…" : settingUp ? "Set passphrase and sign in" : "Sign in"}</button>
+            <button type="submit" className={buttonClass} disabled={busy}>{busy ? "İşleniyor…" : settingUp ? "Parolayı belirle ve giriş yap" : "Giriş yap"}</button>
           </form>
         )}
         {status && !settingUp && (
-          <p className="text-xs text-muted">Have a pairing code from Settings → Devices? <Link href="/pair/" className="underline">Pair this browser</Link>.</p>
+          <p className="text-xs text-muted">Ayarlar → Cihazlar bölümünden aldığınız bir eşleştirme kodunuz mu var? <Link href="/pair/" className="underline">Bu tarayıcıyı eşleştirin</Link>.</p>
         )}
       </main>
     </div>

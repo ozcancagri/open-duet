@@ -14,18 +14,18 @@ from app.services.local_claude_runner import child_env
 
 async def logout(controller, engine_id: str, executable: Path):
     if controller.task and not controller.task.done():
-        raise LoginError("Finish or cancel the pending account operation first.")
+        raise LoginError("Önce bekleyen hesap işlemini tamamlayın ya da iptal edin.")
     env = child_env()
     variable, folder = ("CODEX_HOME", ".codex") if engine_id == "codex" else ("CLAUDE_CONFIG_DIR", ".claude")
     home = Path(env.get(variable) or str(Path.home() / folder))
     if not home.is_absolute():
-        raise LoginError("Use an absolute engine account folder.")
+        raise LoginError("Tam (mutlak) bir motor hesap klasörü kullanın.")
     home = home.resolve()
     home.mkdir(parents=True, exist_ok=True)
     fd = os.open(home / ".open-dots-login.lock", os.O_RDWR | os.O_CREAT, 0o600)
     if not data_lease._try_lock(fd):
         os.close(fd)
-        raise LoginError("Another account operation is running.")
+        raise LoginError("Başka bir hesap işlemi sürüyor.")
     # Reserve before yielding. start(), close(), and another controller using
     # this credential home all see the same operation/lock.
     controller.flow = None
@@ -44,7 +44,7 @@ async def _run(engine_id, executable, env):
     args += ["logout"] if engine_id == "codex" else ["auth", "logout"]
     result = await _probe(args, timeout=10, env=env)
     if not result.ok:
-        raise LoginError("The CLI did not complete sign-out. Check its installation and try again.")
+        raise LoginError("CLI çıkışı tamamlamadı. Kurulumunu kontrol edip yeniden deneyin.")
     args = [str(executable)]
     args += ["login", "status"] if engine_id == "codex" else ["auth", "status", "--json"]
     result = await _probe(args, timeout=8, env=env)
@@ -58,7 +58,7 @@ async def _run(engine_id, executable, env):
             except (ValueError, AttributeError):
                 pass
     if not confirmed:
-        raise LoginError("The CLI could not confirm sign-out. An environment key may still connect this engine.")
+        raise LoginError("CLI çıkışı doğrulayamadı. Bir ortam değişkenindeki anahtar bu motoru hâlâ bağlıyor olabilir.")
 
 
 async def _probe(args, *, timeout, env):
