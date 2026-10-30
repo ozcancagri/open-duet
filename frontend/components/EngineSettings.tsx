@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError, type Engine, type EngineConfigField } from "@/lib/api";
-import { ENDPOINT_TEMPLATES, engineConfig, engineDraft, engineGroups, isClaudeEngine } from "@/lib/engines";
+import { ENDPOINT_TEMPLATES, apiMode, engineConfig, engineDraft, engineGroups, isClaudeEngine } from "@/lib/engines";
 import { ClaudeEngineSetup } from "./ClaudeEngineSetup";
 import { CodexEngineSetup } from "./CodexEngineSetup";
 import { GoogleEngineSetup } from "./GoogleEngineSetup";
@@ -84,15 +84,15 @@ export function EngineSettings({ onEnginesChanged }: { onEnginesChanged?: (engin
     {engineGroups(engines ?? []).map((group) => <div key={group.label} className="space-y-3"><h4 className="text-sm font-semibold">{group.label}</h4>{group.engines.map((engine) => {
       const fields = engine.config_fields ?? [];
       return <article key={engine.id} className="min-w-0 space-y-3 rounded-md border border-line p-4">
-        <div className="flex flex-wrap items-center gap-2"><h5 className="font-medium">{engine.label}</h5><span className={`rounded px-2 py-0.5 text-xs ${engine.available ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{engine.available ? "Ready" : "Needs setup"}</span>{engine.version && <span className="text-xs text-muted">{engine.version}</span>}</div>
+        <div className="flex flex-wrap items-center gap-2"><h5 className="font-medium">{engine.label}</h5><span className={`rounded px-2 py-0.5 text-xs ${engine.available ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>{engine.available ? "Ready" : "Needs setup"}</span>{engine.version && <span className="text-xs text-muted">{engine.version}</span>}{apiMode(engine) && <span className="rounded bg-accent/15 px-2 py-0.5 text-xs">API key</span>}</div>
         {!engine.available && <p className="break-words text-xs text-muted">{engine.reason}</p>}
-        {isClaudeEngine(engine.id) && engine.installed && <ClaudeEngineSetup engine={engine.id} label={engine.label} signedIn={engine.signed_in} onChanged={() => setRefresh((n) => n + 1)} />}
-        {engine.id === "codex" && engine.installed && <CodexEngineSetup signedIn={engine.signed_in} onChanged={() => setRefresh((n) => n + 1)} />}
+        {isClaudeEngine(engine.id) && engine.installed && !apiMode(engine) && <ClaudeEngineSetup engine={engine.id} label={engine.label} signedIn={engine.signed_in} onChanged={() => setRefresh((n) => n + 1)} />}
+        {engine.id === "codex" && engine.installed && !apiMode(engine) && <CodexEngineSetup signedIn={engine.signed_in} onChanged={() => setRefresh((n) => n + 1)} />}
         {engine.id === "antigravity" && <GoogleEngineSetup engine={engine} onChanged={() => {
           setDrafts((previous) => { const next = { ...previous }; delete next.antigravity; return next; });
           setRefresh((n) => n + 1);
         }} />}
-        {engine.setup && <div className="space-y-1 text-xs text-muted">
+        {engine.setup && !apiMode(engine) && <div className="space-y-1 text-xs text-muted">
           {engine.setup.install && <p>Install: <code className="break-all">{engine.setup.install}</code></p>}
           {engine.setup.sign_in && <p>Sign in: <code className="break-all">{engine.setup.sign_in}</code></p>}
           {engine.setup.notes?.map((note) => <p key={note}>{note}</p>)}

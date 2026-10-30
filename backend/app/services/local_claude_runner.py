@@ -295,21 +295,27 @@ def workspace_dir() -> Path:
     return workspace
 
 
-# The account folder (CLAUDE_CONFIG_DIR) of the Claude engine that is running
-# now; None is the CLI's own default. A context variable, so each turn, status
-# check and sign-in of an extra account carries its own folder into the
-# processes it starts, including those started from worker threads.
-_account_dir: ContextVar[str | None] = ContextVar("claude_account_dir", default=None)
+# What the engine that is running now adds to its processes' environment: the
+# account folder of an extra Claude account (CLAUDE_CONFIG_DIR), or the folder
+# and key of an engine in API mode (engine_api_mode.py). A context variable, so
+# each turn, status check and sign-in carries its own values into the processes
+# it starts, including those started from worker threads.
+_engine_env: ContextVar[dict[str, str]] = ContextVar("engine_env", default={})
 
 
 @contextmanager
-def account(config_dir: str | None) -> Iterator[None]:
-    """Run what is inside as the Claude account in `config_dir` (None: the default one)."""
-    token = _account_dir.set(config_dir)
+def engine_env(values: dict[str, str]) -> Iterator[None]:
+    """Run what is inside with `values` added to every engine process's environment."""
+    token = _engine_env.set({**_engine_env.get(), **values})
     try:
         yield
     finally:
-        _account_dir.reset(token)
+        _engine_env.reset(token)
+
+
+def account(config_dir: str | None):
+    """Run what is inside as the Claude account in `config_dir` (None: the default one)."""
+    return engine_env({"CLAUDE_CONFIG_DIR": config_dir} if config_dir else {})
 
 
 def _child_env(*, extra_names=(), extra_env=None) -> dict[str, str]:
@@ -318,9 +324,7 @@ def _child_env(*, extra_names=(), extra_env=None) -> dict[str, str]:
         # Values supplied by an adapter are scoped to this process. The
         # never-list still wins, including for explicit overrides.
         env.update(engine_environment(extra_env, extra_names=extra_env))
-    config_dir = _account_dir.get()
-    if config_dir:
-        env["CLAUDE_CONFIG_DIR"] = config_dir
+    env.update(_engine_env.get())
     # The CLI's own memory feature can save notes under ~/.claude/projects/,
     # outside the workspace and without asking. Not for runs this app starts;
     # the user's own use of the CLI is unaffected (only this process sees it).
@@ -633,12 +637,19 @@ def _status_blocking() -> CliStatus:
     status = CliStatus(installed=True, version=version.stdout.strip() or None)
     auth = call("auth", "status", "--json")
     try:
-        # Only loggedIn is read: the payload also carries the account's email
-        # and organisation, which must not be forwarded or logged.
-        status.signed_in = bool(json.loads(auth.stdout).get("loggedIn"))
+        # Only loggedIn and authMethod are read: the payload also carries the
+        # account's email and organisation, which must not be forwarded or logged.
+        said = json.loads(auth.stdout)
+        status.signed_in = bool(said.get("loggedIn"))
+        method = said.get("authMethod")
     except (json.JSONDecodeError, AttributeError):
         status.signed_in = None
         status.error = "Could not determine whether Claude is signed in."
+        return status
+    if "ANTHROPIC_API_KEY" in _engine_env.get() and method != "api_key":
+        # API mode: a turn must be billed to the key, never to a sign-in.
+        status.signed_in = False
+        status.error = "Claude is not using the saved API key. Check the key in engine settings."
         return status
     if not status.signed_in:
         status.error = "Claude is not signed in. Open engine settings to sign in."

@@ -31,7 +31,7 @@ from app.computers import grants
 from app.computers.service import COMPUTER_TOOL_PREFIX
 from app.core import app_settings
 from app.core.logging import get_logger
-from app.services import engine_errors, local_claude_runner, memory_bridge
+from app.services import engine_api_mode, engine_errors, local_claude_runner, memory_bridge
 from app.services.local_approval_broker import (
     DENY_BY_USER,
     DENY_CANCELLED,
@@ -162,13 +162,38 @@ class ClaudeAdapter:
         ModelOption("haiku", "Haiku"),
     ]
     custom_models = True
-    needs_config = False
+    # Optional: with an API key saved here, turns run in API mode (engine_api_mode.py).
+    needs_config = True
+    config_fields = [engine_api_mode.field(
+        "Anthropic API key (sk-ant-…). With a key, Open Duet runs Claude Code on API credits in a folder "
+        "of its own and never uses your subscription sign-in. Leave empty to keep the saved key."
+    )]
+    config: dict | None = None
+    # The account folder of an extra Claude account; None is the CLI's default.
+    config_dir: str | None = None
+
+    def validate_config(self, payload: dict, current: dict | None) -> dict:
+        return engine_api_mode.validate(payload, current, prefix="sk-ant-", service="Anthropic")
+
+    def public_config(self, config: dict | None) -> dict | None:
+        return engine_api_mode.public(config)
+
+    def _account(self):
+        """The account this engine's processes run as: its API key in its own
+        folder in API mode, otherwise the CLI's sign-in in `config_dir`."""
+        key = engine_api_mode.key_of(self.config)
+        if key:
+            return local_claude_runner.engine_env(
+                {"CLAUDE_CONFIG_DIR": str(engine_api_mode.home(self.key)), "ANTHROPIC_API_KEY": key}
+            )
+        return local_claude_runner.account(self.config_dir)
 
     def new_session_id(self) -> str:
         return str(uuid4())
 
     async def status(self) -> ProviderStatus:
-        cli = await local_claude_runner.get_status()
+        with self._account():
+            cli = await local_claude_runner.get_status()
         ready = cli.installed and cli.signed_in is True
         return ProviderStatus(
             ready=ready,
@@ -212,7 +237,8 @@ class ClaudeAdapter:
                 )
 
         try:
-            out = await run_in_threadpool(call)
+            with self._account():
+                out = await run_in_threadpool(call)
         except asyncio.CancelledError:
             # A timeout or a Stop cancels the call: the process goes with it.
             control.kill()
@@ -235,9 +261,10 @@ class ClaudeAdapter:
         # then runs with approvals, but with the host's own tools off unless
         # they were on already.
         tools = host_tools or ctx.memory_launch is not None or ctx.composio_launch is not None
-        attempt = await self._attempt(ctx, sink, gate, resume=ctx.resume, tools=tools, host_tools=host_tools)
-        if attempt.already_in_use and not attempt.resume and not ctx.aborted:
-            attempt = await self._attempt(ctx, sink, gate, resume=True, tools=tools, host_tools=host_tools)
+        with self._account():
+            attempt = await self._attempt(ctx, sink, gate, resume=ctx.resume, tools=tools, host_tools=host_tools)
+            if attempt.already_in_use and not attempt.resume and not ctx.aborted:
+                attempt = await self._attempt(ctx, sink, gate, resume=True, tools=tools, host_tools=host_tools)
         return self._outcome(ctx, attempt, tools=tools)
 
     # -- one launch ------------------------------------------------------------
@@ -545,18 +572,7 @@ class ClaudeAccountAdapter(ClaudeAdapter):
             "sign_in": sign_in,
             "notes": [f"This engine uses the Claude account in {config_dir}. Sign in here, then check again."],
         }
-
-    async def status(self) -> ProviderStatus:
-        with local_claude_runner.account(self.config_dir):
-            return await super().status()
-
-    async def generate_text(self, prompt: str, **kwargs) -> str:
-        with local_claude_runner.account(self.config_dir):
-            return await super().generate_text(prompt, **kwargs)
-
-    async def run_turn(self, ctx: TurnContext, sink: EventSink, gate: ApprovalGate) -> TurnOutcome:
-        with local_claude_runner.account(self.config_dir):
-            return await super().run_turn(ctx, sink, gate)
+        self.config = None
 
 
 def account_dir(adapter) -> str | None:

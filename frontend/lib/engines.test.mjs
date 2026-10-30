@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { engineConfig, engineDraft, engineGroups, firstReadyEngine, isClaudeEngine } from "./engines.ts";
+import { apiMode, engineConfig, engineDraft, engineGroups, firstReadyEngine, isClaudeEngine } from "./engines.ts";
+
+test("an engine with a saved API key is in API mode", () => {
+  assert.equal(apiMode({ config: { mode: "api", has_api_key: true } }), true);
+  assert.equal(apiMode({ config: null }), false);
+});
 
 test("extra Claude accounts are Claude engines", () => {
   assert.equal(isClaudeEngine("claude"), true);

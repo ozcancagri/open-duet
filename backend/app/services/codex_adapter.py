@@ -52,7 +52,7 @@ from app.computers.policy import COMPUTER_TOOL_PREFIX
 from app.core import app_settings
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.services import cli_probe, composio_bridge, local_claude_runner, memory_bridge
+from app.services import cli_probe, composio_bridge, engine_api_mode, local_claude_runner, memory_bridge
 from app.services.local_approval_broker import MAX_REVIEWABLE_INPUT_CHARS
 from app.services.local_claude_stream import summarize_tool
 from app.services.provider_adapter import (
@@ -220,12 +220,50 @@ class CodexAdapter:
     )
     models: list[ModelOption] = []
     custom_models = True
-    needs_config = False
+    # Optional: with an API key saved here, turns run in API mode (engine_api_mode.py).
+    needs_config = True
+    config_fields = [engine_api_mode.field(
+        "OpenAI API key (sk-…). With a key, Open Duet runs Codex on API credits in a folder of its own "
+        "and never uses your ChatGPT sign-in. Leave empty to keep the saved key."
+    )]
     version_timeout = 5.0
     login_timeout = 8.0
 
     def __init__(self) -> None:
         self._models: tuple[float, list[ModelOption]] | None = None
+        self.config: dict | None = None
+
+    def validate_config(self, payload: dict, current: dict | None) -> dict:
+        return engine_api_mode.validate(payload, current, prefix="sk-", service="OpenAI")
+
+    def public_config(self, config: dict | None) -> dict | None:
+        return engine_api_mode.public(config)
+
+    async def _account(self, exe: Path) -> tuple[dict | None, str | None]:
+        """(environment, error): what this engine's processes get added to their
+        environment. In API mode that is its own CODEX_HOME, signed in with the
+        saved key (again only when the key changed); otherwise nothing, for the
+        CLI's own sign-in."""
+        key = engine_api_mode.key_of(self.config)
+        if not key:
+            return {}, None
+        home = engine_api_mode.home(self.key)
+        marker = home / ".open-duet-key"
+        want = engine_api_mode.fingerprint(key)
+        values = {"CODEX_HOME": str(home)}
+        if (home / "auth.json").is_file() and marker.is_file() and marker.read_text(encoding="utf-8").strip() == want:
+            return values, None
+        from fastapi.concurrency import run_in_threadpool
+
+        with local_claude_runner.engine_env(values):
+            out = await run_in_threadpool(
+                local_claude_runner.run_blocking, [str(exe), "login", "--with-api-key"], stdin_text=key,
+                cwd=home, timeout_seconds=20, max_output_bytes=20_000, keep_stdin_open=False,
+            )
+        if out.exit_code != 0:
+            return None, "Codex could not save the API key. Check the key in engine settings."
+        marker.write_text(want, encoding="utf-8")
+        return values, None
 
     def new_session_id(self) -> str:
         # The app's own id for the conversation's session; Codex's thread id
@@ -256,10 +294,20 @@ class CodexAdapter:
                 else "The Codex CLI could not be started.",
             )
         number = version.stdout.strip() or None
+        values, problem = await self._account(exe)
+        if values is None:
+            return EngineProbe(installed=True, ready=False, version=number, signed_in=False, reason=problem)
+        with local_claude_runner.engine_env(values):
+            return await self._probe_signed_in(exe, number, models)
+
+    async def _probe_signed_in(self, exe: Path, number: str | None, models: bool) -> EngineProbe:
         login = await cli_probe.run([str(exe), "login", "status"], timeout=self.login_timeout)
         said = f"{login.stdout}\n{login.stderr}"
-        # Only the first words are read; the rest can name the account.
-        if login.ok and re.search(r"^\s*logged in\b", said, re.IGNORECASE | re.MULTILINE):
+        # Only the first words are read; the rest can name the account. An API
+        # key reads "API key configured" and is checked when a request is sent.
+        api_mode = engine_api_mode.key_of(self.config) is not None
+        signed = r"^\s*api key configured\b" if api_mode else r"^\s*logged in\b"
+        if login.ok and re.search(signed, said, re.IGNORECASE | re.MULTILINE):
             signed_in: bool | None = True
         elif re.search(r"^\s*not logged in\b", said, re.IGNORECASE | re.MULTILINE):
             signed_in = False
@@ -328,8 +376,12 @@ class CodexAdapter:
                 error="Codex cannot control this Mac's desktop. Use a Docker computer, or switch this agent to Claude.",
                 error_code="engine_without_computers",
             )
+        values, problem = await self._account(exe)
+        if values is None:
+            return TurnOutcome("failed", error=problem, error_code="cli_unavailable")
         run = _CodexTurn(ctx, sink, gate, exe, codex_thread)
-        return await run.go()
+        with local_claude_runner.engine_env(values):
+            return await run.go()
 
 
 @dataclass(eq=False)

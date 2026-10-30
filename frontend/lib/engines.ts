@@ -12,7 +12,12 @@ export function isClaudeEngine(id: string): boolean {
   return id === "claude" || /^claude_[a-z0-9]{1,20}$/.test(id);
 }
 
-const FIRST_RUN_ORDER =["claude", "codex", "cursor", "opencode", "antigravity", "gemini", "openrouter"];
+// Claude or Codex with an API key saved in Open Duet: billed to API credits, the CLI's sign-in unused.
+export function apiMode(engine: Pick<Engine, "config">): boolean {
+  return engine.config?.mode === "api";
+}
+
+const FIRST_RUN_ORDER = ["claude", "codex", "cursor", "opencode", "antigravity", "gemini", "openrouter"];
 
 export function firstReadyEngine(engines: Engine[], current?: string): string | null {
   if (current && engines.some((engine) => engine.id === current && engine.available)) return current;
