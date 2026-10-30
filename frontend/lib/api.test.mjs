@@ -15,8 +15,9 @@ test('engine sign-out uses the explicit authenticated logout endpoints', async (
   try {
     await api.logoutClaudeEngine();
     await api.logoutCodexEngine();
+    await api.logoutClaudeEngine('claude_gmail');
     assert.deepEqual(requests.map(({ url }) => new URL(url).pathname), [
-      '/api/v1/engines/claude/logout', '/api/v1/engines/codex/logout',
+      '/api/v1/engines/claude/logout', '/api/v1/engines/codex/logout', '/api/v1/engines/claude_gmail/logout',
     ]);
     for (const { init } of requests) {
       assert.equal(init.method, 'POST');

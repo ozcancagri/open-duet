@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { engineConfig, engineDraft, engineGroups, firstReadyEngine } from "./engines.ts";
+import { engineConfig, engineDraft, engineGroups, firstReadyEngine, isClaudeEngine } from "./engines.ts";
+
+test("extra Claude accounts are Claude engines", () => {
+  assert.equal(isClaudeEngine("claude"), true);
+  assert.equal(isClaudeEngine("claude_gmail"), true);
+  assert.equal(isClaudeEngine("claude_"), false);
+  assert.equal(isClaudeEngine("claude_Gmail"), false);
+  assert.equal(isClaudeEngine("codex"), false);
+});
 
 const engines = [
   { id: "claude", available: false },

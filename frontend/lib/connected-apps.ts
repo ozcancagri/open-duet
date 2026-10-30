@@ -109,7 +109,8 @@ export const AGENT_APPS: { slug: string; label: string; read: string; write: str
 const APPS_ENGINES = new Set(["claude", "codex"]);
 
 export function supportsConnectedApps(provider: string): boolean {
-  return APPS_ENGINES.has(provider);
+  // Extra Claude accounts (claude_<name>) are the Claude engine on another account.
+  return APPS_ENGINES.has(provider) || /^claude_[a-z0-9]{1,20}$/.test(provider);
 }
 
 export type Level = "off" | "read" | "write";

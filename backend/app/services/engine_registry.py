@@ -123,7 +123,42 @@ def default_adapters() -> dict:
         except Exception as exc:  # noqa: BLE001
             logger.exception("could not set up an engine", engine=key)
             adapters[key] = UnavailableAdapter(key, label, f"This engine could not be set up ({exc.__class__.__name__}).")
-    return adapters
+    accounts = claude_accounts(os.environ)
+    if not accounts or "claude" not in adapters:
+        return adapters
+    from app.services.claude_adapter import ClaudeAccountAdapter
+
+    # Extra Claude accounts are listed right after Claude itself.
+    ordered: dict = {}
+    for key, adapter in adapters.items():
+        ordered[key] = adapter
+        if key == "claude":
+            ordered.update({k: ClaudeAccountAdapter(k, label, folder) for k, label, folder in accounts})
+    return ordered
+
+
+CLAUDE_ACCOUNTS_VARIABLE = "OPEN_DUET_CLAUDE_ACCOUNTS"
+_ACCOUNT_NAME = re.compile(r"^[a-z0-9]{1,20}$")
+
+
+def claude_accounts(environ) -> list[tuple[str, str, str]]:
+    """Extra Claude accounts as (engine key, label, account folder), from
+    `OPEN_DUET_CLAUDE_ACCOUNTS="name=C:\\folder;other=/folder"`. Each name
+    becomes the engine `claude_<name>`; each folder is that account's
+    CLAUDE_CONFIG_DIR and must be a full path. A malformed entry is skipped."""
+    accounts: list[tuple[str, str, str]] = []
+    seen: set[str] = set()
+    for item in environ.get(CLAUDE_ACCOUNTS_VARIABLE, "").split(";"):
+        name, _, folder = item.strip().partition("=")
+        name, folder = name.strip().lower(), folder.strip()
+        if not name and not folder:
+            continue
+        if not _ACCOUNT_NAME.match(name) or name in seen or not os.path.isabs(folder):
+            logger.warning("skipped a Claude account entry", variable=CLAUDE_ACCOUNTS_VARIABLE, name=name[:20])
+            continue
+        seen.add(name)
+        accounts.append((f"claude_{name}", f"Claude ({name})", folder))
+    return accounts
 
 
 def label_of(adapter, key: str) -> str:

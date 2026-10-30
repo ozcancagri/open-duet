@@ -22,6 +22,7 @@ Session rules (verified against Claude Code 2.1.232):
 
 import asyncio
 import json
+import sys
 from dataclasses import dataclass
 from uuid import uuid4
 
@@ -524,3 +525,40 @@ class ClaudeAdapter:
         # Prefer the CLI's own final text; if it sent none, keep what was streamed.
         text = final.text if final.text and final.text.strip() else n.text
         return TurnOutcome("succeeded", result=text, **common)
+
+
+class ClaudeAccountAdapter(ClaudeAdapter):
+    """Claude signed in to another account: the same CLI with its own account
+    folder (CLAUDE_CONFIG_DIR), offered as an engine of its own so each agent
+    can choose which account it runs on. Configured by OPEN_DUET_CLAUDE_ACCOUNTS
+    (engine_registry.claude_accounts)."""
+
+    def __init__(self, key: str, label: str, config_dir: str) -> None:
+        self.key = key
+        self.label = label
+        self.config_dir = config_dir
+        # A plain `claude auth login` would sign in the default account, not this one.
+        sign_in = (f"$env:CLAUDE_CONFIG_DIR='{config_dir}'; claude auth login" if sys.platform == "win32"
+                   else f"CLAUDE_CONFIG_DIR='{config_dir}' claude auth login")
+        self.setup = {
+            **ClaudeAdapter.setup,
+            "sign_in": sign_in,
+            "notes": [f"This engine uses the Claude account in {config_dir}. Sign in here, then check again."],
+        }
+
+    async def status(self) -> ProviderStatus:
+        with local_claude_runner.account(self.config_dir):
+            return await super().status()
+
+    async def generate_text(self, prompt: str, **kwargs) -> str:
+        with local_claude_runner.account(self.config_dir):
+            return await super().generate_text(prompt, **kwargs)
+
+    async def run_turn(self, ctx: TurnContext, sink: EventSink, gate: ApprovalGate) -> TurnOutcome:
+        with local_claude_runner.account(self.config_dir):
+            return await super().run_turn(ctx, sink, gate)
+
+
+def account_dir(adapter) -> str | None:
+    """The account folder a Claude engine runs with; None for the CLI's default account."""
+    return getattr(adapter, "config_dir", None) if isinstance(adapter, ClaudeAdapter) else None

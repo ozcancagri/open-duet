@@ -109,6 +109,7 @@ test("saving sends known levels for engines that support apps", () => {
   assert.deepEqual(scopesToSend({ github: "write", gmail: "read", slack: "write" }, "claude"), { github: "write", gmail: "read" });
   assert.equal(scopesToSend({ github: "admin" }, "claude"), null);
   assert.equal(supportsConnectedApps("codex"), true);
+  assert.equal(supportsConnectedApps("claude_gmail"), true);
   assert.equal(supportsConnectedApps("openai_compat"), false);
   assert.ok(AGENT_APPS.every((app) => app.slug && app.label && app.read && (app.write === null || typeof app.write === 'string')));
 });

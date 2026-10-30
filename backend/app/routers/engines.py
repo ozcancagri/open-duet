@@ -186,6 +186,26 @@ def _login_owner(request: Request) -> str:
     return f"{principal.kind}:{principal.session_id}"
 
 
+def _claude_login(rt: ThreadRuntime, engine_id: str):
+    """The sign-in controller of a Claude engine (Claude or an extra Claude account), or None."""
+    if engine_id == "claude":
+        return rt.claude_login
+    from app.services.claude_adapter import ClaudeAccountAdapter
+    from app.services.claude_login import ClaudeLogin
+
+    if not isinstance(rt.adapters.get(engine_id), ClaudeAccountAdapter):
+        return None
+    return rt.claude_account_logins.setdefault(engine_id, ClaudeLogin())
+
+
+def _claude_account(rt: ThreadRuntime, engine_id: str):
+    """Runs what is inside as the account of Claude engine `engine_id`."""
+    from app.services.claude_adapter import account_dir
+    from app.services.local_claude_runner import account
+
+    return account(account_dir(rt.adapters.get(engine_id)))
+
+
 @router.post("/{engine_id}/logout", status_code=204)
 async def logout_engine(engine_id: str, request: Request, response: Response, rt: ThreadRuntime = Depends(get_runtime)):
     from app.services import engine_logout
@@ -195,7 +215,8 @@ async def logout_engine(engine_id: str, request: Request, response: Response, rt
 
     _login_owner(request)
     response.headers["Cache-Control"] = "no-store"
-    if engine_id not in {"claude", "codex"}:
+    controller = rt.codex_login if engine_id == "codex" else _claude_login(rt, engine_id)
+    if controller is None:
         raise HTTPException(status_code=404, detail="Engine not found")
     if rt._closing or engine_id not in rt.adapters:
         raise _error(409, "engine_unavailable", "This engine is unavailable on this server.")
@@ -208,7 +229,8 @@ async def logout_engine(engine_id: str, request: Request, response: Response, rt
         raise _error(409, "engine_busy", "Stop running conversations before signing out.")
     rt._account_changing = True
     try:
-        await engine_logout.logout(getattr(rt, f"{engine_id}_login"), engine_id, executable)
+        with _claude_account(rt, engine_id):
+            await engine_logout.logout(controller, "codex" if engine_id == "codex" else "claude", executable)
     except (LoginError, OSError):
         raise _error(409, "logout_unavailable", "Could not confirm sign-out. Finish pending sign-in, check the CLI and any configured API key, then try again.") from None
     finally:
@@ -254,43 +276,56 @@ async def cancel_codex_login(flow_id: str, request: Request, rt: ThreadRuntime =
         raise HTTPException(status_code=404, detail="Sign-in not found") from None
 
 
-@router.post("/claude/login", status_code=202)
-async def start_claude_login(request: Request, response: Response, rt: ThreadRuntime = Depends(get_runtime)):
+def _claude_login_or_404(rt: ThreadRuntime, engine_id: str):
+    controller = _claude_login(rt, engine_id)
+    if controller is None:
+        raise HTTPException(status_code=404, detail="Engine not found")
+    return controller
+
+
+# Claude and each extra Claude account (claude_<name>). Declared after the Codex
+# routes, so /codex/login is still Codex's own.
+@router.post("/{engine_id}/login", status_code=202)
+async def start_claude_login(engine_id: str, request: Request, response: Response, rt: ThreadRuntime = Depends(get_runtime)):
     from app.services.local_claude_runner import resolve_claude_executable
     from app.services.codex_login import LoginError
 
     owner = _login_owner(request)
     response.headers["Cache-Control"] = "no-store"
-    if rt._closing or "claude" not in rt.adapters:
+    controller = _claude_login_or_404(rt, engine_id)
+    if rt._closing or engine_id not in rt.adapters:
         raise _error(409, "engine_unavailable", "Claude is unavailable on this server.")
     executable = resolve_claude_executable()
     if executable is None:
         raise _error(409, "engine_unavailable", "Install the Claude CLI on the server first.")
     try:
-        return await rt.claude_login.start(owner, executable)
+        with _claude_account(rt, engine_id):
+            return await controller.start(owner, executable)
     except (LoginError, OSError):
         raise _error(409, "login_unavailable", "Claude sign-in is busy or its account folder is unavailable. Finish any pending sign-in and try again.") from None
 
 
-@router.get("/claude/login/{flow_id}")
-async def claude_login_status(flow_id: str, request: Request, response: Response, rt: ThreadRuntime = Depends(get_runtime)):
+@router.get("/{engine_id}/login/{flow_id}")
+async def claude_login_status(engine_id: str, flow_id: str, request: Request, response: Response, rt: ThreadRuntime = Depends(get_runtime)):
     response.headers["Cache-Control"] = "no-store"
+    controller = _claude_login_or_404(rt, engine_id)
     try:
-        result = rt.claude_login.view(_login_owner(request), flow_id)
+        result = controller.view(_login_owner(request), flow_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Sign-in not found") from None
     if result["phase"] == "succeeded":
-        rt.engines.forget("claude")
+        rt.engines.forget(engine_id)
     return result
 
 
-@router.post("/claude/login/{flow_id}/code", status_code=204)
-async def complete_claude_login(flow_id: str, request: Request, response: Response, rt: ThreadRuntime = Depends(get_runtime)):
+@router.post("/{engine_id}/login/{flow_id}/code", status_code=204)
+async def complete_claude_login(engine_id: str, flow_id: str, request: Request, response: Response, rt: ThreadRuntime = Depends(get_runtime)):
     import json
     from app.services.codex_login import LoginError
 
     owner = _login_owner(request)
     response.headers["Cache-Control"] = "no-store"
+    controller = _claude_login_or_404(rt, engine_id)
     try:
         # Avoid validation errors that echo a pasted authorization code.
         body = bytearray()
@@ -301,16 +336,17 @@ async def complete_claude_login(flow_id: str, request: Request, response: Respon
         payload = json.loads(body)
         if not isinstance(payload, dict) or set(payload) != {"code"} or not isinstance(payload["code"], str):
             raise ValueError
-        await rt.claude_login.complete(owner, flow_id, payload["code"])
+        await controller.complete(owner, flow_id, payload["code"])
     except KeyError:
         raise HTTPException(status_code=404, detail="Sign-in not found") from None
     except (ValueError, TypeError, LoginError):
         raise _error(422, "invalid_login_code", "The code or sign-in is invalid or already submitted. Check the code, or start sign-in again.") from None
 
 
-@router.delete("/claude/login/{flow_id}", status_code=204)
-async def cancel_claude_login(flow_id: str, request: Request, rt: ThreadRuntime = Depends(get_runtime)):
+@router.delete("/{engine_id}/login/{flow_id}", status_code=204)
+async def cancel_claude_login(engine_id: str, flow_id: str, request: Request, rt: ThreadRuntime = Depends(get_runtime)):
+    controller = _claude_login_or_404(rt, engine_id)
     try:
-        await rt.claude_login.cancel(_login_owner(request), flow_id)
+        await controller.cancel(_login_owner(request), flow_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="Sign-in not found") from None

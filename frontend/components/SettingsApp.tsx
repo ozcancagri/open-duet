@@ -17,6 +17,7 @@ declare global {
     openDots?: {
       choosePath(kind: "file" | "folder"): Promise<string | null>;
       openGoogleSignIn(url: string): Promise<void>;
+      openClaudeSignIn?(url: string): Promise<void>;
       openComposioLink(url: string): Promise<void>;
       nativeControl(request: import("@/components/chat/NativeComputer").NativeRequest): Promise<import("@/components/chat/NativeComputer").NativeStatus | { held: boolean }>;
       updates?: import("@/components/AppUpdates").UpdatesBridge;

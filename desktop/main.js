@@ -20,6 +20,7 @@ const { startBackend, backendEnvironment, newToken } = require("./src/backend");
 const { attachTokenTo, lockDown, sameOrigin } = require("./src/origin");
 const { registerPathPicker } = require("./src/path-picker");
 const { registerGoogleSignIn } = require("./src/google-sign-in");
+const { registerClaudeSignIn } = require("./src/claude-sign-in");
 const { registerComposioLink } = require("./src/composio-link");
 const { lastReason, describeFailure, describeUnexpectedExit } = require("./src/messages");
 const { NativeControl, registerNativeControl } = require("./src/native-control");
@@ -148,6 +149,7 @@ async function main() {
   const nativeConnection = await nativeControl.listen();
   registerPathPicker({ ipcMain, dialog, getWindow: () => window, getOrigin: () => backendOrigin });
   registerGoogleSignIn({ ipcMain, openExternal: (url) => shell.openExternal(url), getWindow: () => window, getOrigin: () => backendOrigin });
+  registerClaudeSignIn({ ipcMain, openExternal: (url) => shell.openExternal(url), getWindow: () => window, getOrigin: () => backendOrigin });
   registerComposioLink({ ipcMain, openExternal: (url) => shell.openExternal(url), getWindow: () => window, getOrigin: () => backendOrigin });
   updater = createUpdater({
     currentVersion: app.getVersion(),

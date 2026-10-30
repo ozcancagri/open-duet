@@ -19,7 +19,9 @@ import subprocess
 import sys
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -293,12 +295,32 @@ def workspace_dir() -> Path:
     return workspace
 
 
+# The account folder (CLAUDE_CONFIG_DIR) of the Claude engine that is running
+# now; None is the CLI's own default. A context variable, so each turn, status
+# check and sign-in of an extra account carries its own folder into the
+# processes it starts, including those started from worker threads.
+_account_dir: ContextVar[str | None] = ContextVar("claude_account_dir", default=None)
+
+
+@contextmanager
+def account(config_dir: str | None) -> Iterator[None]:
+    """Run what is inside as the Claude account in `config_dir` (None: the default one)."""
+    token = _account_dir.set(config_dir)
+    try:
+        yield
+    finally:
+        _account_dir.reset(token)
+
+
 def _child_env(*, extra_names=(), extra_env=None) -> dict[str, str]:
     env = engine_environment(extra_names=extra_names)
     if extra_env:
         # Values supplied by an adapter are scoped to this process. The
         # never-list still wins, including for explicit overrides.
         env.update(engine_environment(extra_env, extra_names=extra_env))
+    config_dir = _account_dir.get()
+    if config_dir:
+        env["CLAUDE_CONFIG_DIR"] = config_dir
     # The CLI's own memory feature can save notes under ~/.claude/projects/,
     # outside the workspace and without asking. Not for runs this app starts;
     # the user's own use of the CLI is unaffected (only this process sees it).

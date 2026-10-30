@@ -455,6 +455,8 @@ class ThreadRuntime:
     adapters: dict[str, ProviderAdapter] = field(default_factory=default_adapters)
     codex_login: CodexLogin = field(default_factory=CodexLogin)
     claude_login: ClaudeLogin = field(default_factory=ClaudeLogin)
+    # Sign-ins of the extra Claude accounts (engine_registry.claude_accounts), by engine key.
+    claude_account_logins: dict[str, ClaudeLogin] = field(default_factory=dict)
     # Account changes and turn admission reserve before their first await.
     _account_changing: bool = False
     _starting_turns: int = 0
@@ -1508,6 +1510,8 @@ class ThreadRuntime:
         self._closing = True
         await self.codex_login.close()
         await self.claude_login.close()
+        for login in self.claude_account_logins.values():
+            await login.close()
         self.capture.close()
         await self.team_jobs.close()
         runs = self._runs.all_values()
